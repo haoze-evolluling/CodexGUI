@@ -73,20 +73,31 @@ function App() {
 
   const createInFolder = (cwd: string) => setActive(fresh(cwd));
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
-  const archive = async () => {
-    if (!active || running) return;
-    const description = active.threadId
-      ? `归档“${active.title}”后，它将从列表移除，可在 Codex 中恢复。是否继续？`
-      : `“${active.title}”尚未发送到 Codex，将仅从本软件移除。是否继续？`;
+  const archive = async (target = active) => {
+    if (!target || runningSessions.has(target.id)) return;
+    const description = target.threadId
+      ? `归档“${target.title}”后，它将从列表移除，可在 Codex 中恢复。是否继续？`
+      : `“${target.title}”尚未发送到 Codex，将仅从本软件移除。是否继续？`;
     if (!window.confirm(description)) return;
-    const archived = await window.codex?.archiveSession(active);
+    const archived = await window.codex?.archiveSession(target);
     if (!archived?.ok) { window.alert(`归档失败：${archived?.error || '未知错误'}`); return; }
     const remaining = sessions.filter(session =>
-      session.id !== active.id &&
-      (!active.threadId || session.threadId !== active.threadId),
+      session.id !== target.id &&
+      (!target.threadId || session.threadId !== target.threadId),
     );
     setSessions(remaining);
-    setActive(remaining[0]);
+    setActive(current => current && (current.id === target.id || (target.threadId && current.threadId === target.threadId)) ? remaining[0] : current);
+  };
+  const archiveProject = async (cwd: string, projectSessions: Session[]) => {
+    if (projectSessions.some(session => runningSessions.has(session.id))) return;
+    const name = cwd.split(/[/\\]/).filter(Boolean).pop() || cwd;
+    if (!window.confirm(`归档项目“${name}”中的全部 ${projectSessions.length} 个对话？它们将从列表移除，可在 Codex 中恢复。`)) return;
+    const archived = await window.codex?.archiveProject(projectSessions);
+    if (!archived?.ok) { window.alert(`归档失败：${archived?.error || '未知错误'}`); return; }
+    const ids = new Set(projectSessions.map(session => session.id));
+    const remaining = sessions.filter(session => !ids.has(session.id));
+    setSessions(remaining);
+    setActive(current => current && ids.has(current.id) ? remaining[0] : current);
   };
 
   const groups = useMemo(() => {
@@ -107,15 +118,17 @@ function App() {
         {groups.map(group => {
           const name = group.cwd ? group.cwd.split(/[/\\]/).filter(Boolean).pop() || group.cwd : '未指定项目';
           const collapsed = collapsedGroups.has(group.cwd);
+          const projectRunning = group.items.some(session => runningSessions.has(session.id));
           return <section className="session-group" key={group.cwd || '__unassigned__'}>
             <div className="group-heading">
               <button className="group-toggle" onClick={() => setCollapsedGroups(current => { const next = new Set(current); if (next.has(group.cwd)) next.delete(group.cwd); else next.add(group.cwd); return next; })} title={collapsed ? '展开项目对话' : '折叠项目对话'}>
                 {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}<span>{name}</span><small>{group.items.length}</small>
               </button>
               {group.cwd && <button className="icon group-new" onClick={() => createInFolder(group.cwd)} title={`在 ${group.cwd} 中新建对话`}><Plus size={16} /></button>}
+              {group.cwd && <button className="icon group-archive" onClick={() => archiveProject(group.cwd, group.items)} title={projectRunning ? '项目中有对话正在执行，无法归档' : '归档该项目全部对话'} disabled={projectRunning}><Archive size={16} /></button>}
             </div>
             {group.cwd && <small className="group-path" title={group.cwd}>{group.cwd}</small>}
-            {!collapsed && <div className="group-sessions">{group.items.map(session => <button className={session.id === active?.id ? 'selected' : ''} onClick={() => setActive(session)} key={session.id}><span>{session.title}</span></button>)}</div>}
+            {!collapsed && <div className="group-sessions">{group.items.map(session => <div className={'session-row ' + (session.id === active?.id ? 'selected' : '')} key={session.id}><button className="session-select" onClick={() => setActive(session)}><span>{session.title}</span></button><button className="icon session-archive" onClick={() => archive(session)} title={runningSessions.has(session.id) ? '正在执行，无法归档' : '归档此对话'} disabled={runningSessions.has(session.id)}><Archive size={15} /></button></div>)}</div>}
           </section>;
         })}
         {!groups.length && <p className="empty-sessions">选择项目文件夹新建对话。</p>}
