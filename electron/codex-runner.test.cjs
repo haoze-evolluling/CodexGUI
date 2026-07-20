@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildCodexArgs, buildSpawnOptions, createDiagnostics, createEventParser, eventToMessage } = require('./codex-runner.cjs');
+const { buildCodexArgs, buildSpawnOptions, createDiagnostics, createEventParser, eventToMessage, eventToActivity } = require('./codex-runner.cjs');
 const { RequestManager } = require('./request-manager.cjs');
 
 test('runs requests for separate sessions concurrently', () => {
@@ -61,4 +61,13 @@ test('parses chunked JSONL and extracts thread and assistant events', () => {
     { threadId: 'abc' },
     { text: '你好' },
   ]);
+});
+
+test('extracts command and file activities from CLI events', () => {
+  assert.deepEqual(eventToActivity({ type: 'item.started', item: { id: 'cmd-1', type: 'command_execution', command: 'rg TODO' } }), {
+    activity: { id: 'cmd-1', type: 'command', status: 'running', command: 'rg TODO', output: '', exitCode: undefined },
+  });
+  assert.deepEqual(eventToActivity({ type: 'item.completed', item: { id: 'file-1', type: 'file_change', changes: [{ path: 'src/app.ts', kind: 'update' }] } }), {
+    activity: { id: 'file-1', type: 'file_change', status: 'completed', files: [{ path: 'src/app.ts', kind: 'update' }] },
+  });
 });

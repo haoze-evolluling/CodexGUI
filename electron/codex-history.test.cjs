@@ -17,6 +17,10 @@ test('reads a Codex session transcript and ignores malformed lines', () => {
     assert.deepEqual(parseSessionFile(filePath), {
       id: 'codex-thread-1', threadId: 'thread-1', cwd: 'C:\\project', title: 'Fix the build',
       messages: [{ role: 'user', text: 'Fix the build' }, { role: 'assistant', text: 'Build fixed' }],
+      timeline: [
+        { id: 'message-0', type: 'message', role: 'user', text: 'Fix the build' },
+        { id: 'message-1', type: 'message', role: 'assistant', text: 'Build fixed' },
+      ],
       updated: Date.parse('2026-07-20T02:02:00.000Z'),
     });
   } finally { fs.unlinkSync(filePath); }
@@ -26,6 +30,12 @@ test('keeps saved GUI sessions when the imported thread is already present', () 
   const saved = [{ id: 'gui-1', threadId: 'thread-1', updated: 1 }];
   const imported = [{ id: 'codex-thread-1', threadId: 'thread-1', updated: 3 }, { id: 'codex-thread-2', threadId: 'thread-2', updated: 2 }];
   assert.deepEqual(mergeSessions(saved, imported), [imported[1], saved[0]]);
+});
+
+test('enriches a saved session when the Codex transcript has activity entries', () => {
+  const saved = [{ id: 'gui-1', threadId: 'thread-1', messages: [{ role: 'user', text: 'Fix it' }], updated: 1 }];
+  const imported = [{ id: 'codex-thread-1', threadId: 'thread-1', messages: [{ role: 'user', text: 'Fix it' }], timeline: [{ id: 'm-1', type: 'message', role: 'user', text: 'Fix it' }, { id: 'f-1', type: 'file_change', status: 'completed', files: [{ path: 'src/a.ts', kind: 'update' }] }], updated: 3 }];
+  assert.deepEqual(mergeSessions(saved, imported), [{ ...saved[0], messages: imported[0].messages, timeline: imported[0].timeline, updated: 3 }]);
 });
 
 test('uses a Chinese title when a transcript has no user message', () => {
