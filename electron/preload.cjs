@@ -1,0 +1,2 @@
+const {contextBridge,ipcRenderer}=require('electron');
+contextBridge.exposeInMainWorld('codex',{listSessions:()=>ipcRenderer.invoke('sessions:list'),saveSession:s=>ipcRenderer.invoke('sessions:save',s),chooseFolder:()=>ipcRenderer.invoke('dialog:folder'),start:o=>ipcRenderer.invoke('cli:start',o),input:t=>ipcRenderer.invoke('cli:input',t),stop:()=>ipcRenderer.invoke('cli:stop'),onData:cb=>ipcRenderer.on('cli:data',(_,v)=>cb(v)),onExit:cb=>ipcRenderer.on('cli:exit',(_,v)=>cb(v)),onError:cb=>ipcRenderer.on('cli:error',(_,v)=>cb(v))});
