@@ -15,6 +15,7 @@ declare global { interface Window { codex: any } }
 const messageItem = (message: Message, index: number): TimelineItem => ({ id: `legacy-message-${index}`, type: 'message', ...message });
 const timelineOf = (session: Session) => Array.isArray(session.timeline) ? session.timeline : (session.messages || []).map(messageItem);
 const normalizeSession = (session: Session): Session => ({ ...session, timeline: timelineOf(session) });
+const diffLineClass = (line: string) => line.startsWith('+') && !line.startsWith('+++') ? 'diff-addition' : line.startsWith('-') && !line.startsWith('---') ? 'diff-deletion' : '';
 
 const fresh = (cwd = ''): Session => ({
   id: crypto.randomUUID(), title: '新建对话', cwd,
@@ -28,7 +29,6 @@ function App() {
   const [input, setInput] = useState('');
   const [runningSessions, setRunningSessions] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set());
 
   const refreshHistory = async () => {
     const items = await window.codex?.loadHistory();
@@ -122,7 +122,6 @@ function App() {
     return [...byPath.entries()].map(([cwd, items]) => ({ cwd, items: items.sort((a, b) => b.updated - a.updated), updated: Math.max(...items.map(item => item.updated)) })).sort((a, b) => b.updated - a.updated);
   }, [sessions]);
   const running = !!active && runningSessions.has(active.id);
-  const toggleActivity = (id: string) => setExpandedActivities(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
   return <div className="app">
     <aside>
@@ -147,9 +146,8 @@ function App() {
       <section className="messages">
         {active && timelineOf(active).map(item => {
           if (item.type === 'message') return <div className={'message ' + item.role} key={item.id}><label>{item.role === 'user' ? '你' : item.role === 'assistant' ? 'Codex' : item.role === 'error' ? '错误' : '系统提示'}</label><pre>{item.text}</pre></div>;
-          const expanded = expandedActivities.has(item.id);
-          if (item.type === 'command') return <article className={'activity command-activity ' + item.status} key={item.id}><button className="activity-heading" onClick={() => toggleActivity(item.id)}>{expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}<Terminal size={15} /><span>运行命令</span><small>{item.status === 'running' ? '执行中' : item.exitCode === 0 || item.exitCode === undefined ? '已完成' : `退出码 ${item.exitCode}`}</small></button><code className="activity-summary">{item.command}</code>{expanded && <pre className="activity-output">{item.output || '没有可显示的输出。'}</pre>}</article>;
-          return <article className={'activity file-activity ' + item.status} key={item.id}><button className="activity-heading" onClick={() => toggleActivity(item.id)}>{expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}<FileCode size={15} /><span>文件变更</span><small>{item.status === 'running' ? '处理中' : `${item.files.length} 个文件`}</small></button>{expanded && <div className="file-list">{item.files.map(file => <section className="file-change" key={file.path}><div><b>{file.kind === 'add' ? '新增' : file.kind === 'delete' ? '删除' : '修改'}</b><code>{file.path}</code></div>{file.diff ? <pre className="activity-output">{file.diff}</pre> : <p>没有可显示的差异。</p>}</section>)}</div>}</article>;
+          if (item.type === 'command') return <details className={'activity command-activity ' + item.status} key={item.id}><summary className="activity-heading"><ChevronRight className="activity-chevron" size={15} /><Terminal size={15} /><span>运行命令</span><small>{item.status === 'running' ? '执行中' : item.exitCode === 0 || item.exitCode === undefined ? '已完成' : `退出码 ${item.exitCode}`}</small></summary><code className="activity-summary">{item.command}</code><pre className="activity-output">{item.output || '没有可显示的输出。'}</pre></details>;
+          return <details className={'activity file-activity ' + item.status} key={item.id}><summary className="activity-heading"><ChevronRight className="activity-chevron" size={15} /><FileCode size={15} /><span>文件变更</span><small>{item.status === 'running' ? '处理中' : `${item.files.length} 个文件`}</small></summary><div className="file-list">{item.files.map(file => <section className="file-change" key={file.path}><div><b>{file.kind === 'add' ? '新增' : file.kind === 'delete' ? '删除' : '修改'}</b><code>{file.path}</code></div>{file.diff ? <pre className="activity-output file-diff">{file.diff.split(/\r?\n/).map((line, index) => <span className={diffLineClass(line)} key={index}>{line || ' '}</span>)}</pre> : <p>没有可显示的差异。</p>}</section>)}</div></details>;
         })}
         {!active && <div className="empty-conversation">请从左侧选择或新建一个对话。</div>}
         {running && <div className="message thinking"><label>Codex</label><div className="thinking-status"><span>思考中</span><i /><i /><i /></div></div>}
