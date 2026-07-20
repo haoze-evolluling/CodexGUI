@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Archive, ChevronDown, ChevronRight, FolderOpen, FolderPlus, Plus, RefreshCw, Send, Square, Terminal } from 'lucide-react';
+import { Archive, ChevronDown, ChevronRight, FolderPlus, Plus, RefreshCw, Send, Square, Terminal } from 'lucide-react';
 import './style.css';
 
 type Message = { role: 'user' | 'assistant' | 'system' | 'error'; text: string };
@@ -20,8 +20,16 @@ function App() {
   const [runningSessions, setRunningSessions] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
+  const refreshHistory = async () => {
+    const items = await window.codex?.loadHistory();
+    if (!items) return;
+    setSessions(items);
+    setActive(current => items.find((item: Session) => item.id === current?.id) || items[0]);
+  };
+
   useEffect(() => {
-    window.codex?.listSessions().then((items: Session[]) => { setSessions(items); setActive(items[0]); });
+    refreshHistory();
+    const refreshInterval = window.setInterval(refreshHistory, 60_000);
     const updateSession = (sessionId: string, update: (session: Session) => Session) => {
       setSessions(items => items.map(session => {
         if (session.id !== sessionId) return session;
@@ -40,6 +48,7 @@ function App() {
       setRunningSessions(current => { const next = new Set(current); next.delete(value.sessionId); return next; });
       updateSession(value.sessionId, session => ({ ...session, messages: [...session.messages, { role: 'error', text: value.error }] }));
     });
+    return () => window.clearInterval(refreshInterval);
   }, []);
 
   useEffect(() => {
@@ -62,18 +71,8 @@ function App() {
     if (!started) setRunningSessions(current => { const next = new Set(current); next.delete(active.id); return next; });
   };
 
-  const folder = async () => {
-    const cwd = await window.codex.chooseFolder();
-    if (cwd) setActive(current => ({ ...((current || fresh()) as Session), cwd }));
-  };
   const createInFolder = (cwd: string) => setActive(fresh(cwd));
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
-  const refreshHistory = async () => {
-    const items = await window.codex?.loadHistory();
-    if (!items) return;
-    setSessions(items);
-    setActive(current => items.find((item: Session) => item.id === current?.id) || items[0]);
-  };
   const archive = async () => {
     if (!active || running) return;
     const description = active.threadId
@@ -119,11 +118,11 @@ function App() {
             {!collapsed && <div className="group-sessions">{group.items.map(session => <button className={session.id === active?.id ? 'selected' : ''} onClick={() => setActive(session)} key={session.id}><span>{session.title}</span></button>)}</div>}
           </section>;
         })}
-        {!groups.length && <p className="empty-sessions">选择项目文件夹新建对话，或刷新 Codex 历史记录。</p>}
+        {!groups.length && <p className="empty-sessions">选择项目文件夹新建对话。</p>}
       </div>
     </aside>
     <main>
-      <header><div><b>{active?.title || '未选择对话'}</b><span className="path">{active?.cwd || '未选择项目文件夹'}</span></div><div className="header-actions"><button className="icon" onClick={archive} title={running ? '正在执行，无法归档' : '归档对话'} disabled={!active || running}><Archive size={18} /></button><button className="icon" onClick={folder} title="选择项目文件夹" disabled={!active}><FolderOpen size={18} /></button></div></header>
+      <header><div><b>{active?.title || '未选择对话'}</b><span className="path">{active?.cwd || '未选择项目文件夹'}</span></div><div className="header-actions"><button className="icon" onClick={archive} title={running ? '正在执行，无法归档' : '归档对话'} disabled={!active || running}><Archive size={18} /></button></div></header>
       <section className="messages">
         {active?.messages.map((message, index) => <div className={'message ' + message.role} key={index}><label>{message.role === 'user' ? '你' : message.role === 'assistant' ? 'Codex' : message.role === 'error' ? '错误' : '系统提示'}</label><pre>{message.text}</pre></div>)}
         {!active && <div className="empty-conversation">请从左侧选择或新建一个对话。</div>}
