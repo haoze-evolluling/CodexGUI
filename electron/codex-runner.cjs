@@ -51,4 +51,19 @@ function eventToMessage(event) {
   return {};
 }
 
-module.exports = { buildCodexArgs, buildSpawnOptions, createEventParser, eventToMessage };
+function createDiagnostics() {
+  const chunks = [];
+
+  return {
+    add(value) {
+      const text = String(value).trim();
+      if (text) chunks.push(text);
+    },
+    errorForExit(code) {
+      if (code === 0) return null;
+      return chunks.join('\n') || `Codex exited with code ${code}.`;
+    },
+  };
+}
+
+module.exports = { buildCodexArgs, buildSpawnOptions, createDiagnostics, createEventParser, eventToMessage };
