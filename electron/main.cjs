@@ -5,14 +5,17 @@ const fs = require('fs');
 const { buildCodexArgs, buildSpawnOptions, createDiagnostics, createEventParser, eventToMessage, eventToActivity } = require('./codex-runner.cjs');
 const { RequestManager } = require('./request-manager.cjs');
 const { loadCodexHistory, mergeSessions } = require('./codex-history.cjs');
-const { buildArchiveArgs, removeArchivedSessions } = require('./codex-archive.cjs');
+const { removeArchivedSessions } = require('./codex-archive.cjs');
 
 let win;
 const requests = new RequestManager();
 const dataFile = () => path.join(app.getPath('userData'), 'sessions.json');
+const archivedThreadsFile = () => path.join(app.getPath('userData'), 'archived-threads.json');
 
 function load() { try { return JSON.parse(fs.readFileSync(dataFile(), 'utf8')); } catch { return []; } }
 function save(value) { fs.mkdirSync(path.dirname(dataFile()), { recursive: true }); fs.writeFileSync(dataFile(), JSON.stringify(value, null, 2)); }
+function loadArchivedThreads() { try { return new Set(JSON.parse(fs.readFileSync(archivedThreadsFile(), 'utf8')).filter(value => typeof value === 'string')); } catch { return new Set(); } }
+function saveArchivedThreads(threadIds) { fs.mkdirSync(path.dirname(archivedThreadsFile()), { recursive: true }); fs.writeFileSync(archivedThreadsFile(), JSON.stringify([...threadIds], null, 2)); }
 
 function create() {
   win = new BrowserWindow({ width: 1280, height: 800, minWidth: 900, minHeight: 600, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false } });
@@ -63,29 +66,24 @@ function emitActivity(sessionId, cwd, activity) {
 
 app.whenReady().then(() => {
   create();
-  const history = () => mergeSessions(load(), loadCodexHistory(path.join(app.getPath('home'), '.codex')));
+  const history = () => {
+    const archivedThreads = loadArchivedThreads();
+    return mergeSessions(load(), loadCodexHistory(path.join(app.getPath('home'), '.codex')))
+      .filter(session => !session.threadId || !archivedThreads.has(session.threadId));
+  };
   ipcMain.handle('sessions:list', history);
   ipcMain.handle('sessions:history', history);
   ipcMain.handle('sessions:save', (_, session) => { const all = load().filter(item => item.id !== session.id); all.unshift(session); save(all); return all; });
   ipcMain.handle('sessions:archive', (_, session) => {
     if (!session?.id) return { ok: false, error: '无效的会话。' };
-    const removeLocalCopy = () => { const remaining = removeArchivedSessions(load(), session); save(remaining); return remaining; };
-    if (!session.threadId) { removeLocalCopy(); return { ok: true }; }
-    return new Promise(resolve => {
-      const diagnostics = createDiagnostics();
-      let settled = false;
-      const finish = result => { if (!settled) { settled = true; resolve(result); } };
-      let child;
-      try { child = spawn('codex', buildArchiveArgs(session.threadId), buildSpawnOptions(session.cwd || process.cwd())); }
-      catch (error) { finish({ ok: false, error: error.message }); return; }
-      child.stderr.on('data', data => diagnostics.add(data.toString()));
-      child.on('error', error => finish({ ok: false, error: error.message }));
-      child.on('close', code => {
-        const error = diagnostics.errorForExit(code);
-        if (error) finish({ ok: false, error });
-        else { removeLocalCopy(); finish({ ok: true }); }
-      });
-    });
+    const remaining = removeArchivedSessions(load(), session);
+    save(remaining);
+    if (session.threadId) {
+      const archivedThreads = loadArchivedThreads();
+      archivedThreads.add(session.threadId);
+      saveArchivedThreads(archivedThreads);
+    }
+    return { ok: true };
   });
   ipcMain.handle('dialog:folder', async () => {
     const result = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });

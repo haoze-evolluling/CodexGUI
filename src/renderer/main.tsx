@@ -96,7 +96,7 @@ function App() {
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
   const archive = async (target = active) => {
     if (!target || runningSessions.has(target.id)) return;
-    const description = target.threadId ? `归档“${target.title}”后，它将从列表移除，可在 Codex 中恢复。是否继续？` : `“${target.title}”尚未发送到 Codex，将仅从本软件移除。是否继续？`;
+    const description = `归档“${target.title}”后，它将从本软件的列表移除。是否继续？`;
     if (!window.confirm(description)) return;
     const archived = await window.codex?.archiveSession(target);
     if (!archived?.ok) { window.alert(`归档失败：${archived?.error || '未知错误'}`); return; }
@@ -107,7 +107,7 @@ function App() {
   const archiveProject = async (cwd: string, projectSessions: Session[]) => {
     if (projectSessions.some(session => runningSessions.has(session.id))) return;
     const name = cwd.split(/[/\\]/).filter(Boolean).pop() || cwd;
-    if (!window.confirm(`归档项目“${name}”中的全部 ${projectSessions.length} 个对话？它们将从列表移除，可在 Codex 中恢复。`)) return;
+    if (!window.confirm(`归档项目“${name}”中的全部 ${projectSessions.length} 个对话？它们将从本软件的列表移除。`)) return;
     const archived = await window.codex?.archiveProject(projectSessions);
     if (!archived?.ok) { window.alert(`归档失败：${archived?.error || '未知错误'}`); return; }
     const ids = new Set(projectSessions.map(session => session.id));
