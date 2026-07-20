@@ -1,0 +1,26 @@
+.messages { flex: 1; overflow: auto; padding: 28px 10%; display: flex; flex-direction: column; align-items: flex-start; align-content: start; gap: 18px; scrollbar-color: #4a586a #11151c; scrollbar-width: thin; }
+.messages > * { flex: 0 0 auto; }
+.messages::-webkit-scrollbar { width: 10px; }
+.messages::-webkit-scrollbar-track { background: #11151c; }
+.messages::-webkit-scrollbar-thumb { background: #4a586a; border: 2px solid #11151c; border-radius: 8px; }
+.messages::-webkit-scrollbar-thumb:hover { background: #66778d; }
+.message { max-width: 900px; }
+.message label { font-size: 11px; text-transform: uppercase; color: #8490a0; }
+.message pre { font: 14px/1.6 ui-monospace, monospace; white-space: pre-wrap; margin: 5px 0; }
+.user pre { color: #a9d5ff; }
+.error pre { color: #ff9b9b; }
+.empty-conversation { color: #8490a0; margin: auto; }
+.thinking-status { display: flex; align-items: center; gap: 5px; margin-top: 9px; color: #aab5c5; font: 14px/1.6 ui-monospace, monospace; }
+.thinking-status i { width: 5px; height: 5px; border-radius: 50%; background: #6ba8ff; animation: thinking-pulse 1.2s ease-in-out infinite; }
+.thinking-status i:nth-child(3) { animation-delay: .16s; }
+.thinking-status i:nth-child(4) { animation-delay: .32s; }
+@keyframes thinking-pulse { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+footer { padding: 16px 10% 24px; border-top: 1px solid #29313d; }
+textarea { width: 100%; min-height: 84px; resize: vertical; background: #1b222d; color: #e8edf5; border: 1px solid #394554; border-radius: 8px; padding: 12px; font: 14px/1.5 inherit; outline: none; }
+textarea:focus { border-color: #6ba8ff; }
+.actions { display: flex; justify-content: space-between; align-items: center; color: #8490a0; font-size: 12px; margin-top: 10px; }
+.actions button { display: flex; align-items: center; gap: 7px; background: #1769d1; color: #fff; font-weight: 600; }
+.actions button:hover:not(:disabled) { background: #0f56ad; }
+.actions button:focus-visible { outline: 2px solid #a9d5ff; outline-offset: 2px; }
+.actions .stop { background: #713d45; }
+@media (max-width: 700px) { .messages, footer { padding-left: 5%; padding-right: 5%; } }
