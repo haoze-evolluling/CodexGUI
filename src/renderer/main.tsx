@@ -17,23 +17,31 @@ function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [active, setActive] = useState<Session>();
   const [input, setInput] = useState('');
-  const [running, setRunning] = useState(false);
+  const [runningSessions, setRunningSessions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     window.codex?.listSessions().then((items: Session[]) => { setSessions(items); setActive(items[0] || fresh()); });
-    window.codex?.onData((value: { stream: string; text: string }) => {
-      setRunning(false);
-      setActive(current => current && ({
-        ...current,
-        messages: [...current.messages, { role: value.stream === 'stderr' ? 'error' : 'assistant', text: value.text }],
+    const updateSession = (sessionId: string, update: (session: Session) => Session) => {
+      setSessions(items => items.map(session => {
+        if (session.id !== sessionId) return session;
+        const next = update(session);
+        window.codex?.saveSession(next);
+        return next;
+      }));
+      setActive(current => current?.id === sessionId ? update(current) : current);
+    };
+    window.codex?.onData((value: { sessionId: string; stream: string; text: string }) => {
+      updateSession(value.sessionId, session => ({
+        ...session,
+        messages: [...session.messages, { role: value.stream === 'stderr' ? 'error' : 'assistant', text: value.text }],
         updated: Date.now(),
       }));
     });
-    window.codex?.onThread((threadId: string) => setActive(current => current && ({ ...current, threadId })));
-    window.codex?.onExit(() => setRunning(false));
-    window.codex?.onError((error: string) => {
-      setRunning(false);
-      setActive(current => current && ({ ...current, messages: [...current.messages, { role: 'error', text: error }] }));
+    window.codex?.onThread((value: { sessionId: string; threadId: string }) => updateSession(value.sessionId, session => ({ ...session, threadId: value.threadId })));
+    window.codex?.onExit((value: { sessionId: string }) => setRunningSessions(current => { const next = new Set(current); next.delete(value.sessionId); return next; }));
+    window.codex?.onError((value: { sessionId: string; error: string }) => {
+      setRunningSessions(current => { const next = new Set(current); next.delete(value.sessionId); return next; });
+      updateSession(value.sessionId, session => ({ ...session, messages: [...session.messages, { role: 'error', text: value.error }] }));
     });
   }, []);
 
@@ -44,7 +52,7 @@ function App() {
   }, [active]);
 
   const send = async () => {
-    if (!input.trim() || running || !active) return;
+    if (!input.trim() || !active || runningSessions.has(active.id)) return;
     const text = input.trim();
     setInput('');
     if (!active.cwd) {
@@ -52,15 +60,17 @@ function App() {
       return;
     }
     setActive({ ...active, messages: [...active.messages, { role: 'user', text }], title: active.title === 'New session' ? text.slice(0, 32) : active.title });
-    setRunning(true);
-    const started = await window.codex.start({ cwd: active.cwd, prompt: text, threadId: active.threadId });
-    if (!started) setRunning(false);
+    setRunningSessions(current => new Set(current).add(active.id));
+    const started = await window.codex.start({ sessionId: active.id, cwd: active.cwd, prompt: text, threadId: active.threadId });
+    if (!started) setRunningSessions(current => { const next = new Set(current); next.delete(active.id); return next; });
   };
 
   const folder = async () => {
     const cwd = await window.codex.chooseFolder();
     if (cwd) setActive(current => ({ ...((current || fresh()) as Session), cwd }));
   };
+
+  const running = !!active && runningSessions.has(active.id);
 
   return <div className="app">
     <aside>
@@ -79,7 +89,7 @@ function App() {
       </section>
       <footer>
         <textarea value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send(); } }} placeholder="Ask Codex to work on this project..." />
-        <div className="actions"><span>{running ? 'Thinking...' : 'Ready'}</span>{running ? <button className="stop" onClick={() => window.codex.stop()}><Square size={16} /> Stop</button> : <button onClick={send}><Send size={16} /> Send</button>}</div>
+        <div className="actions"><span>{running ? 'Thinking...' : 'Ready'}</span>{running ? <button className="stop" onClick={() => active && window.codex.stop(active.id)}><Square size={16} /> Stop</button> : <button onClick={send}><Send size={16} /> Send</button>}</div>
       </footer>
     </main>
   </div>;

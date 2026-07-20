@@ -1,6 +1,27 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { buildCodexArgs, buildSpawnOptions, createDiagnostics, createEventParser, eventToMessage } = require('./codex-runner.cjs');
+const { RequestManager } = require('./request-manager.cjs');
+
+test('runs requests for separate sessions concurrently', () => {
+  const manager = new RequestManager();
+  const first = { kill() {} };
+  const second = { kill() {} };
+  assert.equal(manager.start('session-a', first), true);
+  assert.equal(manager.start('session-b', second), true);
+  assert.equal(manager.start('session-a', { kill() {} }), false);
+});
+
+test('stops only the request belonging to the requested session', () => {
+  const manager = new RequestManager();
+  let stopped = false;
+  const child = { kill() { stopped = true; } };
+  manager.start('session-a', child);
+  assert.equal(manager.stop('session-b'), false);
+  assert.equal(stopped, false);
+  assert.equal(manager.stop('session-a'), true);
+  assert.equal(stopped, true);
+});
 
 test('uses the non-interactive command for a new thread', () => {
   assert.deepEqual(buildCodexArgs('你好'), ['exec', '--json', '你好']);
