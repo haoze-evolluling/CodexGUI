@@ -25,7 +25,18 @@ export type FileChangeActivity = {
   files: FileChange[];
 };
 
-export type Activity = CommandActivity | FileChangeActivity;
+export type CompactionActivity = { id: string; type: 'compaction'; status: string };
+export type UserInputOption = { label: string; description: string };
+export type UserInputQuestion = {
+  id: string; header: string; question: string; options?: UserInputOption[] | null;
+  isOther?: boolean; isSecret?: boolean;
+};
+export type UserInputActivity = {
+  id: string; type: 'user_input'; status: 'pending' | 'answered'; questions: UserInputQuestion[];
+  answers?: Record<string, { answers: string[] }>;
+};
+
+export type Activity = CommandActivity | FileChangeActivity | CompactionActivity | UserInputActivity;
 
 export type TimelineItem =
   | ({ id: string; type: 'message' } & Message)
@@ -39,6 +50,9 @@ export type Session = {
   timeline?: TimelineItem[];
   updated: number;
   threadId?: string;
+  model?: string;
+  reasoningEffort?: string;
+  collaborationMode?: 'default' | 'plan';
 };
 
 export type SessionGroup = {
@@ -48,6 +62,14 @@ export type SessionGroup = {
 };
 
 export type ArchiveResult = { ok: true } | { ok: false; error?: string };
+export type CodexModel = {
+  id: string; model: string; displayName: string; description: string; isDefault: boolean;
+  defaultReasoningEffort: string;
+  supportedReasoningEfforts: { reasoningEffort: string; description: string }[];
+};
+export type CollaborationMode = {
+  name: string; mode?: 'default' | 'plan' | null; model?: string | null; reasoning_effort?: string | null;
+};
 
 export type CodexApi = {
   listSessions(): Promise<Session[]>;
@@ -56,13 +78,20 @@ export type CodexApi = {
   archiveSession(session: Session): Promise<ArchiveResult>;
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
   chooseFolder(): Promise<string | null>;
-  start(options: { sessionId: string; cwd: string; prompt: string; threadId?: string }): Promise<boolean>;
+  start(options: { sessionId: string; cwd: string; prompt: string; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;
-  onData(callback: (value: { sessionId: string; stream: string; text: string }) => void): () => void;
+  compact(sessionId: string, threadId?: string): Promise<boolean>;
+  listModels(): Promise<CodexModel[]>;
+  listCollaborationModes(): Promise<CollaborationMode[]>;
+  answerUserInput(itemId: string, answers: Record<string, { answers: string[] }>): Promise<boolean>;
+  onData(callback: (value: { sessionId: string; itemId: string; text: string; full?: boolean }) => void): () => void;
   onActivity(callback: (value: { sessionId: string; activity: Activity }) => void): () => void;
   onThread(callback: (value: { sessionId: string; threadId: string }) => void): () => void;
   onExit(callback: (value: { sessionId: string; code?: number }) => void): () => void;
   onError(callback: (value: { sessionId: string; error: string }) => void): () => void;
+  onCompacted(callback: (value: { sessionId: string }) => void): () => void;
+  onStatus(callback: (value: { sessionId: string; status: { type: string; activeFlags?: string[] } }) => void): () => void;
+  onUserInput(callback: (value: { sessionId: string; request: { itemId: string; questions: UserInputQuestion[] } }) => void): () => void;
 };
 
 declare global {

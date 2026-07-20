@@ -1,0 +1,255 @@
+const readline = require('readline');
+
+function createCodexAppServer({ attachDiffs, send, spawn }) {
+  let child;
+  let ready;
+  let nextId = 1;
+  const pending = new Map();
+  const sessionsByThread = new Map();
+  const threadsBySession = new Map();
+  const turnsBySession = new Map();
+  const userInputRequests = new Map();
+
+  function write(message) {
+    if (!child?.stdin.writable) throw new Error('Codex app-server is not running.');
+    child.stdin.write(`${JSON.stringify(message)}\n`);
+  }
+
+  function request(method, params = {}) {
+    const id = nextId++;
+    write({ method, id, params });
+    return new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+  }
+
+  function sessionIdFor(threadId) {
+    return sessionsByThread.get(threadId);
+  }
+
+  function emitForThread(channel, threadId, value = {}) {
+    const sessionId = sessionIdFor(threadId);
+    if (sessionId) send(channel, { sessionId, ...value });
+  }
+
+  function activityFromItem(item, status) {
+    if (!item?.id) return null;
+    if (item.type === 'commandExecution') {
+      return {
+        id: item.id, type: 'command', status,
+        command: item.command || '', output: item.aggregatedOutput || '', exitCode: item.exitCode,
+      };
+    }
+    if (item.type === 'fileChange') {
+      return {
+        id: item.id, type: 'file_change', status,
+        files: (item.changes || []).map(change => ({ path: change.path, kind: change.kind || 'update' })),
+      };
+    }
+    if (item.type === 'contextCompaction') {
+      return { id: item.id, type: 'compaction', status };
+    }
+    return null;
+  }
+
+  async function emitActivity(threadId, activity) {
+    const sessionId = sessionIdFor(threadId);
+    if (!sessionId) return;
+    send('cli:activity', { sessionId, activity });
+    if (activity.type === 'file_change' && activity.status === 'completed') {
+      const cwd = threadsBySession.get(sessionId)?.cwd || process.cwd();
+      const files = await attachDiffs(cwd, activity.files);
+      send('cli:activity', { sessionId, activity: { ...activity, files } });
+    }
+  }
+
+  function handleNotification(message) {
+    const params = message.params || {};
+    const threadId = params.threadId;
+    if (message.method === 'item/agentMessage/delta') {
+      emitForThread('cli:data', threadId, { itemId: params.itemId, text: params.delta });
+      return;
+    }
+    if (message.method === 'item/started' || message.method === 'item/completed') {
+      const status = message.method === 'item/started' ? 'running' : 'completed';
+      if (status === 'completed' && params.item?.type === 'agentMessage' && typeof params.item.text === 'string') {
+        emitForThread('cli:data', threadId, { itemId: params.item.id, text: params.item.text, full: true });
+      }
+      const activity = activityFromItem(params.item, status);
+      if (activity) emitActivity(threadId, activity);
+      return;
+    }
+    if (message.method === 'turn/started') {
+      const sessionId = sessionIdFor(threadId);
+      if (sessionId) turnsBySession.set(sessionId, params.turn?.id);
+      return;
+    }
+    if (message.method === 'turn/completed') {
+      const sessionId = sessionIdFor(threadId);
+      if (!sessionId) return;
+      turnsBySession.delete(sessionId);
+      const error = params.turn?.error?.message;
+      if (error) send('cli:error', { sessionId, error });
+      send('cli:exit', { sessionId, status: params.turn?.status });
+      return;
+    }
+    if (message.method === 'thread/compacted') {
+      emitForThread('cli:compacted', threadId);
+      return;
+    }
+    if (message.method === 'thread/status/changed') {
+      emitForThread('cli:status', threadId, { status: params.status });
+    }
+  }
+
+  function handleServerRequest(message) {
+    if (message.method !== 'item/tool/requestUserInput') {
+      write({ id: message.id, error: { code: -32601, message: `Unsupported request: ${message.method}` } });
+      return;
+    }
+    const sessionId = sessionIdFor(message.params?.threadId);
+    if (!sessionId) {
+      write({ id: message.id, error: { code: -32602, message: 'Unknown thread.' } });
+      return;
+    }
+    userInputRequests.set(message.params.itemId, message.id);
+    send('cli:user-input', { sessionId, request: message.params });
+  }
+
+  function handleLine(line) {
+    let message;
+    try { message = JSON.parse(line); } catch { return; }
+    if (message.id !== undefined && (message.result !== undefined || message.error)) {
+      const waiter = pending.get(message.id);
+      if (!waiter) return;
+      pending.delete(message.id);
+      if (message.error) waiter.reject(new Error(message.error.message || 'Codex request failed.'));
+      else waiter.resolve(message.result);
+      return;
+    }
+    if (message.id !== undefined && message.method) handleServerRequest(message);
+    else if (message.method) handleNotification(message);
+  }
+
+  function startProcess() {
+    child = spawn('codex', ['app-server', '--stdio'], {
+      shell: false, env: process.env, stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    readline.createInterface({ input: child.stdout }).on('line', handleLine);
+    child.stderr.on('data', data => send('cli:server-error', { error: data.toString() }));
+    child.on('error', failAll);
+    child.on('close', code => failAll(new Error(`Codex app-server exited with code ${code}.`)));
+    ready = request('initialize', {
+      clientInfo: { name: 'codex_gui', title: 'Codex GUI', version: '0.1.0' },
+      capabilities: { experimentalApi: true },
+    }).then(result => {
+      write({ method: 'initialized', params: {} });
+      return result;
+    });
+    return ready;
+  }
+
+  function failAll(error) {
+    const failure = error instanceof Error ? error : new Error(String(error));
+    for (const waiter of pending.values()) waiter.reject(failure);
+    pending.clear();
+    for (const sessionId of turnsBySession.keys()) send('cli:error', { sessionId, error: failure.message });
+    turnsBySession.clear();
+    child = undefined;
+    ready = undefined;
+  }
+
+  async function ensureReady() {
+    return ready || startProcess();
+  }
+
+  async function ensureThread(options) {
+    await ensureReady();
+    const loaded = threadsBySession.get(options.sessionId);
+    let threadId = loaded?.threadId;
+    if (!threadId && options.threadId) {
+      threadId = options.threadId;
+      await request('thread/resume', { threadId });
+    } else if (!threadId) {
+      const result = await request('thread/start', { cwd: options.cwd, model: options.model || null });
+      threadId = result.thread.id;
+    }
+    sessionsByThread.set(threadId, options.sessionId);
+    threadsBySession.set(options.sessionId, { threadId, cwd: options.cwd });
+    send('cli:thread', { sessionId: options.sessionId, threadId });
+    return threadId;
+  }
+
+  return {
+    async start(options) {
+      if (!options.sessionId || turnsBySession.has(options.sessionId)) return false;
+      try {
+        const threadId = await ensureThread(options);
+        const params = {
+          threadId,
+          input: [{ type: 'text', text: options.prompt }],
+          model: options.model || null,
+        };
+        if (options.reasoningEffort) params.effort = options.reasoningEffort;
+        if (options.collaborationMode && (options.collaborationMode.model || options.model)) {
+          params.collaborationMode = {
+            mode: options.collaborationMode.mode,
+            settings: {
+              model: options.collaborationMode.model || options.model,
+              reasoning_effort: options.collaborationMode.reasoning_effort || options.reasoningEffort || null,
+              developer_instructions: null,
+            },
+          };
+        }
+        const result = await request('turn/start', params);
+        turnsBySession.set(options.sessionId, result.turn.id);
+        return true;
+      } catch (error) {
+        send('cli:error', { sessionId: options.sessionId, error: error.message });
+        return false;
+      }
+    },
+    async stop(sessionId) {
+      const thread = threadsBySession.get(sessionId);
+      const turnId = turnsBySession.get(sessionId);
+      if (!thread || !turnId) return false;
+      await request('turn/interrupt', { threadId: thread.threadId, turnId });
+      return true;
+    },
+    async compact(sessionId, threadId) {
+      await ensureReady();
+      const known = threadsBySession.get(sessionId)?.threadId || threadId;
+      if (!known || turnsBySession.has(sessionId)) return false;
+      sessionsByThread.set(known, sessionId);
+      if (!threadsBySession.has(sessionId)) {
+        await request('thread/resume', { threadId: known });
+        threadsBySession.set(sessionId, { threadId: known, cwd: process.cwd() });
+      }
+      await request('thread/compact/start', { threadId: known });
+      return true;
+    },
+    async listModels() {
+      await ensureReady();
+      const models = [];
+      let cursor = null;
+      do {
+        const result = await request('model/list', { cursor, includeHidden: false });
+        models.push(...result.data);
+        cursor = result.nextCursor;
+      } while (cursor);
+      return models;
+    },
+    async listCollaborationModes() {
+      await ensureReady();
+      return (await request('collaborationMode/list', {})).data;
+    },
+    answerUserInput(itemId, answers) {
+      const id = userInputRequests.get(itemId);
+      if (id === undefined) return false;
+      userInputRequests.delete(itemId);
+      write({ id, result: { answers } });
+      return true;
+    },
+    dispose() { child?.kill(); },
+  };
+}
+
+module.exports = { createCodexAppServer };

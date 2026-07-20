@@ -1,10 +1,9 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
-const { createCodexProcess } = require('./codex-process.cjs');
+const { createCodexAppServer } = require('./codex-app-server.cjs');
 const { createDiffAttacher } = require('./git-diff.cjs');
 const { registerIpcHandlers } = require('./ipc-handlers.cjs');
-const { RequestManager } = require('./request-manager.cjs');
 const { createSessionStore } = require('./session-store.cjs');
 
 let win;
@@ -32,10 +31,8 @@ app.whenReady().then(() => {
     path.join(app.getPath('userData'), 'sessions.json'),
     path.join(app.getPath('userData'), 'archived-threads.json'),
   );
-  const requests = new RequestManager();
-  const codexProcess = createCodexProcess({
+  const codexProcess = createCodexAppServer({
     attachDiffs: createDiffAttacher(spawn),
-    requests,
     send: (channel, value) => win.webContents.send(channel, value),
     spawn,
   });

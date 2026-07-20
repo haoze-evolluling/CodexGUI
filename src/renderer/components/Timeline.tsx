@@ -9,7 +9,7 @@ const roleLabel = {
   system: '系统提示',
 } as const;
 
-export function Timeline({ active, running }: { active?: Session; running: boolean }) {
+export function Timeline({ active, running, onAnswer }: { active?: Session; running: boolean; onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void }) {
   return (
     <section className="messages">
       {active && timelineOf(active).map(item => item.type === 'message' ? (
@@ -17,7 +17,7 @@ export function Timeline({ active, running }: { active?: Session; running: boole
           <label>{roleLabel[item.role]}</label>
           <pre>{item.text}</pre>
         </div>
-      ) : <ActivityItem activity={item} key={item.id} />)}
+      ) : <ActivityItem activity={item} key={item.id} onAnswer={onAnswer} />)}
       {!active && <div className="empty-conversation">请从左侧选择或新建一个对话。</div>}
       {running && (
         <div className="message thinking">

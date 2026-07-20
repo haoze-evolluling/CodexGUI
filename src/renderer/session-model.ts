@@ -29,6 +29,7 @@ export const freshSession = (cwd = ''): Session => ({
     },
   ],
   updated: Date.now(),
+  collaborationMode: 'default',
 });
 
 export const groupSessions = (sessions: Session[]): SessionGroup[] => {

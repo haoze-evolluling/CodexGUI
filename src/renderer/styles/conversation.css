@@ -16,6 +16,12 @@
 .thinking-status i:nth-child(4) { animation-delay: .32s; }
 @keyframes thinking-pulse { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
 footer { padding: 16px 10% 24px; border-top: 1px solid #29313d; }
+.composer-tools { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; min-height: 34px; }
+.composer-tools select { min-width: 120px; max-width: 220px; background: #1b222d; color: #dce5f1; border: 1px solid #394554; border-radius: 6px; padding: 7px 9px; }
+.mode-control { display: flex; border: 1px solid #394554; border-radius: 7px; overflow: hidden; }
+.mode-control button { display: flex; align-items: center; gap: 5px; border-radius: 0; padding: 7px 10px; background: #1b222d; color: #9aa8ba; }
+.mode-control button.selected { background: #1769d1; color: white; }
+.composer-tools .compact { margin-left: auto; }
 textarea { width: 100%; min-height: 84px; resize: vertical; background: #1b222d; color: #e8edf5; border: 1px solid #394554; border-radius: 8px; padding: 12px; font: 14px/1.5 inherit; outline: none; }
 textarea:focus { border-color: #6ba8ff; }
 .actions { display: flex; justify-content: space-between; align-items: center; color: #8490a0; font-size: 12px; margin-top: 10px; }
@@ -23,4 +29,16 @@ textarea:focus { border-color: #6ba8ff; }
 .actions button:hover:not(:disabled) { background: #0f56ad; }
 .actions button:focus-visible { outline: 2px solid #a9d5ff; outline-offset: 2px; }
 .actions .stop { background: #713d45; }
+.compact-activity { display: flex; align-items: center; gap: 8px; color: #9bacbf; font-size: 13px; }
+.user-input-activity { width: min(680px, 100%); border-left: 3px solid #6ba8ff; padding: 4px 0 4px 16px; }
+.user-input-activity fieldset { border: 0; padding: 0; margin: 0 0 16px; }
+.user-input-activity legend { color: #8dbdff; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.user-input-activity p { margin: 5px 0 10px; }
+.choice { display: flex; gap: 9px; align-items: flex-start; padding: 8px; cursor: pointer; }
+.choice:hover { background: #1b222d; }
+.choice span, .choice small { display: block; }
+.choice small { color: #8490a0; margin-top: 3px; }
+.other-answer { width: 100%; background: #1b222d; color: #e8edf5; border: 1px solid #394554; border-radius: 6px; padding: 9px; }
+.user-input-activity > button { background: #1769d1; color: white; }
+.answered { display: flex; align-items: center; gap: 6px; color: #7fcca0; font-size: 13px; }
 @media (max-width: 700px) { .messages, footer { padding-left: 5%; padding-right: 5%; } }

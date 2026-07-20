@@ -39,13 +39,22 @@ export function App() {
             </button>
           </div>
         </header>
-        <Timeline active={controller.active} running={controller.running} />
+        <Timeline active={controller.active} running={controller.running} onAnswer={controller.answerUserInput} />
         <Composer
           activeSessionId={controller.active?.id}
+          session={controller.active}
           input={controller.input}
           running={controller.running}
+          waiting={controller.waiting}
+          compacting={controller.compacting}
+          models={controller.models}
+          collaborationModes={controller.collaborationModes}
           onInputChange={controller.setInput}
           onSend={controller.send}
+          onCompact={controller.compact}
+          onModelChange={controller.setModel}
+          onReasoningEffortChange={controller.setReasoningEffort}
+          onModeChange={controller.setCollaborationMode}
         />
       </main>
     </div>
