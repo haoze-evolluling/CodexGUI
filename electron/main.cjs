@@ -14,12 +14,15 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    backgroundColor: '#11151c',
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+  win.once('ready-to-show', () => win.show());
   if (!app.isPackaged) win.loadURL('http://127.0.0.1:5173');
   else win.loadFile(path.join(__dirname, '../dist/index.html'));
 }

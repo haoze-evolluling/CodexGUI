@@ -17,6 +17,7 @@ type ComposerProps = {
   permissionMode: PermissionMode;
   onInputChange(value: string): void;
   onChooseFiles(): void;
+  onAddFiles(paths: string[]): void;
   onRemoveAttachment(id: string): void;
   onSend(): void;
   onCompact(): void;
@@ -161,7 +162,18 @@ export function Composer(props: ComposerProps) {
             })}
           </div>
         )}
-        <div className={`composer-card ${openSelector ? 'selector-active' : ''}`}>
+        <div
+          className={`composer-card ${openSelector ? 'selector-active' : ''}`}
+          onDragOver={event => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
+          onDrop={event => {
+            event.preventDefault();
+            if (disabled) return;
+            const paths = Array.from(event.dataTransfer.files)
+              .map(file => window.codex.getPathForFile(file))
+              .filter(Boolean);
+            props.onAddFiles(paths);
+          }}
+        >
         {!!props.attachments.length && (
           <AttachmentTokens attachments={props.attachments} onRemove={props.onRemoveAttachment} />
         )}
@@ -191,13 +203,13 @@ export function Composer(props: ComposerProps) {
                 props.onInputChange('');
                 return;
               }
-              if (event.key === 'Enter' && !event.shiftKey) {
+              if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey) {
                 event.preventDefault();
                 runCommand(commandIndex);
                 return;
               }
             }
-            if (event.key === 'Enter' && !event.shiftKey) {
+            if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey) {
               event.preventDefault();
               props.onSend();
             }

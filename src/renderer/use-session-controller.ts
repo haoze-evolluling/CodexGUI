@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { freshSession, groupSessions, normalizeSession, timelineOf } from './session-model';
 import type { AttachmentKind, CodexAttachment, CodexModel, CodexSkill, CollaborationMode, Message, PermissionMode, PlanDecisionActivity, Session, UserInputActivity } from './types';
+import type { AppDialogState } from './components/AppDialog';
 
 const imageExtensions = new Set(['bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp']);
 const codeExtensions = new Set(['c', 'cc', 'cpp', 'cs', 'css', 'go', 'h', 'hpp', 'html', 'java', 'js', 'json', 'jsx', 'kt', 'md', 'php', 'py', 'rb', 'rs', 'scss', 'sh', 'sql', 'swift', 'toml', 'ts', 'tsx', 'vue', 'xml', 'yaml', 'yml']);
@@ -39,6 +40,7 @@ export function useSessionController() {
   const [skills, setSkills] = useState<CodexSkill[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<CodexSkill>();
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>('default');
+  const [dialog, setDialog] = useState<AppDialogState>();
 
   const refreshHistory = async () => {
     const items = await window.codex.loadHistory();
@@ -269,9 +271,7 @@ export function useSessionController() {
 
   const createInFolder = (cwd: string) => setActive(freshSession(cwd));
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
-  const chooseFiles = async () => {
-    if (!active) return;
-    const filePaths = await window.codex.chooseFiles(active.cwd);
+  const addFiles = (filePaths: string[]) => {
     if (!filePaths.length) return;
     setAttachments(current => {
       const knownPaths = new Set(current.map(attachment => attachment.path.toLowerCase()));
@@ -285,6 +285,10 @@ export function useSessionController() {
       }
       return [...current, ...added];
     });
+  };
+  const chooseFiles = async () => {
+    if (!active) return;
+    addFiles(await window.codex.chooseFiles(active.cwd));
   };
   const clearContext = async () => {
     if (!active || runningSessions.has(active.id) || compactingSessions.has(active.id)) return;
@@ -318,9 +322,19 @@ export function useSessionController() {
   };
   const archiveSession = async (target = active) => {
     if (!target || runningSessions.has(target.id)) return;
-    if (!window.confirm(`归档“${target.title}”后，它将从本软件的列表移除。是否继续？`)) return;
+    setDialog({
+      title: `归档“${target.title}”？`,
+      description: '归档后，它将从本软件的列表移除。',
+      confirmLabel: '归档', cancelLabel: '取消', danger: true,
+      onConfirm: () => { setDialog(undefined); void performArchiveSession(target); },
+    });
+  };
+  const performArchiveSession = async (target: Session) => {
     const archived = await window.codex.archiveSession(target);
-    if (!archived.ok) { window.alert(`归档失败：${archived.error || '未知错误'}`); return; }
+    if (!archived.ok) {
+      setDialog({ title: '归档失败', description: archived.error || '未知错误', onConfirm: () => setDialog(undefined) });
+      return;
+    }
     const remaining = sessions.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId));
     setSessions(remaining);
     setActive(current => current && (current.id === target.id || (target.threadId && current.threadId === target.threadId)) ? remaining[0] : current);
@@ -328,9 +342,19 @@ export function useSessionController() {
   const archiveProject = async (cwd: string, projectSessions: Session[]) => {
     if (projectSessions.some(session => runningSessions.has(session.id))) return;
     const name = cwd.split(/[/\\]/).filter(Boolean).pop() || cwd;
-    if (!window.confirm(`归档项目“${name}”中的全部 ${projectSessions.length} 个对话？它们将从本软件的列表移除。`)) return;
+    setDialog({
+      title: `归档项目“${name}”？`,
+      description: `项目中的全部 ${projectSessions.length} 个对话将从本软件的列表移除。`,
+      confirmLabel: '全部归档', cancelLabel: '取消', danger: true,
+      onConfirm: () => { setDialog(undefined); void performArchiveProject(projectSessions); },
+    });
+  };
+  const performArchiveProject = async (projectSessions: Session[]) => {
     const archived = await window.codex.archiveProject(projectSessions);
-    if (!archived.ok) { window.alert(`归档失败：${archived.error || '未知错误'}`); return; }
+    if (!archived.ok) {
+      setDialog({ title: '归档失败', description: archived.error || '未知错误', onConfirm: () => setDialog(undefined) });
+      return;
+    }
     const ids = new Set(projectSessions.map(session => session.id));
     const remaining = sessions.filter(session => !ids.has(session.id));
     setSessions(remaining);
@@ -364,7 +388,7 @@ export function useSessionController() {
   const waiting = !!active && waitingSessions.has(active.id);
   const compacting = !!active && compactingSessions.has(active.id);
   return {
-    active, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode,
+    active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode, dialog, closeDialog: () => setDialog(undefined),
     createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,

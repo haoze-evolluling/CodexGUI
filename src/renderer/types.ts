@@ -106,6 +106,7 @@ export type CodexApi = {
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
   chooseFolder(): Promise<string | null>;
   chooseFiles(defaultPath?: string): Promise<string[]>;
+  getPathForFile(file: File): string;
   start(options: { sessionId: string; cwd: string; prompt: string; attachments: CodexAttachment[]; skill?: Pick<CodexSkill, 'name' | 'path'>; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode; permissionMode: PermissionMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;
   compact(sessionId: string, threadId?: string): Promise<boolean>;

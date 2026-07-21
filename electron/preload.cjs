@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 function subscribe(channel, callback) {
   const listener = (_, value) => callback(value);
@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('codex', {
   },
   chooseFolder: () => ipcRenderer.invoke('dialog:folder'),
   chooseFiles: defaultPath => ipcRenderer.invoke('dialog:files', defaultPath),
+  getPathForFile: file => webUtils.getPathForFile(file),
   start: options => ipcRenderer.invoke('cli:start', options),
   stop: sessionId => ipcRenderer.invoke('cli:stop', sessionId),
   compact: (sessionId, threadId) => ipcRenderer.invoke('cli:compact', sessionId, threadId),

@@ -25,7 +25,7 @@ export const freshSession = (cwd = ''): Session => ({
       id: 'ready',
       type: 'message',
       role: 'system',
-      text: '准备就绪。选择项目文件夹后即可向 Codex 发送消息。',
+      text: '准备就绪，您已选择项目文件夹：' + projectName(cwd),
     },
   ],
   updated: Date.now(),

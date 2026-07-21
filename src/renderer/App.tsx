@@ -1,5 +1,6 @@
 import { Archive } from 'lucide-react';
 import { Composer } from './components/Composer';
+import { AppDialog } from './components/AppDialog';
 import { Sidebar } from './components/Sidebar';
 import { Timeline } from './components/Timeline';
 import { useSessionController } from './use-session-controller';
@@ -9,6 +10,7 @@ export function App() {
 
   return (
     <div className="app">
+      {controller.dialog && <AppDialog dialog={controller.dialog} onClose={controller.closeDialog} />}
       <Sidebar
         active={controller.active}
         collapsedGroups={controller.collapsedGroups}
@@ -54,6 +56,7 @@ export function App() {
           permissionMode={controller.permissionMode}
           onInputChange={controller.setInput}
           onChooseFiles={controller.chooseFiles}
+          onAddFiles={controller.addFiles}
           onRemoveAttachment={controller.removeAttachment}
           onSend={controller.send}
           onCompact={controller.compact}
