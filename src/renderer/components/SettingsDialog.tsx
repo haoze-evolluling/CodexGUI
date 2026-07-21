@@ -50,6 +50,9 @@ export function SettingsDialog(props: SettingsDialogProps) {
   };
 
   const readyInstallation = props.installation?.status === 'ready' ? props.installation : undefined;
+  const installationError = props.installation && props.installation.status !== 'ready'
+    ? props.installation.error
+    : undefined;
   return (
     <div className="settings-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) props.onClose(); }}>
       <section className="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title" onKeyDown={event => { if (event.key === 'Escape') props.onClose(); }}>
@@ -79,7 +82,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
             {readyInstallation ? <CheckCircle2 size={18} /> : <TriangleAlert size={18} />}
             <div>
               <b>{readyInstallation ? `已找到 Codex（${sourceLabels[readyInstallation.source]}）` : '未找到可用的 Codex'}</b>
-              <span title={readyInstallation?.path}>{readyInstallation?.path || props.installation?.error}</span>
+              <span title={readyInstallation?.path || installationError}>{readyInstallation?.path || installationError}</span>
             </div>
           </div>
 
