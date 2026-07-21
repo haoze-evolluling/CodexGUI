@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { AtSign, Bot, BrainCircuit, CircleGauge, Eraser, FilePlus2, ListTodo, Minimize2, ShieldCheck, Sparkles } from 'lucide-react';
+import { AtSign, Bot, BrainCircuit, CircleGauge, Eraser, FilePlus2, ListTodo, Minimize2, Send, ShieldCheck, Sparkles } from 'lucide-react';
 import type { CodexModel, CodexSkill } from '../types';
 import type { ComposerProps } from './composer-types';
 
@@ -9,7 +9,7 @@ const skillScopeLabels: Record<CodexSkill['scope'], string> = {
   repo: '项目', user: '用户', admin: '管理员', system: '系统',
 };
 
-type Options = Pick<ComposerProps, 'activeSessionId' | 'collaborationModes' | 'input' | 'models' | 'onChooseFiles' | 'onClearContext' | 'onCompact' | 'onInputChange' | 'onModeChange' | 'onNewConversation' | 'onShowStatus' | 'onSkillSelect' | 'session' | 'skills'> & {
+type Options = Pick<ComposerProps, 'activeSessionId' | 'collaborationModes' | 'input' | 'models' | 'onChooseFiles' | 'onClearContext' | 'onCompact' | 'onInputChange' | 'onModeChange' | 'onNewConversation' | 'onSend' | 'onShowStatus' | 'onSkillSelect' | 'session' | 'skills'> & {
   disabled: boolean;
   selectedModel?: CodexModel;
   setOpenSelector(value: SelectorName): void;
@@ -19,6 +19,7 @@ export function useComposerCommands(options: Options) {
   const [commandIndex, setCommandIndex] = useState(0);
   const [skillPaletteOpen, setSkillPaletteOpen] = useState(false);
   const commands = useMemo(() => [
+    { kind: 'command' as const, id: 'continue', name: '继续', shortcut: '/continue', description: '向智能体发送 continue', icon: Send, disabled: options.disabled, run: () => options.onSend('continue') },
     { kind: 'command' as const, id: 'compact', name: '压缩上下文', shortcut: '/compact', description: '压缩当前对话，释放上下文空间', icon: Minimize2, disabled: options.disabled || !options.session?.threadId, run: options.onCompact },
     { kind: 'command' as const, id: 'new', name: '新对话', shortcut: '/new', description: '在当前项目中开始新对话', icon: FilePlus2, disabled: options.disabled || !options.session?.cwd, run: options.onNewConversation },
     { kind: 'command' as const, id: 'clear', name: '清除上下文', shortcut: '/clear', description: '清空当前消息并开启新的上下文', icon: Eraser, disabled: options.disabled, run: options.onClearContext },

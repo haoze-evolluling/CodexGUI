@@ -65,6 +65,7 @@ export function App() {
             waiting={controller.waiting}
             compacting={controller.compacting}
             models={controller.models}
+            preferredModel={controller.settings.model}
             skills={controller.skills}
             collaborationModes={controller.collaborationModes}
             permissionMode={controller.permissionMode}

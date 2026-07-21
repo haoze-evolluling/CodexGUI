@@ -16,9 +16,11 @@ function writeJson(filePath, value) {
 
 function normalizeSettings(value) {
   const codexPath = typeof value?.codexPath === 'string' ? value.codexPath.trim() : '';
+  const model = typeof value?.model === 'string' ? value.model.trim() : '';
   return {
     permissionMode: value?.permissionMode === 'yolo' ? 'yolo' : 'default',
     ...(codexPath ? { codexPath } : {}),
+    ...(model ? { model } : {}),
   };
 }
 

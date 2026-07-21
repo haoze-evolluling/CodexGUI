@@ -40,11 +40,11 @@ test('persists Codex path and merges partial setting updates', () => {
     settingsFile,
   );
   try {
-    store.saveSettings({ codexPath: 'C:\\Tools\\codex.exe' });
+    store.saveSettings({ codexPath: 'C:\\Tools\\codex.exe', model: 'gpt-5' });
     assert.deepEqual(store.saveSettings({ permissionMode: 'yolo' }), {
-      permissionMode: 'yolo', codexPath: 'C:\\Tools\\codex.exe',
+      permissionMode: 'yolo', codexPath: 'C:\\Tools\\codex.exe', model: 'gpt-5',
     });
-    assert.deepEqual(store.saveSettings({ codexPath: '' }), { permissionMode: 'yolo' });
+    assert.deepEqual(store.saveSettings({ codexPath: '' }), { permissionMode: 'yolo', model: 'gpt-5' });
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }

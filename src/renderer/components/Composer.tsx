@@ -12,6 +12,7 @@ export function Composer(props: ComposerProps) {
   const commandMenuRef = useRef<HTMLDivElement>(null);
   const selectedCommandRef = useRef<HTMLButtonElement>(null);
   const selectedModel = props.models.find(model => model.model === props.session?.model)
+    || props.models.find(model => model.model === props.preferredModel)
     || props.models.find(model => model.isDefault)
     || props.models[0];
   const disabled = !props.activeSessionId || props.running || props.compacting;
@@ -116,6 +117,16 @@ export function Composer(props: ComposerProps) {
             if (event.key === 'Backspace' && !props.input && event.currentTarget.selectionStart === 0 && props.attachments.length) {
               event.preventDefault();
               props.onRemoveAttachment(props.attachments[props.attachments.length - 1].id);
+              return;
+            }
+            if (event.key === 'Enter' && event.ctrlKey) {
+              event.preventDefault();
+              const textarea = event.currentTarget;
+              const start = textarea.selectionStart;
+              const end = textarea.selectionEnd;
+              const nextValue = `${props.input.slice(0, start)}\n${props.input.slice(end)}`;
+              props.onInputChange(nextValue);
+              window.requestAnimationFrame(() => textarea.setSelectionRange(start + 1, start + 1));
               return;
             }
             if (commandMenuOpen) {
@@ -233,7 +244,7 @@ export function Composer(props: ComposerProps) {
             {props.running ? (
               <button className="send-button stop" onClick={() => props.activeSessionId && window.codex.stop(props.activeSessionId)} title="停止" aria-label="停止"><Square size={15} /></button>
             ) : (
-              <button className="send-button" onClick={props.onSend} disabled={!props.activeSessionId || props.compacting || (!props.input.trim() && !props.attachments.length)} title="发送" aria-label="发送"><ArrowUp size={19} /></button>
+              <button className="send-button" onClick={() => props.onSend()} disabled={!props.activeSessionId || props.compacting || (!props.input.trim() && !props.attachments.length)} title="发送" aria-label="发送"><ArrowUp size={19} /></button>
             )}
           </div>
         </div>

@@ -9,6 +9,7 @@ export type ComposerProps = {
   waiting: boolean;
   session?: Session;
   models: CodexModel[];
+  preferredModel?: string;
   skills: CodexSkill[];
   collaborationModes: CollaborationMode[];
   permissionMode: PermissionMode;
@@ -16,7 +17,7 @@ export type ComposerProps = {
   onChooseFiles(): void;
   onAddFiles(paths: string[]): void;
   onRemoveAttachment(id: string): void;
-  onSend(): void;
+  onSend(message?: string): void;
   onCompact(): void;
   onNewConversation(): void;
   onClearContext(): void;

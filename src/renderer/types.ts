@@ -18,7 +18,7 @@ export type CodexSkill = {
   } | null;
 };
 export type PermissionMode = 'default' | 'yolo';
-export type AppSettings = { permissionMode: PermissionMode; codexPath?: string };
+export type AppSettings = { permissionMode: PermissionMode; codexPath?: string; model?: string };
 export type CodexInstallation =
   | { status: 'ready'; path: string; source: 'custom' | 'official' | 'npm' }
   | { status: 'missing' | 'invalid'; path?: string; error: string };

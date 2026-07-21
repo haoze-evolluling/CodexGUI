@@ -104,11 +104,11 @@ export function useSessionController() {
     timeline: [...timelineOf(current), { id: crypto.randomUUID(), type: 'message', role: 'error', text }],
   }) : current);
 
-  const send = async () => {
-    if ((!input.trim() && !attachments.length) || !active || runningSessions.has(active.id)) return;
-    const text = input.trim();
+  const send = async (message = input) => {
+    if ((!message.trim() && !attachments.length) || !active || runningSessions.has(active.id)) return;
+    const text = message.trim();
     const skillPrefix = selectedSkill ? `$${selectedSkill.name}` : '';
-    const prompt = selectedSkill && (text === skillPrefix || text.startsWith(`${skillPrefix} `))
+    const prompt = message === input && selectedSkill && (text === skillPrefix || text.startsWith(`${skillPrefix} `))
       ? text.slice(skillPrefix.length).trimStart()
       : text;
     const sentSkill = prompt === text ? undefined : selectedSkill;
@@ -126,8 +126,10 @@ export function useSessionController() {
       title: active.title === '新建对话' ? (text || sentAttachments[0]?.name || '附件').slice(0, 32) : active.title,
     });
     setRunningSessions(current => new Set(current).add(active.id));
-    const selectedModel = models.find(model => model.isDefault) || models[0];
-    const effectiveModel = active.model || selectedModel?.model;
+    const selectedModel = models.find(model => model.model === settings.model)
+      || models.find(model => model.isDefault)
+      || models[0];
+    const effectiveModel = active.model || settings.model || selectedModel?.model;
     const effectiveEffort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
     const started = await window.codex.start({
       sessionId: active.id, cwd: active.cwd, prompt, attachments: sentAttachments, skill: sentSkill, threadId: active.threadId,
@@ -197,8 +199,10 @@ export function useSessionController() {
     }
     setActive(nextSession);
     setRunningSessions(current => new Set(current).add(nextSession.id));
-    const selectedModel = models.find(model => model.isDefault) || models[0];
-    const model = active.model || selectedModel?.model;
+    const selectedModel = models.find(model => model.model === settings.model)
+      || models.find(model => model.isDefault)
+      || models[0];
+    const model = active.model || settings.model || selectedModel?.model;
     const reasoningEffort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
     const started = await window.codex.start({
       sessionId: nextSession.id,
@@ -214,7 +218,7 @@ export function useSessionController() {
     if (!started) setRunningSessions(current => without(current, nextSession.id));
   };
 
-  const createInFolder = (cwd: string) => setActive(freshSession(cwd));
+  const createInFolder = (cwd: string) => setActive({ ...freshSession(cwd), ...(settings.model ? { model: settings.model } : {}) });
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
   const addFiles = (filePaths: string[]) => {
     if (!filePaths.length) return;
@@ -291,6 +295,7 @@ export function useSessionController() {
   const setModel = (model: string) => {
     const selected = models.find(item => item.model === model);
     setActive(current => current ? { ...current, model, reasoningEffort: selected?.defaultReasoningEffort } : current);
+    window.codex.saveSettings({ model }).then(setSettings).catch(() => undefined);
   };
   const setPermissionMode = (mode: PermissionMode) => {
     const previous = permissionMode;
@@ -335,6 +340,7 @@ export function useSessionController() {
         ? '等待用户输入'
         : statusLabels[active.threadStatus?.type || ''] || (runningSessions.has(active.id) ? '运行中' : '空闲');
     const selectedModel = models.find(model => model.model === active.model)
+      || models.find(model => model.model === settings.model)
       || models.find(model => model.isDefault)
       || models[0];
     const effort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
