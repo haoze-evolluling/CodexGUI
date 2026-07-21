@@ -4,6 +4,7 @@ import { AppDialog } from './components/AppDialog';
 import { Sidebar } from './components/Sidebar';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Timeline } from './components/Timeline';
+import { TitleBar } from './components/TitleBar';
 import { useSessionController } from './use-session-controller';
 
 export function App() {
@@ -11,6 +12,7 @@ export function App() {
 
   return (
     <div className="app">
+      <TitleBar />
       {controller.dialog && <AppDialog dialog={controller.dialog} onClose={controller.closeDialog} />}
       {controller.settingsOpen && (
         <SettingsDialog
@@ -21,66 +23,68 @@ export function App() {
           onSave={controller.saveCodexPath}
         />
       )}
-      <Sidebar
-        active={controller.active}
-        collapsedGroups={controller.collapsedGroups}
-        groups={controller.groups}
-        runningSessions={controller.runningSessions}
-        onArchiveProject={controller.archiveProject}
-        onArchiveSession={controller.archiveSession}
-        onCreateInFolder={controller.createInFolder}
-        onCreateProject={controller.createProjectSession}
-        onRefresh={controller.refreshHistory}
-        onSelect={controller.setActive}
-        onSettings={controller.openSettings}
-        onToggleGroup={controller.toggleGroup}
-      />
-      <main>
-        <header>
-          <div>
-            <b>{controller.active?.title || '未选择对话'}</b>
-            <span className="path">{controller.active?.cwd || '未选择项目文件夹'}</span>
-          </div>
-          <div className="header-actions">
-            <button
-              className="icon"
-              onClick={() => controller.archiveSession()}
-              title={controller.running ? '正在执行，无法归档' : '归档对话'}
-              disabled={!controller.active || controller.running}
-            >
-              <Archive size={18} />
-            </button>
-          </div>
-        </header>
-        <Timeline active={controller.active} running={controller.running} onAnswer={controller.answerUserInput} onPlanChoice={controller.choosePlanAction} />
-        <Composer
-          activeSessionId={controller.active?.id}
-          session={controller.active}
-          input={controller.input}
-          attachments={controller.attachments}
-          running={controller.running}
-          waiting={controller.waiting}
-          compacting={controller.compacting}
-          models={controller.models}
-          skills={controller.skills}
-          collaborationModes={controller.collaborationModes}
-          permissionMode={controller.permissionMode}
-          onInputChange={controller.setInput}
-          onChooseFiles={controller.chooseFiles}
-          onAddFiles={controller.addFiles}
-          onRemoveAttachment={controller.removeAttachment}
-          onSend={controller.send}
-          onCompact={controller.compact}
-          onNewConversation={() => controller.active?.cwd && controller.createInFolder(controller.active.cwd)}
-          onClearContext={controller.clearContext}
-          onShowStatus={controller.showStatus}
-          onSkillSelect={controller.selectSkill}
-          onModelChange={controller.setModel}
-          onReasoningEffortChange={controller.setReasoningEffort}
-          onModeChange={controller.setCollaborationMode}
-          onPermissionModeChange={controller.setPermissionMode}
+      <div className="app-workspace">
+        <Sidebar
+          active={controller.active}
+          collapsedGroups={controller.collapsedGroups}
+          groups={controller.groups}
+          runningSessions={controller.runningSessions}
+          onArchiveProject={controller.archiveProject}
+          onArchiveSession={controller.archiveSession}
+          onCreateInFolder={controller.createInFolder}
+          onCreateProject={controller.createProjectSession}
+          onRefresh={controller.refreshHistory}
+          onSelect={controller.setActive}
+          onSettings={controller.openSettings}
+          onToggleGroup={controller.toggleGroup}
         />
-      </main>
+        <main>
+          <header>
+            <div>
+              <b>{controller.active?.title || '未选择对话'}</b>
+              <span className="path">{controller.active?.cwd || '未选择项目文件夹'}</span>
+            </div>
+            <div className="header-actions">
+              <button
+                className="icon"
+                onClick={() => controller.archiveSession()}
+                title={controller.running ? '正在执行，无法归档' : '归档对话'}
+                disabled={!controller.active || controller.running}
+              >
+                <Archive size={18} />
+              </button>
+            </div>
+          </header>
+          <Timeline active={controller.active} running={controller.running} onAnswer={controller.answerUserInput} onPlanChoice={controller.choosePlanAction} />
+          <Composer
+            activeSessionId={controller.active?.id}
+            session={controller.active}
+            input={controller.input}
+            attachments={controller.attachments}
+            running={controller.running}
+            waiting={controller.waiting}
+            compacting={controller.compacting}
+            models={controller.models}
+            skills={controller.skills}
+            collaborationModes={controller.collaborationModes}
+            permissionMode={controller.permissionMode}
+            onInputChange={controller.setInput}
+            onChooseFiles={controller.chooseFiles}
+            onAddFiles={controller.addFiles}
+            onRemoveAttachment={controller.removeAttachment}
+            onSend={controller.send}
+            onCompact={controller.compact}
+            onNewConversation={() => controller.active?.cwd && controller.createInFolder(controller.active.cwd)}
+            onClearContext={controller.clearContext}
+            onShowStatus={controller.showStatus}
+            onSkillSelect={controller.selectSkill}
+            onModelChange={controller.setModel}
+            onReasoningEffortChange={controller.setReasoningEffort}
+            onModeChange={controller.setCollaborationMode}
+            onPermissionModeChange={controller.setPermissionMode}
+          />
+        </main>
+      </div>
     </div>
   );
 }

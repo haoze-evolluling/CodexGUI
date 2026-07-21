@@ -121,6 +121,9 @@ export type CollaborationMode = {
 };
 
 export type CodexApi = {
+  minimizeWindow(): Promise<void>;
+  toggleMaximizeWindow(): Promise<boolean>;
+  closeWindow(): Promise<void>;
   listSessions(): Promise<Session[]>;
   loadHistory(): Promise<Session[]>;
   getSettings(): Promise<AppSettings>;

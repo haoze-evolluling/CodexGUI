@@ -2,7 +2,16 @@
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; overflow: hidden; }
 body { margin: 0; }
-.app { display: flex; width: 100%; height: 100%; overflow: hidden; }
+.app { display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden; }
+.app-workspace { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+.title-bar { height: 38px; flex: 0 0 38px; display: flex; align-items: center; justify-content: space-between; padding-left: 12px; color: #cbd4e1; background: #11151c; border-bottom: 1px solid #29313d; user-select: none; -webkit-app-region: drag; }
+.title-bar-brand { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; font-weight: 600; }
+.title-bar-brand img { width: 20px; height: 20px; object-fit: contain; }
+.window-controls { display: flex; align-self: stretch; -webkit-app-region: no-drag; }
+.window-controls button { width: 46px; height: 100%; display: grid; place-items: center; padding: 0; border-radius: 0; color: #aeb9c7; background: transparent; transition: background-color 100ms ease-out, color 100ms ease-out; }
+.window-controls button:hover { color: #f6f8fb; background: #273342; }
+.window-controls .window-close:hover { color: #fff; background: #c42b1c; }
+.window-controls button:active:not(:disabled) { transform: none; }
 button { border: 0; color: inherit; background: #273342; border-radius: 7px; padding: 10px 12px; cursor: pointer; font: inherit; transition: transform 100ms ease-out; }
 button:active:not(:disabled) { transform: scale(.96); }
 button:disabled, textarea:disabled { cursor: not-allowed; opacity: .5; }

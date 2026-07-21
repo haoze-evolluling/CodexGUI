@@ -7,6 +7,9 @@ function subscribe(channel, callback) {
 }
 
 contextBridge.exposeInMainWorld('codex', {
+  minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
+  toggleMaximizeWindow: () => ipcRenderer.invoke('window:toggle-maximize'),
+  closeWindow: () => ipcRenderer.invoke('window:close'),
   listSessions: () => ipcRenderer.invoke('sessions:list'),
   loadHistory: () => ipcRenderer.invoke('sessions:history'),
   getSettings: () => ipcRenderer.invoke('settings:get'),

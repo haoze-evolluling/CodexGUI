@@ -2,6 +2,15 @@ const { removeArchivedSessions } = require('./codex-archive.cjs');
 const { loadCodexHistory, mergeSessions } = require('./codex-history.cjs');
 
 function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation, getWindow, ipcMain, store }) {
+  ipcMain.handle('window:minimize', () => getWindow()?.minimize());
+  ipcMain.handle('window:toggle-maximize', () => {
+    const window = getWindow();
+    if (!window) return false;
+    if (window.isMaximized()) window.unmaximize();
+    else window.maximize();
+    return window.isMaximized();
+  });
+  ipcMain.handle('window:close', () => getWindow()?.close());
   const history = () => {
     const archivedThreads = store.loadArchivedThreads();
     return mergeSessions(store.loadSessions(), loadCodexHistory(codexHome))

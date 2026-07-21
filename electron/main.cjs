@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const { createCodexAppServer } = require('./codex-app-server.cjs');
@@ -16,6 +16,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     backgroundColor: '#11151c',
+    frame: false,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -29,6 +30,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
   createWindow();
 
   const store = createSessionStore(
