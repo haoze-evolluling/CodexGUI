@@ -10,6 +10,8 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getWindow, ipcMa
 
   ipcMain.handle('sessions:list', history);
   ipcMain.handle('sessions:history', history);
+  ipcMain.handle('settings:get', () => store.loadSettings());
+  ipcMain.handle('settings:save', (_, settings) => store.saveSettings(settings));
   ipcMain.handle('sessions:save', (_, session) => {
     const all = store.loadSessions().filter(item => item.id !== session.id);
     all.unshift(session);

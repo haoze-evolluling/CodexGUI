@@ -82,6 +82,7 @@
 .selector-menu { position: absolute; z-index: 30; bottom: calc(100% + 8px); left: 0; overflow: hidden; background: #202936; border: 1px solid #4a5a70; border-radius: 8px; box-shadow: 0 16px 36px rgb(0 0 0 / 42%); animation: selector-enter 120ms ease-out; }
 .model-menu { width: min(330px, calc(100vw - 32px)); }
 .effort-menu { width: 244px; }
+.permission-menu { width: min(310px, calc(100vw - 32px)); }
 .selector-menu-heading { padding: 9px 12px 7px; color: #8494a9; font-size: 11px; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
 .selector-option { width: 100%; display: grid; grid-template-columns: 20px minmax(0, 1fr) 18px; align-items: center; gap: 9px; padding: 9px 11px; color: #b8c5d5; background: transparent; border-radius: 0; text-align: left; }
 .selector-option:hover, .selector-option.selected { color: #f1f6fd; background: #2b3a4d; }
@@ -94,6 +95,7 @@
 .selector-option small { margin-top: 2px; overflow: hidden; color: #92a1b5; font-size: 11px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .effort-option { grid-template-columns: minmax(0, 1fr) 18px; min-height: 47px; }
 .effort-option.selected b { color: #f2c77e; }
+.permission-option.danger > svg:first-child, .permission-option.danger.selected b { color: #ff9c9c; }
 @keyframes selector-enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 .mode-toggle { display: flex; align-items: center; gap: 5px; padding: 0 8px; font-size: 13px; }
 .mode-toggle.selected { color: #69a8ff; background: #183252; }
@@ -122,7 +124,14 @@
 .clear-confirm-actions .danger:hover { background: #bd5260; }
 .composer-meta { min-height: 30px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 6px 4px 0; color: #7f8b9d; font-size: 12px; }
 .composer-context, .composer-status { min-width: 0; display: flex; align-items: center; gap: 16px; }
-.composer-context span, .composer-status span { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.composer-context > span, .composer-status span { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.permission-trigger { display: flex; align-items: center; gap: 5px; padding: 2px 3px; color: inherit; background: transparent; font: inherit; }
+.permission-trigger:hover:not(:disabled), .permission-control.open .permission-trigger { color: #dce5f1; background: #273342; }
+.permission-trigger > svg:first-child { color: #8faed5; }
+.permission-trigger > svg:last-child { transition: transform 140ms ease; }
+.permission-control.open .permission-trigger > svg:last-child { transform: rotate(180deg); }
+.permission-trigger:disabled { opacity: .48; }
+.permission-control .selector-menu { bottom: calc(100% + 6px); }
 .composer-status > span:first-child { overflow: hidden; text-overflow: ellipsis; }
 .branch-status { color: #697689; }
 .compact-activity { display: flex; align-items: center; gap: 8px; color: #9bacbf; font-size: 13px; }

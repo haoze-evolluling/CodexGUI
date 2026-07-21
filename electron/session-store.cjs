@@ -14,7 +14,13 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
 }
 
-function createSessionStore(dataFile, archivedThreadsFile) {
+function normalizeSettings(value) {
+  return {
+    permissionMode: value?.permissionMode === 'yolo' ? 'yolo' : 'default',
+  };
+}
+
+function createSessionStore(dataFile, archivedThreadsFile, settingsFile) {
   return {
     loadSessions() {
       return readJson(dataFile, []);
@@ -28,6 +34,14 @@ function createSessionStore(dataFile, archivedThreadsFile) {
     },
     saveArchivedThreads(threadIds) {
       writeJson(archivedThreadsFile, [...threadIds]);
+    },
+    loadSettings() {
+      return normalizeSettings(settingsFile ? readJson(settingsFile, {}) : {});
+    },
+    saveSettings(settings) {
+      const normalized = normalizeSettings(settings);
+      if (settingsFile) writeJson(settingsFile, normalized);
+      return normalized;
     },
   };
 }

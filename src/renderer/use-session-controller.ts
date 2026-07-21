@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { freshSession, groupSessions, normalizeSession, timelineOf } from './session-model';
-import type { AttachmentKind, CodexAttachment, CodexModel, CollaborationMode, Message, Session, UserInputActivity } from './types';
+import type { AttachmentKind, CodexAttachment, CodexModel, CollaborationMode, Message, PermissionMode, Session, UserInputActivity } from './types';
 
 const imageExtensions = new Set(['bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp']);
 const codeExtensions = new Set(['c', 'cc', 'cpp', 'cs', 'css', 'go', 'h', 'hpp', 'html', 'java', 'js', 'json', 'jsx', 'kt', 'md', 'php', 'py', 'rb', 'rs', 'scss', 'sh', 'sql', 'swift', 'toml', 'ts', 'tsx', 'vue', 'xml', 'yaml', 'yml']);
@@ -36,6 +36,7 @@ export function useSessionController() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [models, setModels] = useState<CodexModel[]>([]);
   const [collaborationModes, setCollaborationModes] = useState<CollaborationMode[]>([]);
+  const [permissionMode, setPermissionModeState] = useState<PermissionMode>('default');
 
   const refreshHistory = async () => {
     const items = await window.codex.loadHistory();
@@ -49,6 +50,7 @@ export function useSessionController() {
     refreshHistory();
     window.codex.listModels().then(setModels).catch(() => setModels([]));
     window.codex.listCollaborationModes().then(setCollaborationModes).catch(() => setCollaborationModes([]));
+    window.codex.getSettings().then(settings => setPermissionModeState(settings.permissionMode)).catch(() => setPermissionModeState('default'));
     const refreshInterval = window.setInterval(refreshHistory, 60_000);
 
     const updateSession = (sessionId: string, update: (session: Session) => Session) => {
@@ -145,6 +147,7 @@ export function useSessionController() {
       sessionId: active.id, cwd: active.cwd, prompt: text, attachments: sentAttachments, threadId: active.threadId,
       model: effectiveModel, reasoningEffort: effectiveEffort,
       collaborationMode: collaborationModes.find(mode => mode.mode === (active.collaborationMode || 'default')),
+      permissionMode,
     });
     if (!started) setRunningSessions(current => without(current, active.id));
   };
@@ -243,16 +246,23 @@ export function useSessionController() {
     const selected = models.find(item => item.model === model);
     setActive(current => current ? { ...current, model, reasoningEffort: selected?.defaultReasoningEffort } : current);
   };
+  const setPermissionMode = (mode: PermissionMode) => {
+    const previous = permissionMode;
+    setPermissionModeState(mode);
+    window.codex.saveSettings({ permissionMode: mode }).catch(() => {
+      setPermissionModeState(current => current === mode ? previous : current);
+    });
+  };
 
   const groups = useMemo(() => groupSessions(sessions), [sessions]);
   const running = !!active && runningSessions.has(active.id);
   const waiting = !!active && waitingSessions.has(active.id);
   const compacting = !!active && compactingSessions.has(active.id);
   return {
-    active, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, clearContext, collapsedGroups, collaborationModes, compact, compacting,
+    active, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode,
     createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, send, setActive,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
-    setInput, setModel,
+    setInput, setModel, setPermissionMode,
     setReasoningEffort: (effort: string) => setActive(current => current ? { ...current, reasoningEffort: effort } : current),
     toggleGroup, waiting,
   };

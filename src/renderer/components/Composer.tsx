@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUp, Bot, BrainCircuit, Check, ChevronDown, Eraser, FilePlus2, GitBranch, ListTodo, Minimize2, Monitor, Plus, ShieldCheck, Square } from 'lucide-react';
-import type { CodexAttachment, CodexModel, CollaborationMode, Session } from '../types';
+import { ArrowUp, Bot, BrainCircuit, Check, ChevronDown, Eraser, FilePlus2, GitBranch, ListTodo, Minimize2, Monitor, Plus, ShieldAlert, ShieldCheck, Square } from 'lucide-react';
+import type { CodexAttachment, CodexModel, CollaborationMode, PermissionMode, Session } from '../types';
 import { AttachmentTokens } from './AttachmentTokens';
 
 type ComposerProps = {
@@ -13,6 +13,7 @@ type ComposerProps = {
   session?: Session;
   models: CodexModel[];
   collaborationModes: CollaborationMode[];
+  permissionMode: PermissionMode;
   onInputChange(value: string): void;
   onChooseFiles(): void;
   onRemoveAttachment(id: string): void;
@@ -23,13 +24,15 @@ type ComposerProps = {
   onModelChange(value: string): void;
   onReasoningEffortChange(value: string): void;
   onModeChange(value: 'default' | 'plan'): void;
+  onPermissionModeChange(value: PermissionMode): void;
 };
 
 export function Composer(props: ComposerProps) {
   const [commandIndex, setCommandIndex] = useState(0);
-  const [openSelector, setOpenSelector] = useState<'model' | 'effort' | null>(null);
+  const [openSelector, setOpenSelector] = useState<'model' | 'effort' | 'permission' | null>(null);
   const [clearConfirmationOpen, setClearConfirmationOpen] = useState(false);
   const selectorsRef = useRef<HTMLDivElement>(null);
+  const permissionSelectorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const clearButtonRef = useRef<HTMLButtonElement>(null);
   const selectedModel = props.models.find(model => model.model === props.session?.model)
@@ -67,7 +70,8 @@ export function Composer(props: ComposerProps) {
   };
   useEffect(() => {
     const closeSelector = (event: MouseEvent) => {
-      if (!selectorsRef.current?.contains(event.target as Node)) setOpenSelector(null);
+      const target = event.target as Node;
+      if (!selectorsRef.current?.contains(target) && !permissionSelectorRef.current?.contains(target)) setOpenSelector(null);
     };
     window.addEventListener('mousedown', closeSelector);
     return () => window.removeEventListener('mousedown', closeSelector);
@@ -277,7 +281,44 @@ export function Composer(props: ComposerProps) {
       <div className="composer-meta">
         <div className="composer-context">
           <span title={props.session?.cwd || '未选择项目文件夹'}><Monitor size={14} /> 本地</span>
-          <span><ShieldCheck size={14} /> 默认权限</span>
+          <div ref={permissionSelectorRef} className={`selector-control permission-control ${openSelector === 'permission' ? 'open' : ''}`}>
+            <button
+              className="permission-trigger"
+              onClick={() => setOpenSelector(current => current === 'permission' ? null : 'permission')}
+              disabled={disabled}
+              aria-label="选择权限模式"
+              aria-expanded={openSelector === 'permission'}
+            >
+              {props.permissionMode === 'yolo' ? <ShieldAlert size={14} /> : <ShieldCheck size={14} />}
+              <span>{props.permissionMode === 'yolo' ? 'YOLO 权限' : '默认权限'}</span>
+              <ChevronDown size={13} />
+            </button>
+            {openSelector === 'permission' && (
+              <div className="selector-menu permission-menu" role="listbox" aria-label="权限模式列表">
+                <div className="selector-menu-heading">权限模式</div>
+                <button
+                  className={`selector-option permission-option ${props.permissionMode === 'default' ? 'selected' : ''}`}
+                  onClick={() => { props.onPermissionModeChange('default'); setOpenSelector(null); }}
+                  role="option"
+                  aria-selected={props.permissionMode === 'default'}
+                >
+                  <ShieldCheck size={16} />
+                  <span><b>默认模式</b><small>遵循 Codex 配置，敏感操作可能需要批准</small></span>
+                  {props.permissionMode === 'default' && <Check size={16} />}
+                </button>
+                <button
+                  className={`selector-option permission-option danger ${props.permissionMode === 'yolo' ? 'selected' : ''}`}
+                  onClick={() => { props.onPermissionModeChange('yolo'); setOpenSelector(null); }}
+                  role="option"
+                  aria-selected={props.permissionMode === 'yolo'}
+                >
+                  <ShieldAlert size={16} />
+                  <span><b>YOLO 模式</b><small>不请求批准，并允许完整文件系统访问</small></span>
+                  {props.permissionMode === 'yolo' && <Check size={16} />}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <div className="composer-status">
           <span>{status}</span>

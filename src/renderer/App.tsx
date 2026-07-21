@@ -50,6 +50,7 @@ export function App() {
           compacting={controller.compacting}
           models={controller.models}
           collaborationModes={controller.collaborationModes}
+          permissionMode={controller.permissionMode}
           onInputChange={controller.setInput}
           onChooseFiles={controller.chooseFiles}
           onRemoveAttachment={controller.removeAttachment}
@@ -60,6 +61,7 @@ export function App() {
           onModelChange={controller.setModel}
           onReasoningEffortChange={controller.setReasoningEffort}
           onModeChange={controller.setCollaborationMode}
+          onPermissionModeChange={controller.setPermissionMode}
         />
       </main>
     </div>

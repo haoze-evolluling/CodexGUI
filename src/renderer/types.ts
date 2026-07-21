@@ -6,6 +6,8 @@ export type Message = {
 
 export type AttachmentKind = 'image' | 'code' | 'pdf' | 'document' | 'spreadsheet' | 'archive' | 'file';
 export type CodexAttachment = { id: string; path: string; name: string; kind: AttachmentKind };
+export type PermissionMode = 'default' | 'yolo';
+export type AppSettings = { permissionMode: PermissionMode };
 
 export type FileChange = {
   path: string;
@@ -78,12 +80,14 @@ export type CollaborationMode = {
 export type CodexApi = {
   listSessions(): Promise<Session[]>;
   loadHistory(): Promise<Session[]>;
+  getSettings(): Promise<AppSettings>;
+  saveSettings(settings: AppSettings): Promise<AppSettings>;
   saveSession(session: Session): Promise<Session[]>;
   archiveSession(session: Session): Promise<ArchiveResult>;
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
   chooseFolder(): Promise<string | null>;
   chooseFiles(defaultPath?: string): Promise<string[]>;
-  start(options: { sessionId: string; cwd: string; prompt: string; attachments: CodexAttachment[]; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode }): Promise<boolean>;
+  start(options: { sessionId: string; cwd: string; prompt: string; attachments: CodexAttachment[]; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode; permissionMode: PermissionMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;
   compact(sessionId: string, threadId?: string): Promise<boolean>;
   resetSession(sessionId: string): Promise<boolean>;

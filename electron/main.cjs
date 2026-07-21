@@ -30,6 +30,7 @@ app.whenReady().then(() => {
   const store = createSessionStore(
     path.join(app.getPath('userData'), 'sessions.json'),
     path.join(app.getPath('userData'), 'archived-threads.json'),
+    path.join(app.getPath('userData'), 'settings.json'),
   );
   const codexProcess = createCodexAppServer({
     attachDiffs: createDiffAttacher(spawn),

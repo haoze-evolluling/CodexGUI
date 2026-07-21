@@ -9,6 +9,8 @@ function subscribe(channel, callback) {
 contextBridge.exposeInMainWorld('codex', {
   listSessions: () => ipcRenderer.invoke('sessions:list'),
   loadHistory: () => ipcRenderer.invoke('sessions:history'),
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  saveSettings: settings => ipcRenderer.invoke('settings:save', settings),
   saveSession: session => ipcRenderer.invoke('sessions:save', session),
   archiveSession: session => ipcRenderer.invoke('sessions:archive', session),
   archiveProject: async sessions => {

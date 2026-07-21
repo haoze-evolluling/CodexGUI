@@ -161,6 +161,45 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
     return ready || startProcess();
   }
 
+  function sandboxPolicyFromConfig(config) {
+    if (config.sandbox_mode === 'danger-full-access') return { type: 'dangerFullAccess' };
+    if (config.sandbox_mode === 'read-only') return { type: 'readOnly' };
+    const workspace = config.sandbox_workspace_write || {};
+    return {
+      type: 'workspaceWrite',
+      writableRoots: workspace.writable_roots || [],
+      networkAccess: workspace.network_access === true,
+      excludeSlashTmp: workspace.exclude_slash_tmp === true,
+      excludeTmpdirEnvVar: workspace.exclude_tmpdir_env_var === true,
+    };
+  }
+
+  async function resolvePermissionSettings(options) {
+    if (options.permissionMode === 'yolo') {
+      return {
+        approvalPolicy: 'never',
+        sandbox: 'danger-full-access',
+        sandboxPolicy: { type: 'dangerFullAccess' },
+      };
+    }
+    await ensureReady();
+    try {
+      const result = await request('config/read', { cwd: options.cwd, includeLayers: false });
+      const config = result.config || {};
+      return {
+        approvalPolicy: config.approval_policy || 'on-request',
+        sandbox: config.sandbox_mode || 'workspace-write',
+        sandboxPolicy: sandboxPolicyFromConfig(config),
+      };
+    } catch {
+      return {
+        approvalPolicy: 'on-request',
+        sandbox: 'workspace-write',
+        sandboxPolicy: { type: 'workspaceWrite' },
+      };
+    }
+  }
+
   async function ensureThread(options) {
     await ensureReady();
     const loaded = threadsBySession.get(options.sessionId);
@@ -169,7 +208,12 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
       threadId = options.threadId;
       await request('thread/resume', { threadId });
     } else if (!threadId) {
-      const result = await request('thread/start', { cwd: options.cwd, model: options.model || null });
+      const result = await request('thread/start', {
+        cwd: options.cwd,
+        model: options.model || null,
+        approvalPolicy: options.permissionSettings.approvalPolicy,
+        sandbox: options.permissionSettings.sandbox,
+      });
       threadId = result.thread.id;
     }
     sessionsByThread.set(threadId, options.sessionId);
@@ -182,7 +226,8 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
     async start(options) {
       if (!options.sessionId || turnsBySession.has(options.sessionId)) return false;
       try {
-        const threadId = await ensureThread(options);
+        const permissionSettings = await resolvePermissionSettings(options);
+        const threadId = await ensureThread({ ...options, permissionSettings });
         const input = [];
         if (options.prompt) input.push({ type: 'text', text: options.prompt });
         for (const attachment of options.attachments || []) {
@@ -193,6 +238,8 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
           threadId,
           input,
           model: options.model || null,
+          approvalPolicy: permissionSettings.approvalPolicy,
+          sandboxPolicy: permissionSettings.sandboxPolicy,
         };
         if (options.reasoningEffort) params.effort = options.reasoningEffort;
         if (options.collaborationMode && (options.collaborationMode.model || options.model)) {
