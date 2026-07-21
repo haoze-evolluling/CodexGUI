@@ -1,4 +1,12 @@
-:root { font-family: Inter, system-ui, sans-serif; color: #e8edf5; background: #11151c; }
+@font-face {
+  font-family: 'MiSans';
+  src: url('../assets/fonts/MiSans-Demibold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root { font-family: 'MiSans', system-ui, sans-serif; font-weight: 600; color: #e8edf5; background: #11151c; }
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; overflow: hidden; }
 body { margin: 0; }
@@ -12,6 +20,7 @@ body { margin: 0; }
 .window-controls button:hover { color: #f6f8fb; background: #273342; }
 .window-controls .window-close:hover { color: #fff; background: #c42b1c; }
 .window-controls button:active:not(:disabled) { transform: none; }
+button, input, textarea, select { font-family: inherit; font-weight: inherit; }
 button { border: 0; color: inherit; background: #273342; border-radius: 7px; padding: 10px 12px; cursor: pointer; font: inherit; transition: transform 100ms ease-out; }
 button:active:not(:disabled) { transform: scale(.96); }
 button:disabled, textarea:disabled { cursor: not-allowed; opacity: .5; }

@@ -37,7 +37,7 @@
 .user pre { color: #a9d5ff; }
 .error pre { color: #ff9b9b; }
 .empty-conversation { color: #8490a0; margin: auto; }
-.thinking-status { display: flex; align-items: center; gap: 5px; margin-top: 9px; color: #aab5c5; font: 14px/1.6 ui-monospace, monospace; }
+.thinking-status { display: flex; align-items: center; gap: 5px; margin-top: 9px; color: #aab5c5; font-size: 14px; line-height: 1.6; }
 .thinking-status i { width: 5px; height: 5px; border-radius: 50%; background: #6ba8ff; animation: thinking-pulse 1.2s ease-in-out infinite; }
 .thinking-status i:nth-child(3) { animation-delay: .16s; }
 .thinking-status i:nth-child(4) { animation-delay: .32s; }
@@ -47,7 +47,7 @@
 .composer-card { overflow: hidden; background: #1b222d; border: 1px solid #394554; border-radius: 18px; box-shadow: 0 8px 24px rgb(0 0 0 / 24%); transition: border-color 140ms ease, box-shadow 140ms ease; }
 .composer-card.selector-active { overflow: visible; }
 .composer-card:focus-within { border-color: #607087; box-shadow: 0 10px 28px rgb(0 0 0 / 30%); }
-.composer-input { display: block; width: 100%; min-height: 72px; max-height: 220px; resize: none; overflow-y: auto; background: transparent; color: #e8edf5; border: 0; padding: 17px 16px 8px; font: 14px/1.55 inherit; outline: none; }
+.composer-input { display: block; width: 100%; min-height: 72px; max-height: 220px; resize: none; overflow-y: auto; background: transparent; color: #e8edf5; border: 0; padding: 17px 16px 8px; font-size: 14px; line-height: 1.55; outline: none; }
 .composer-input::placeholder { color: #778497; }
 .attachment-tokens { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0; }
 .composer-card > .attachment-tokens { margin: 0; padding: 12px 14px 0; }
@@ -136,7 +136,7 @@
 .settings-content > label { font-size: 13px; font-weight: 700; }
 .settings-hint { margin: -4px 0 2px; color: #91a0b3; font-size: 12px; line-height: 1.5; }
 .path-field { display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 6px; }
-.path-field input { min-width: 0; height: 40px; padding: 0 11px; color: #e8edf5; background: #111820; border: 1px solid #46566b; border-radius: 6px; outline: none; font: 12px ui-monospace, monospace; }
+.path-field input { min-width: 0; height: 40px; padding: 0 11px; color: #e8edf5; background: #111820; border: 1px solid #46566b; border-radius: 6px; outline: none; font-size: 12px; }
 .path-field input:focus { border-color: #6597d2; box-shadow: 0 0 0 2px rgb(83 145 230 / 14%); }
 .path-field .icon { height: 40px; background: #273342; }
 .reset-path { width: fit-content; display: flex; align-items: center; gap: 6px; padding: 5px 7px; color: #9cabbc; background: transparent; font-size: 12px; }
