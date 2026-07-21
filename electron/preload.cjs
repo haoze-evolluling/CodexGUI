@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('codex', {
   start: options => ipcRenderer.invoke('cli:start', options),
   stop: sessionId => ipcRenderer.invoke('cli:stop', sessionId),
   compact: (sessionId, threadId) => ipcRenderer.invoke('cli:compact', sessionId, threadId),
+  resetSession: sessionId => ipcRenderer.invoke('cli:reset-session', sessionId),
   listModels: () => ipcRenderer.invoke('cli:models'),
   listCollaborationModes: () => ipcRenderer.invoke('cli:collaboration-modes'),
   answerUserInput: (itemId, answers) => ipcRenderer.invoke('cli:answer-user-input', itemId, answers),

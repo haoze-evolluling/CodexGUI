@@ -226,6 +226,16 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
       await request('thread/compact/start', { threadId: known });
       return true;
     },
+    resetSession(sessionId) {
+      if (!sessionId) return false;
+      const thread = threadsBySession.get(sessionId);
+      if (thread && sessionsByThread.get(thread.threadId) === sessionId) {
+        sessionsByThread.delete(thread.threadId);
+      }
+      threadsBySession.delete(sessionId);
+      turnsBySession.delete(sessionId);
+      return true;
+    },
     async listModels() {
       await ensureReady();
       const models = [];

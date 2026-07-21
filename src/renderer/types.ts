@@ -81,6 +81,7 @@ export type CodexApi = {
   start(options: { sessionId: string; cwd: string; prompt: string; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;
   compact(sessionId: string, threadId?: string): Promise<boolean>;
+  resetSession(sessionId: string): Promise<boolean>;
   listModels(): Promise<CodexModel[]>;
   listCollaborationModes(): Promise<CollaborationMode[]>;
   answerUserInput(itemId: string, answers: Record<string, { answers: string[] }>): Promise<boolean>;

@@ -150,10 +150,13 @@ export function useSessionController() {
 
   const createInFolder = (cwd: string) => setActive(freshSession(cwd));
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
-  const clearContext = () => {
+  const clearContext = async () => {
     if (!active || runningSessions.has(active.id) || compactingSessions.has(active.id)) return;
-    if (!window.confirm('清除当前对话的消息和上下文？此操作不会删除项目文件。')) return;
+    const sessionId = active.id;
     setInput('');
+    setRunningSessions(current => without(current, sessionId));
+    setWaitingSessions(current => without(current, sessionId));
+    setCompactingSessions(current => without(current, sessionId));
     setActive(current => current ? {
       ...current,
       title: '新建对话',
@@ -167,6 +170,13 @@ export function useSessionController() {
       threadId: undefined,
       updated: Date.now(),
     } : current);
+    try {
+      if (!await window.codex.resetSession(sessionId)) {
+        appendLocalError('后端会话重置失败，请重新发送消息。');
+      }
+    } catch (error) {
+      appendLocalError(error instanceof Error ? error.message : String(error));
+    }
   };
   const archiveSession = async (target = active) => {
     if (!target || runningSessions.has(target.id)) return;

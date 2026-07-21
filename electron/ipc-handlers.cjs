@@ -33,6 +33,7 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getWindow, ipcMa
   ipcMain.handle('cli:start', (_, options) => codexProcess.start(options));
   ipcMain.handle('cli:stop', (_, sessionId) => codexProcess.stop(sessionId));
   ipcMain.handle('cli:compact', (_, sessionId, threadId) => codexProcess.compact(sessionId, threadId));
+  ipcMain.handle('cli:reset-session', (_, sessionId) => codexProcess.resetSession(sessionId));
   ipcMain.handle('cli:models', () => codexProcess.listModels());
   ipcMain.handle('cli:collaboration-modes', () => codexProcess.listCollaborationModes());
   ipcMain.handle('cli:answer-user-input', (_, itemId, answers) => codexProcess.answerUserInput(itemId, answers));
