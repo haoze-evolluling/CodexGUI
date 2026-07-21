@@ -265,7 +265,7 @@ export function useSessionController() {
     const fresh = choice === 'fresh';
     const text = fresh ? '清除上下文并执行该计划。' : '执行该计划。';
     const prompt = fresh
-      ? `请在新的上下文中执行以下计划。\n\n${activity.plan}`
+      ? `${text}\n\n最后一次回答的方案：\n\n${activity.plan}`
       : '请按照刚才制定的计划开始实施。';
     if (!active.cwd) {
       appendLocalError('请先选择项目文件夹。');
@@ -279,7 +279,7 @@ export function useSessionController() {
           title: text,
           model: active.model,
           reasoningEffort: active.reasoningEffort,
-          timeline: [{ id: crypto.randomUUID(), type: 'message', role: 'user', text }],
+          timeline: [{ id: crypto.randomUUID(), type: 'message', role: 'user', text: prompt }],
         }
       : {
           ...answeredSession,
