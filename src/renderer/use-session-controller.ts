@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { freshSession, groupSessions, normalizeSession, timelineOf } from './session-model';
-import type { AttachmentKind, CodexAttachment, CodexModel, CodexSkill, CollaborationMode, Message, PermissionMode, PlanDecisionActivity, Session, UserInputActivity } from './types';
+import type { AppSettings, AttachmentKind, CodexAttachment, CodexInstallation, CodexModel, CodexSkill, CollaborationMode, Message, PermissionMode, PlanDecisionActivity, SaveCodexPathResult, Session, UserInputActivity } from './types';
 import type { AppDialogState } from './components/AppDialog';
 
 const imageExtensions = new Set(['bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp']);
@@ -41,6 +41,28 @@ export function useSessionController() {
   const [selectedSkill, setSelectedSkill] = useState<CodexSkill>();
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>('default');
   const [dialog, setDialog] = useState<AppDialogState>();
+  const [settings, setSettings] = useState<AppSettings>({ permissionMode: 'default' });
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [installation, setInstallation] = useState<CodexInstallation>();
+
+  const openSettings = () => {
+    setDialog(undefined);
+    setSettingsOpen(true);
+    window.codex.getCodexInstallation().then(setInstallation).catch(() => undefined);
+  };
+
+  const showMissingCodex = (current: CodexInstallation) => {
+    setInstallation(current);
+    if (current.status === 'ready') return;
+    setDialog({
+      title: current.status === 'invalid' ? 'Codex 路径无效' : '未找到 Codex',
+      description: current.error,
+      details: [{ label: '安装命令', value: 'npm install -g @openai/codex' }],
+      confirmLabel: '打开设置',
+      cancelLabel: '稍后',
+      onConfirm: openSettings,
+    });
+  };
 
   const refreshHistory = async () => {
     const items = await window.codex.loadHistory();
@@ -54,7 +76,11 @@ export function useSessionController() {
     refreshHistory();
     window.codex.listModels().then(setModels).catch(() => setModels([]));
     window.codex.listCollaborationModes().then(setCollaborationModes).catch(() => setCollaborationModes([]));
-    window.codex.getSettings().then(settings => setPermissionModeState(settings.permissionMode)).catch(() => setPermissionModeState('default'));
+    window.codex.getSettings().then(value => {
+      setSettings(value);
+      setPermissionModeState(value.permissionMode);
+    }).catch(() => setPermissionModeState('default'));
+    window.codex.getCodexInstallation().then(showMissingCodex).catch(() => undefined);
     const refreshInterval = window.setInterval(refreshHistory, 60_000);
 
     const updateSession = (sessionId: string, update: (session: Session) => Session) => {
@@ -381,9 +407,21 @@ export function useSessionController() {
   const setPermissionMode = (mode: PermissionMode) => {
     const previous = permissionMode;
     setPermissionModeState(mode);
-    window.codex.saveSettings({ permissionMode: mode }).catch(() => {
+    window.codex.saveSettings({ permissionMode: mode }).then(value => setSettings(value)).catch(() => {
       setPermissionModeState(current => current === mode ? previous : current);
     });
+  };
+
+  const saveCodexPath = async (codexPath: string): Promise<SaveCodexPathResult> => {
+    const result = await window.codex.saveCodexPath(codexPath);
+    if (!result.ok) return result;
+    setSettings(result.settings);
+    setInstallation(result.installation);
+    if (result.installation.status === 'ready') {
+      window.codex.listModels().then(setModels).catch(() => setModels([]));
+      window.codex.listCollaborationModes().then(setCollaborationModes).catch(() => setCollaborationModes([]));
+    }
+    return result;
   };
   const updateInput = (value: string) => {
     setInput(value);
@@ -440,6 +478,7 @@ export function useSessionController() {
   const compacting = !!active && compactingSessions.has(active.id);
   return {
     active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode, dialog, closeDialog: () => setDialog(undefined),
+    closeSettings: () => setSettingsOpen(false), installation, openSettings, saveCodexPath, settings, settingsOpen,
     createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,

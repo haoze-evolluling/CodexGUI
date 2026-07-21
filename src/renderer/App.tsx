@@ -2,6 +2,7 @@ import { Archive } from 'lucide-react';
 import { Composer } from './components/Composer';
 import { AppDialog } from './components/AppDialog';
 import { Sidebar } from './components/Sidebar';
+import { SettingsDialog } from './components/SettingsDialog';
 import { Timeline } from './components/Timeline';
 import { useSessionController } from './use-session-controller';
 
@@ -11,6 +12,15 @@ export function App() {
   return (
     <div className="app">
       {controller.dialog && <AppDialog dialog={controller.dialog} onClose={controller.closeDialog} />}
+      {controller.settingsOpen && (
+        <SettingsDialog
+          codexPath={controller.settings.codexPath}
+          installation={controller.installation}
+          savingDisabled={controller.runningSessions.size > 0}
+          onClose={controller.closeSettings}
+          onSave={controller.saveCodexPath}
+        />
+      )}
       <Sidebar
         active={controller.active}
         collapsedGroups={controller.collapsedGroups}
@@ -22,6 +32,7 @@ export function App() {
         onCreateProject={controller.createProjectSession}
         onRefresh={controller.refreshHistory}
         onSelect={controller.setActive}
+        onSettings={controller.openSettings}
         onToggleGroup={controller.toggleGroup}
       />
       <main>

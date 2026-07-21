@@ -2,6 +2,7 @@ const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const { createCodexAppServer } = require('./codex-app-server.cjs');
+const { buildCodexSpawnConfig, resolveCodexInstallation } = require('./codex-installation.cjs');
 const { createDiffAttacher } = require('./git-diff.cjs');
 const { registerIpcHandlers } = require('./ipc-handlers.cjs');
 const { createSessionStore } = require('./session-store.cjs');
@@ -35,8 +36,10 @@ app.whenReady().then(() => {
     path.join(app.getPath('userData'), 'archived-threads.json'),
     path.join(app.getPath('userData'), 'settings.json'),
   );
+  const getInstallation = () => resolveCodexInstallation({ customPath: store.loadSettings().codexPath });
   const codexProcess = createCodexAppServer({
     attachDiffs: createDiffAttacher(spawn),
+    getSpawnConfig: () => buildCodexSpawnConfig(getInstallation()),
     send: (channel, value) => win.webContents.send(channel, value),
     spawn,
   });
@@ -48,6 +51,7 @@ app.whenReady().then(() => {
     getWindow: () => win,
     ipcMain,
     store,
+    getInstallation,
   });
 });
 

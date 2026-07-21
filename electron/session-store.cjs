@@ -15,8 +15,10 @@ function writeJson(filePath, value) {
 }
 
 function normalizeSettings(value) {
+  const codexPath = typeof value?.codexPath === 'string' ? value.codexPath.trim() : '';
   return {
     permissionMode: value?.permissionMode === 'yolo' ? 'yolo' : 'default',
+    ...(codexPath ? { codexPath } : {}),
   };
 }
 
@@ -39,7 +41,8 @@ function createSessionStore(dataFile, archivedThreadsFile, settingsFile) {
       return normalizeSettings(settingsFile ? readJson(settingsFile, {}) : {});
     },
     saveSettings(settings) {
-      const normalized = normalizeSettings(settings);
+      const current = settingsFile ? readJson(settingsFile, {}) : {};
+      const normalized = normalizeSettings({ ...current, ...settings });
       if (settingsFile) writeJson(settingsFile, normalized);
       return normalized;
     },

@@ -30,3 +30,22 @@ test('uses empty collections when persisted files cannot be read', () => {
   assert.deepEqual(store.loadSessions(), []);
   assert.deepEqual([...store.loadArchivedThreads()], []);
 });
+
+test('persists Codex path and merges partial setting updates', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-gui-settings-'));
+  const settingsFile = path.join(directory, 'settings.json');
+  const store = createSessionStore(
+    path.join(directory, 'sessions.json'),
+    path.join(directory, 'archived-threads.json'),
+    settingsFile,
+  );
+  try {
+    store.saveSettings({ codexPath: 'C:\\Tools\\codex.exe' });
+    assert.deepEqual(store.saveSettings({ permissionMode: 'yolo' }), {
+      permissionMode: 'yolo', codexPath: 'C:\\Tools\\codex.exe',
+    });
+    assert.deepEqual(store.saveSettings({ codexPath: '' }), { permissionMode: 'yolo' });
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});

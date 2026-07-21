@@ -1,6 +1,6 @@
 const readline = require('readline');
 
-function createCodexAppServer({ attachDiffs, send, spawn }) {
+function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
   let child;
   let ready;
   let nextId = 1;
@@ -149,9 +149,8 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
   }
 
   function startProcess() {
-    child = spawn('codex', ['app-server', '--stdio'], {
-      shell: false, env: process.env, stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    const config = getSpawnConfig();
+    child = spawn(config.command, config.args, config.options);
     readline.createInterface({ input: child.stdout }).on('line', handleLine);
     child.stderr.on('data', data => send('cli:server-error', { error: data.toString() }));
     child.on('error', failAll);
@@ -342,6 +341,24 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
       if (id === undefined) return false;
       userInputRequests.delete(itemId);
       write({ id, result: { answers } });
+      return true;
+    },
+    reload() {
+      if (turnsBySession.size) return false;
+      const previous = child;
+      child = undefined;
+      ready = undefined;
+      sessionsByThread.clear();
+      threadsBySession.clear();
+      userInputRequests.clear();
+      completedPlans.clear();
+      for (const waiter of pending.values()) waiter.reject(new Error('Codex app-server 已重新加载。'));
+      pending.clear();
+      if (previous) {
+        previous.removeAllListeners('error');
+        previous.removeAllListeners('close');
+        previous.kill();
+      }
       return true;
     },
     dispose() { child?.kill(); },

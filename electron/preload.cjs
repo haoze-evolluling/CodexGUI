@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('codex', {
   loadHistory: () => ipcRenderer.invoke('sessions:history'),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: settings => ipcRenderer.invoke('settings:save', settings),
+  getCodexInstallation: () => ipcRenderer.invoke('codex:installation'),
+  saveCodexPath: codexPath => ipcRenderer.invoke('codex:path-save', codexPath),
   saveSession: session => ipcRenderer.invoke('sessions:save', session),
   archiveSession: session => ipcRenderer.invoke('sessions:archive', session),
   archiveProject: async sessions => {
@@ -22,6 +24,7 @@ contextBridge.exposeInMainWorld('codex', {
   },
   chooseFolder: () => ipcRenderer.invoke('dialog:folder'),
   chooseFiles: defaultPath => ipcRenderer.invoke('dialog:files', defaultPath),
+  chooseCodexExecutable: defaultPath => ipcRenderer.invoke('dialog:codex-executable', defaultPath),
   getPathForFile: file => webUtils.getPathForFile(file),
   start: options => ipcRenderer.invoke('cli:start', options),
   stop: sessionId => ipcRenderer.invoke('cli:stop', sessionId),

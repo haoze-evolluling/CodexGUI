@@ -18,7 +18,13 @@ export type CodexSkill = {
   } | null;
 };
 export type PermissionMode = 'default' | 'yolo';
-export type AppSettings = { permissionMode: PermissionMode };
+export type AppSettings = { permissionMode: PermissionMode; codexPath?: string };
+export type CodexInstallation =
+  | { status: 'ready'; path: string; source: 'custom' | 'official' | 'npm' }
+  | { status: 'missing' | 'invalid'; path?: string; error: string };
+export type SaveCodexPathResult =
+  | { ok: true; settings: AppSettings; installation: CodexInstallation }
+  | { ok: false; error: string };
 export type ThreadStatus = {
   type: 'notLoaded' | 'idle' | 'systemError' | 'active';
   activeFlags?: ('waitingOnApproval' | 'waitingOnUserInput')[];
@@ -118,12 +124,15 @@ export type CodexApi = {
   listSessions(): Promise<Session[]>;
   loadHistory(): Promise<Session[]>;
   getSettings(): Promise<AppSettings>;
-  saveSettings(settings: AppSettings): Promise<AppSettings>;
+  saveSettings(settings: Partial<AppSettings>): Promise<AppSettings>;
+  getCodexInstallation(): Promise<CodexInstallation>;
+  saveCodexPath(codexPath: string): Promise<SaveCodexPathResult>;
   saveSession(session: Session): Promise<Session[]>;
   archiveSession(session: Session): Promise<ArchiveResult>;
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
   chooseFolder(): Promise<string | null>;
   chooseFiles(defaultPath?: string): Promise<string[]>;
+  chooseCodexExecutable(defaultPath?: string): Promise<string | null>;
   getPathForFile(file: File): string;
   start(options: { sessionId: string; cwd: string; prompt: string; attachments: CodexAttachment[]; skill?: Pick<CodexSkill, 'name' | 'path'>; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode; permissionMode: PermissionMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;

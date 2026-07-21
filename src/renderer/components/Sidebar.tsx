@@ -1,4 +1,4 @@
-import { Archive, ChevronDown, ChevronRight, FolderPlus, Plus, RefreshCw, Terminal } from 'lucide-react';
+import { Archive, ChevronDown, ChevronRight, FolderPlus, Plus, RefreshCw, Settings, Terminal } from 'lucide-react';
 import { projectName } from '../session-model';
 import type { Session, SessionGroup } from '../types';
 
@@ -13,6 +13,7 @@ type SidebarProps = {
   onCreateProject(): void;
   onRefresh(): void;
   onSelect(session: Session): void;
+  onSettings(): void;
   onToggleGroup(cwd: string): void;
 };
 
@@ -84,6 +85,9 @@ export function Sidebar(props: SidebarProps) {
           );
         })}
         {!props.groups.length && <p className="empty-sessions">选择项目文件夹新建对话。</p>}
+      </div>
+      <div className="sidebar-footer">
+        <button onClick={props.onSettings}><Settings size={17} /><span>设置</span></button>
       </div>
     </aside>
   );

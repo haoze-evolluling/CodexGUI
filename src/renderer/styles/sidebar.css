@@ -1,9 +1,10 @@
-aside { width: 260px; background: #171c25; border-right: 1px solid #29313d; padding: 18px 12px; overflow: auto; scrollbar-width: none; }
+aside { width: 260px; display: flex; flex-direction: column; background: #171c25; border-right: 1px solid #29313d; padding: 18px 12px; overflow: hidden; }
 aside::-webkit-scrollbar { display: none; }
 .brand { font-size: 18px; font-weight: 700; display: flex; gap: 9px; align-items: center; padding: 4px 8px 20px; }
 .sidebar-actions { display: flex; gap: 6px; padding: 0 4px; }
 .sidebar-actions .icon { flex: 1; background: #273342; display: grid; place-items: center; }
-.sessions { margin-top: 18px; display: grid; gap: 12px; }
+.sessions { flex: 1; min-height: 0; margin-top: 18px; display: grid; align-content: start; gap: 12px; overflow: auto; scrollbar-width: none; }
+.sessions::-webkit-scrollbar { display: none; }
 .session-group { min-width: 0; }
 .group-heading { display: flex; align-items: center; gap: 2px; }
 .group-toggle { flex: 1; min-width: 0; background: transparent; display: flex; align-items: center; gap: 6px; padding: 6px 5px; text-align: left; }
@@ -19,5 +20,8 @@ aside::-webkit-scrollbar { display: none; }
 .group-sessions .session-archive { padding: 6px; margin-right: 2px; flex: 0 0 auto; }
 .group-sessions span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty-sessions { margin: 12px 8px; color: #8490a0; font-size: 12px; line-height: 1.5; }
+.sidebar-footer { flex: 0 0 auto; margin-top: 12px; padding: 10px 4px 0; border-top: 1px solid #29313d; }
+.sidebar-footer button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 9px 10px; color: #b7c2d0; background: transparent; text-align: left; }
+.sidebar-footer button:hover { color: #fff; background: #273342; }
 @media (min-width: 701px) { aside { width: 300px; } }
 @media (max-width: 700px) { aside { width: 210px; } }

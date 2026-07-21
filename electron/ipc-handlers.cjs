@@ -1,7 +1,7 @@
 const { removeArchivedSessions } = require('./codex-archive.cjs');
 const { loadCodexHistory, mergeSessions } = require('./codex-history.cjs');
 
-function registerIpcHandlers({ codexHome, codexProcess, dialog, getWindow, ipcMain, store }) {
+function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation, getWindow, ipcMain, store }) {
   const history = () => {
     const archivedThreads = store.loadArchivedThreads();
     return mergeSessions(store.loadSessions(), loadCodexHistory(codexHome))
@@ -12,6 +12,21 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getWindow, ipcMa
   ipcMain.handle('sessions:history', history);
   ipcMain.handle('settings:get', () => store.loadSettings());
   ipcMain.handle('settings:save', (_, settings) => store.saveSettings(settings));
+  ipcMain.handle('codex:installation', () => getInstallation());
+  ipcMain.handle('codex:path-save', (_, codexPath) => {
+    const previous = store.loadSettings();
+    const next = store.saveSettings({ codexPath: typeof codexPath === 'string' ? codexPath : '' });
+    const installation = getInstallation();
+    if (installation.status !== 'ready' && next.codexPath) {
+      store.saveSettings({ codexPath: previous.codexPath || '' });
+      return { ok: false, error: installation.error };
+    }
+    if (!codexProcess.reload()) {
+      store.saveSettings({ codexPath: previous.codexPath || '' });
+      return { ok: false, error: 'Codex 正在执行任务，暂时无法更改路径。' };
+    }
+    return { ok: true, settings: next, installation };
+  });
   ipcMain.handle('sessions:save', (_, session) => {
     const all = store.loadSessions().filter(item => item.id !== session.id);
     all.unshift(session);
@@ -38,6 +53,16 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getWindow, ipcMa
       properties: ['openFile', 'multiSelections'],
     });
     return result.canceled ? [] : result.filePaths;
+  });
+  ipcMain.handle('dialog:codex-executable', async (_, defaultPath) => {
+    const result = await dialog.showOpenDialog(getWindow(), {
+      defaultPath: typeof defaultPath === 'string' && defaultPath ? defaultPath : undefined,
+      filters: process.platform === 'win32'
+        ? [{ name: 'Codex 可执行文件', extensions: ['exe', 'cmd', 'bat'] }, { name: '所有文件', extensions: ['*'] }]
+        : undefined,
+      properties: ['openFile'],
+    });
+    return result.canceled ? null : result.filePaths[0];
   });
   ipcMain.handle('cli:start', (_, options) => codexProcess.start(options));
   ipcMain.handle('cli:stop', (_, sessionId) => codexProcess.stop(sessionId));
