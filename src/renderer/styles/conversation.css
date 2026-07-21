@@ -49,6 +49,20 @@
 .composer-card:focus-within { border-color: #607087; box-shadow: 0 10px 28px rgb(0 0 0 / 30%); }
 .composer-input { display: block; width: 100%; min-height: 72px; max-height: 220px; resize: none; overflow-y: auto; background: transparent; color: #e8edf5; border: 0; padding: 17px 16px 8px; font: 14px/1.55 inherit; outline: none; }
 .composer-input::placeholder { color: #778497; }
+.attachment-tokens { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0; }
+.composer-card > .attachment-tokens { margin: 0; padding: 12px 14px 0; }
+.attachment-token { max-width: min(280px, 100%); min-height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; overflow: hidden; color: #c9d5e4; background: #273342; border: 1px solid #405066; border-radius: 7px; font-size: 12px; line-height: 1; }
+.attachment-token > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-token > svg:first-child { flex: 0 0 auto; color: #8dbdff; }
+.attachment-token.image > svg:first-child { color: #8ed3ad; }
+.attachment-token.pdf > svg:first-child { color: #ee9696; }
+.attachment-token.spreadsheet > svg:first-child { color: #8ed3ad; }
+.attachment-token.archive > svg:first-child { color: #e6bd78; }
+.attachment-tokens.editable .attachment-token { cursor: pointer; }
+.attachment-tokens.editable .attachment-token:hover, .attachment-tokens.editable .attachment-token:focus-visible { color: #f1f6fd; background: #314054; border-color: #60748f; outline: none; }
+.attachment-token > svg:last-child { flex: 0 0 auto; color: #8e9bad; }
+.attachment-token > svg:last-child:hover { color: #fff; }
+.message > .attachment-tokens { margin-top: 8px; }
 .composer-toolbar { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 8px 8px; }
 .composer-tools, .composer-actions { min-width: 0; display: flex; align-items: center; gap: 3px; }
 .composer-icon, .mode-toggle { height: 34px; color: #aeb9c8; background: transparent; border-radius: 8px; }

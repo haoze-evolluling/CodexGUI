@@ -1,7 +1,11 @@
 export type Message = {
   role: 'user' | 'assistant' | 'system' | 'error';
   text: string;
+  attachments?: CodexAttachment[];
 };
+
+export type AttachmentKind = 'image' | 'code' | 'pdf' | 'document' | 'spreadsheet' | 'archive' | 'file';
+export type CodexAttachment = { id: string; path: string; name: string; kind: AttachmentKind };
 
 export type FileChange = {
   path: string;
@@ -78,8 +82,8 @@ export type CodexApi = {
   archiveSession(session: Session): Promise<ArchiveResult>;
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
   chooseFolder(): Promise<string | null>;
-  chooseFile(defaultPath?: string): Promise<string | null>;
-  start(options: { sessionId: string; cwd: string; prompt: string; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode }): Promise<boolean>;
+  chooseFiles(defaultPath?: string): Promise<string[]>;
+  start(options: { sessionId: string; cwd: string; prompt: string; attachments: CodexAttachment[]; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;
   compact(sessionId: string, threadId?: string): Promise<boolean>;
   resetSession(sessionId: string): Promise<boolean>;

@@ -1,6 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { freshSession, groupSessions, normalizeSession, timelineOf } from './session-model';
-import type { CodexModel, CollaborationMode, Message, Session, UserInputActivity } from './types';
+import type { AttachmentKind, CodexAttachment, CodexModel, CollaborationMode, Message, Session, UserInputActivity } from './types';
+
+const imageExtensions = new Set(['bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp']);
+const codeExtensions = new Set(['c', 'cc', 'cpp', 'cs', 'css', 'go', 'h', 'hpp', 'html', 'java', 'js', 'json', 'jsx', 'kt', 'md', 'php', 'py', 'rb', 'rs', 'scss', 'sh', 'sql', 'swift', 'toml', 'ts', 'tsx', 'vue', 'xml', 'yaml', 'yml']);
+const documentExtensions = new Set(['doc', 'docx', 'odt', 'rtf', 'txt']);
+const spreadsheetExtensions = new Set(['csv', 'ods', 'xls', 'xlsx']);
+const archiveExtensions = new Set(['7z', 'gz', 'rar', 'tar', 'zip']);
+
+const attachmentKind = (fileName: string): AttachmentKind => {
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  if (imageExtensions.has(extension)) return 'image';
+  if (codeExtensions.has(extension)) return 'code';
+  if (extension === 'pdf') return 'pdf';
+  if (documentExtensions.has(extension)) return 'document';
+  if (spreadsheetExtensions.has(extension)) return 'spreadsheet';
+  if (archiveExtensions.has(extension)) return 'archive';
+  return 'file';
+};
 
 const without = (items: Set<string>, value: string) => {
   const next = new Set(items);
@@ -12,6 +29,7 @@ export function useSessionController() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [active, setActive] = useState<Session>();
   const [input, setInput] = useState('');
+  const [attachments, setAttachments] = useState<CodexAttachment[]>([]);
   const [runningSessions, setRunningSessions] = useState<Set<string>>(new Set());
   const [waitingSessions, setWaitingSessions] = useState<Set<string>>(new Set());
   const [compactingSessions, setCompactingSessions] = useState<Set<string>>(new Set());
@@ -105,24 +123,26 @@ export function useSessionController() {
   }) : current);
 
   const send = async () => {
-    if (!input.trim() || !active || runningSessions.has(active.id)) return;
+    if ((!input.trim() && !attachments.length) || !active || runningSessions.has(active.id)) return;
     const text = input.trim();
+    const sentAttachments = attachments;
     setInput('');
+    setAttachments([]);
     if (!active.cwd) {
       appendLocalError('请先选择项目文件夹。');
       return;
     }
     setActive({
       ...active,
-      timeline: [...timelineOf(active), { id: crypto.randomUUID(), type: 'message', role: 'user', text }],
-      title: active.title === '新建对话' ? text.slice(0, 32) : active.title,
+      timeline: [...timelineOf(active), { id: crypto.randomUUID(), type: 'message', role: 'user', text, attachments: sentAttachments }],
+      title: active.title === '新建对话' ? (text || sentAttachments[0]?.name || '附件').slice(0, 32) : active.title,
     });
     setRunningSessions(current => new Set(current).add(active.id));
     const selectedModel = models.find(model => model.isDefault) || models[0];
     const effectiveModel = active.model || selectedModel?.model;
     const effectiveEffort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
     const started = await window.codex.start({
-      sessionId: active.id, cwd: active.cwd, prompt: text, threadId: active.threadId,
+      sessionId: active.id, cwd: active.cwd, prompt: text, attachments: sentAttachments, threadId: active.threadId,
       model: effectiveModel, reasoningEffort: effectiveEffort,
       collaborationMode: collaborationModes.find(mode => mode.mode === (active.collaborationMode || 'default')),
     });
@@ -150,16 +170,28 @@ export function useSessionController() {
 
   const createInFolder = (cwd: string) => setActive(freshSession(cwd));
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
-  const chooseFile = async () => {
+  const chooseFiles = async () => {
     if (!active) return;
-    const filePath = await window.codex.chooseFile(active.cwd);
-    if (!filePath) return;
-    setInput(current => current ? `${current}\n${filePath}` : filePath);
+    const filePaths = await window.codex.chooseFiles(active.cwd);
+    if (!filePaths.length) return;
+    setAttachments(current => {
+      const knownPaths = new Set(current.map(attachment => attachment.path.toLowerCase()));
+      const added: CodexAttachment[] = [];
+      for (const filePath of filePaths) {
+        const normalizedPath = filePath.toLowerCase();
+        if (knownPaths.has(normalizedPath)) continue;
+        knownPaths.add(normalizedPath);
+        const name = filePath.split(/[/\\]/).pop() || filePath;
+        added.push({ id: crypto.randomUUID(), path: filePath, name, kind: attachmentKind(name) });
+      }
+      return [...current, ...added];
+    });
   };
   const clearContext = async () => {
     if (!active || runningSessions.has(active.id) || compactingSessions.has(active.id)) return;
     const sessionId = active.id;
     setInput('');
+    setAttachments([]);
     setRunningSessions(current => without(current, sessionId));
     setWaitingSessions(current => without(current, sessionId));
     setCompactingSessions(current => without(current, sessionId));
@@ -217,8 +249,8 @@ export function useSessionController() {
   const waiting = !!active && waitingSessions.has(active.id);
   const compacting = !!active && compactingSessions.has(active.id);
   return {
-    active, answerUserInput, archiveProject, archiveSession, chooseFile, clearContext, collapsedGroups, collaborationModes, compact, compacting,
-    createInFolder, createProjectSession, groups, input, models, refreshHistory, running, runningSessions, send, setActive,
+    active, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, clearContext, collapsedGroups, collaborationModes, compact, compacting,
+    createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, send, setActive,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput, setModel,
     setReasoningEffort: (effort: string) => setActive(current => current ? { ...current, reasoningEffort: effort } : current),

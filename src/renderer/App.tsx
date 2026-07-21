@@ -44,13 +44,15 @@ export function App() {
           activeSessionId={controller.active?.id}
           session={controller.active}
           input={controller.input}
+          attachments={controller.attachments}
           running={controller.running}
           waiting={controller.waiting}
           compacting={controller.compacting}
           models={controller.models}
           collaborationModes={controller.collaborationModes}
           onInputChange={controller.setInput}
-          onChooseFile={controller.chooseFile}
+          onChooseFiles={controller.chooseFiles}
+          onRemoveAttachment={controller.removeAttachment}
           onSend={controller.send}
           onCompact={controller.compact}
           onNewConversation={() => controller.active?.cwd && controller.createInFolder(controller.active.cwd)}

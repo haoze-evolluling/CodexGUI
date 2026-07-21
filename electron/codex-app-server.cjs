@@ -183,9 +183,15 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
       if (!options.sessionId || turnsBySession.has(options.sessionId)) return false;
       try {
         const threadId = await ensureThread(options);
+        const input = [];
+        if (options.prompt) input.push({ type: 'text', text: options.prompt });
+        for (const attachment of options.attachments || []) {
+          if (attachment.kind === 'image') input.push({ type: 'localImage', path: attachment.path });
+          else input.push({ type: 'mention', name: attachment.name, path: attachment.path });
+        }
         const params = {
           threadId,
-          input: [{ type: 'text', text: options.prompt }],
+          input,
           model: options.model || null,
         };
         if (options.reasoningEffort) params.effort = options.reasoningEffort;

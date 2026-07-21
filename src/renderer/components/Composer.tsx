@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUp, Bot, BrainCircuit, Check, ChevronDown, Eraser, FilePlus2, GitBranch, ListTodo, Minimize2, Monitor, Plus, ShieldCheck, Square } from 'lucide-react';
-import type { CodexModel, CollaborationMode, Session } from '../types';
+import type { CodexAttachment, CodexModel, CollaborationMode, Session } from '../types';
+import { AttachmentTokens } from './AttachmentTokens';
 
 type ComposerProps = {
   activeSessionId?: string;
   input: string;
+  attachments: CodexAttachment[];
   running: boolean;
   compacting: boolean;
   waiting: boolean;
@@ -12,7 +14,8 @@ type ComposerProps = {
   models: CodexModel[];
   collaborationModes: CollaborationMode[];
   onInputChange(value: string): void;
-  onChooseFile(): void;
+  onChooseFiles(): void;
+  onRemoveAttachment(id: string): void;
   onSend(): void;
   onCompact(): void;
   onNewConversation(): void;
@@ -134,6 +137,9 @@ export function Composer(props: ComposerProps) {
           </div>
         )}
         <div className={`composer-card ${openSelector ? 'selector-active' : ''}`}>
+        {!!props.attachments.length && (
+          <AttachmentTokens attachments={props.attachments} onRemove={props.onRemoveAttachment} />
+        )}
         <textarea
           ref={inputRef}
           className="composer-input"
@@ -143,6 +149,11 @@ export function Composer(props: ComposerProps) {
             setCommandIndex(0);
           }}
           onKeyDown={event => {
+            if (event.key === 'Backspace' && !props.input && event.currentTarget.selectionStart === 0 && props.attachments.length) {
+              event.preventDefault();
+              props.onRemoveAttachment(props.attachments[props.attachments.length - 1].id);
+              return;
+            }
             if (commandMenuOpen) {
               if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                 event.preventDefault();
@@ -172,7 +183,7 @@ export function Composer(props: ComposerProps) {
           <div className="composer-tools" ref={selectorsRef}>
             <button
               className="composer-icon"
-              onClick={props.onChooseFile}
+              onClick={props.onChooseFiles}
               disabled={disabled}
               title="添加文件"
               aria-label="添加文件"
@@ -257,7 +268,7 @@ export function Composer(props: ComposerProps) {
             {props.running ? (
               <button className="send-button stop" onClick={() => props.activeSessionId && window.codex.stop(props.activeSessionId)} title="停止" aria-label="停止"><Square size={15} /></button>
             ) : (
-              <button className="send-button" onClick={props.onSend} disabled={!props.activeSessionId || props.compacting || !props.input.trim()} title="发送" aria-label="发送"><ArrowUp size={19} /></button>
+              <button className="send-button" onClick={props.onSend} disabled={!props.activeSessionId || props.compacting || (!props.input.trim() && !props.attachments.length)} title="发送" aria-label="发送"><ArrowUp size={19} /></button>
             )}
           </div>
         </div>

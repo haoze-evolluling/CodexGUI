@@ -30,12 +30,12 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getWindow, ipcMa
     const result = await dialog.showOpenDialog(getWindow(), { properties: ['openDirectory'] });
     return result.canceled ? null : result.filePaths[0];
   });
-  ipcMain.handle('dialog:file', async (_, defaultPath) => {
+  ipcMain.handle('dialog:files', async (_, defaultPath) => {
     const result = await dialog.showOpenDialog(getWindow(), {
       defaultPath: typeof defaultPath === 'string' ? defaultPath : undefined,
-      properties: ['openFile'],
+      properties: ['openFile', 'multiSelections'],
     });
-    return result.canceled ? null : result.filePaths[0];
+    return result.canceled ? [] : result.filePaths;
   });
   ipcMain.handle('cli:start', (_, options) => codexProcess.start(options));
   ipcMain.handle('cli:stop', (_, sessionId) => codexProcess.stop(sessionId));

@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { timelineOf } from '../session-model';
 import type { Session } from '../types';
 import { ActivityItem } from './ActivityItem';
+import { AttachmentTokens } from './AttachmentTokens';
 
 const roleLabel = {
   user: '你',
@@ -25,11 +26,12 @@ export function Timeline({ active, running, onAnswer }: { active?: Session; runn
       {active && timelineOf(active).map(item => item.type === 'message' ? (
         <div className={`message ${item.role}`} key={item.id}>
           <label>{roleLabel[item.role]}</label>
+          {!!item.attachments?.length && <AttachmentTokens attachments={item.attachments} />}
           {item.role === 'assistant' ? (
             <div className="markdown-body">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>
             </div>
-          ) : <pre>{item.text}</pre>}
+          ) : item.text ? <pre>{item.text}</pre> : null}
         </div>
       ) : <ActivityItem activity={item} key={item.id} onAnswer={onAnswer} />)}
       {!active && <div className="empty-conversation">请从左侧选择或新建一个对话。</div>}
