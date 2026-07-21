@@ -1,0 +1,29 @@
+import type { CodexAttachment, CodexModel, CodexSkill, CollaborationMode, PermissionMode, Session } from '../types';
+
+export type ComposerProps = {
+  activeSessionId?: string;
+  input: string;
+  attachments: CodexAttachment[];
+  running: boolean;
+  compacting: boolean;
+  waiting: boolean;
+  session?: Session;
+  models: CodexModel[];
+  skills: CodexSkill[];
+  collaborationModes: CollaborationMode[];
+  permissionMode: PermissionMode;
+  onInputChange(value: string): void;
+  onChooseFiles(): void;
+  onAddFiles(paths: string[]): void;
+  onRemoveAttachment(id: string): void;
+  onSend(): void;
+  onCompact(): void;
+  onNewConversation(): void;
+  onClearContext(): void;
+  onShowStatus(): void;
+  onSkillSelect(skill: CodexSkill): void;
+  onModelChange(value: string): void;
+  onReasoningEffortChange(value: string): void;
+  onModeChange(value: 'default' | 'plan'): void;
+  onPermissionModeChange(value: PermissionMode): void;
+};
