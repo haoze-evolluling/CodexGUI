@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUp, Bot, BrainCircuit, Check, ChevronDown, Eraser, FilePlus2, GitBranch, ListTodo, Minimize2, Monitor, Plus, ShieldAlert, ShieldCheck, Square } from 'lucide-react';
-import type { CodexAttachment, CodexModel, CollaborationMode, PermissionMode, Session } from '../types';
+import { ArrowUp, Bot, BrainCircuit, Check, ChevronDown, Eraser, FilePlus2, GitBranch, ListTodo, Minimize2, Monitor, Plus, ShieldAlert, ShieldCheck, Sparkles, Square } from 'lucide-react';
+import type { CodexAttachment, CodexModel, CodexSkill, CollaborationMode, PermissionMode, Session } from '../types';
 import { AttachmentTokens } from './AttachmentTokens';
 
 type ComposerProps = {
@@ -12,6 +12,7 @@ type ComposerProps = {
   waiting: boolean;
   session?: Session;
   models: CodexModel[];
+  skills: CodexSkill[];
   collaborationModes: CollaborationMode[];
   permissionMode: PermissionMode;
   onInputChange(value: string): void;
@@ -21,10 +22,15 @@ type ComposerProps = {
   onCompact(): void;
   onNewConversation(): void;
   onClearContext(): void;
+  onSkillSelect(skill: CodexSkill): void;
   onModelChange(value: string): void;
   onReasoningEffortChange(value: string): void;
   onModeChange(value: 'default' | 'plan'): void;
   onPermissionModeChange(value: PermissionMode): void;
+};
+
+const skillScopeLabels: Record<CodexSkill['scope'], string> = {
+  repo: '项目', user: '用户', admin: '管理员', system: '系统',
 };
 
 export function Composer(props: ComposerProps) {
@@ -52,13 +58,24 @@ export function Composer(props: ComposerProps) {
   const activeEffort = props.session?.reasoningEffort || selectedModel?.defaultReasoningEffort || '';
   const status = props.compacting ? '正在压缩上下文...' : props.waiting ? '等待你的选择' : props.running ? '思考中...' : '准备就绪';
   const commands = useMemo(() => [
-    { id: 'compact', name: '压缩上下文', shortcut: '/compact', description: '压缩当前对话，释放上下文空间', icon: Minimize2, disabled: disabled || !props.session?.threadId, run: props.onCompact },
-    { id: 'new', name: '新对话', shortcut: '/new', description: '在当前项目中开始新对话', icon: FilePlus2, disabled: disabled || !props.session?.cwd, run: props.onNewConversation },
-    { id: 'clear', name: '清除上下文', shortcut: '/clear', description: '清空当前消息并开启新的上下文', icon: Eraser, disabled, run: () => setClearConfirmationOpen(true) },
+    { kind: 'command' as const, id: 'compact', name: '压缩上下文', shortcut: '/compact', description: '压缩当前对话，释放上下文空间', icon: Minimize2, disabled: disabled || !props.session?.threadId, run: props.onCompact },
+    { kind: 'command' as const, id: 'new', name: '新对话', shortcut: '/new', description: '在当前项目中开始新对话', icon: FilePlus2, disabled: disabled || !props.session?.cwd, run: props.onNewConversation },
+    { kind: 'command' as const, id: 'clear', name: '清除上下文', shortcut: '/clear', description: '清空当前消息并开启新的上下文', icon: Eraser, disabled, run: () => setClearConfirmationOpen(true) },
   ], [disabled, props.session?.cwd, props.session?.threadId, props.onCompact, props.onNewConversation, props.onClearContext]);
+  const skillCommands = useMemo(() => props.skills.map(skill => ({
+    kind: 'skill' as const,
+    id: `skill:${skill.path}`,
+    name: skill.interface?.displayName || skill.name,
+    shortcut: `$${skill.name}`,
+    description: `${skillScopeLabels[skill.scope]} · ${skill.interface?.shortDescription || skill.shortDescription || skill.description}`,
+    icon: Sparkles,
+    disabled,
+    run: () => props.onSkillSelect(skill),
+  })), [disabled, props.skills, props.onSkillSelect]);
+  const menuItems = useMemo(() => [...commands, ...skillCommands], [commands, skillCommands]);
   const commandQuery = props.input.startsWith('/') ? props.input.slice(1).trim().toLowerCase() : '';
   const filteredCommands = props.input.startsWith('/')
-    ? commands.filter(command => `${command.name} ${command.shortcut} ${command.description}`.toLowerCase().includes(commandQuery))
+    ? menuItems.filter(command => `${command.name} ${command.shortcut} ${command.description}`.toLowerCase().includes(commandQuery))
     : [];
   const commandMenuOpen = filteredCommands.length > 0;
   const runCommand = (index: number) => {
@@ -67,6 +84,7 @@ export function Composer(props: ComposerProps) {
     props.onInputChange('');
     setCommandIndex(0);
     command.run();
+    window.requestAnimationFrame(() => inputRef.current?.focus());
   };
   useEffect(() => {
     const closeSelector = (event: MouseEvent) => {
@@ -117,25 +135,28 @@ export function Composer(props: ComposerProps) {
       )}
       <div className="composer-frame">
         {commandMenuOpen && (
-          <div className="command-menu" role="listbox" aria-label="命令">
-            <div className="command-menu-title">命令</div>
+          <div className="command-menu" role="listbox" aria-label="命令和 Skills">
             {filteredCommands.map((command, index) => {
               const Icon = command.icon;
               return (
-                <button
-                  key={command.id}
-                  className={`command-item ${index === commandIndex ? 'selected' : ''}`}
-                  onMouseDown={event => event.preventDefault()}
-                  onMouseEnter={() => setCommandIndex(index)}
-                  onClick={() => runCommand(index)}
-                  disabled={command.disabled}
-                  role="option"
-                  aria-selected={index === commandIndex}
-                >
-                  <Icon size={17} />
-                  <span><b>{command.name}</b><small>{command.description}</small></span>
-                  <kbd>{command.shortcut}</kbd>
-                </button>
+                <div className="command-menu-entry" key={command.id}>
+                  {(index === 0 || filteredCommands[index - 1].kind !== command.kind) && (
+                    <div className="command-menu-title">{command.kind === 'skill' ? 'Skills' : '命令'}</div>
+                  )}
+                  <button
+                    className={`command-item ${index === commandIndex ? 'selected' : ''}`}
+                    onMouseDown={event => event.preventDefault()}
+                    onMouseEnter={() => setCommandIndex(index)}
+                    onClick={() => runCommand(index)}
+                    disabled={command.disabled}
+                    role="option"
+                    aria-selected={index === commandIndex}
+                  >
+                    <Icon size={17} />
+                    <span><b>{command.name}</b><small>{command.description}</small></span>
+                    <kbd>{command.shortcut}</kbd>
+                  </button>
+                </div>
               );
             })}
           </div>

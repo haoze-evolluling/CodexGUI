@@ -49,6 +49,7 @@ export function App() {
           waiting={controller.waiting}
           compacting={controller.compacting}
           models={controller.models}
+          skills={controller.skills}
           collaborationModes={controller.collaborationModes}
           permissionMode={controller.permissionMode}
           onInputChange={controller.setInput}
@@ -58,6 +59,7 @@ export function App() {
           onCompact={controller.compact}
           onNewConversation={() => controller.active?.cwd && controller.createInFolder(controller.active.cwd)}
           onClearContext={controller.clearContext}
+          onSkillSelect={controller.selectSkill}
           onModelChange={controller.setModel}
           onReasoningEffortChange={controller.setReasoningEffort}
           onModeChange={controller.setCollaborationMode}

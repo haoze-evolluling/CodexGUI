@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('codex', {
   resetSession: sessionId => ipcRenderer.invoke('cli:reset-session', sessionId),
   listModels: () => ipcRenderer.invoke('cli:models'),
   listCollaborationModes: () => ipcRenderer.invoke('cli:collaboration-modes'),
+  listSkills: (cwd, forceReload = false) => ipcRenderer.invoke('cli:skills', cwd, forceReload),
   answerUserInput: (itemId, answers) => ipcRenderer.invoke('cli:answer-user-input', itemId, answers),
   onData: callback => subscribe('cli:data', callback),
   onActivity: callback => subscribe('cli:activity', callback),
@@ -37,4 +38,5 @@ contextBridge.exposeInMainWorld('codex', {
   onCompacted: callback => subscribe('cli:compacted', callback),
   onStatus: callback => subscribe('cli:status', callback),
   onUserInput: callback => subscribe('cli:user-input', callback),
+  onSkillsChanged: callback => subscribe('cli:skills-changed', callback),
 });

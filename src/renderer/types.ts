@@ -6,6 +6,17 @@ export type Message = {
 
 export type AttachmentKind = 'image' | 'code' | 'pdf' | 'document' | 'spreadsheet' | 'archive' | 'file';
 export type CodexAttachment = { id: string; path: string; name: string; kind: AttachmentKind };
+export type CodexSkill = {
+  name: string;
+  description: string;
+  path: string;
+  scope: 'user' | 'repo' | 'system' | 'admin';
+  shortDescription?: string | null;
+  interface?: {
+    displayName?: string | null;
+    shortDescription?: string | null;
+  } | null;
+};
 export type PermissionMode = 'default' | 'yolo';
 export type AppSettings = { permissionMode: PermissionMode };
 
@@ -87,12 +98,13 @@ export type CodexApi = {
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
   chooseFolder(): Promise<string | null>;
   chooseFiles(defaultPath?: string): Promise<string[]>;
-  start(options: { sessionId: string; cwd: string; prompt: string; attachments: CodexAttachment[]; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode; permissionMode: PermissionMode }): Promise<boolean>;
+  start(options: { sessionId: string; cwd: string; prompt: string; attachments: CodexAttachment[]; skill?: Pick<CodexSkill, 'name' | 'path'>; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode; permissionMode: PermissionMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;
   compact(sessionId: string, threadId?: string): Promise<boolean>;
   resetSession(sessionId: string): Promise<boolean>;
   listModels(): Promise<CodexModel[]>;
   listCollaborationModes(): Promise<CollaborationMode[]>;
+  listSkills(cwd: string, forceReload?: boolean): Promise<CodexSkill[]>;
   answerUserInput(itemId: string, answers: Record<string, { answers: string[] }>): Promise<boolean>;
   onData(callback: (value: { sessionId: string; itemId: string; text: string; full?: boolean }) => void): () => void;
   onActivity(callback: (value: { sessionId: string; activity: Activity }) => void): () => void;
@@ -102,6 +114,7 @@ export type CodexApi = {
   onCompacted(callback: (value: { sessionId: string }) => void): () => void;
   onStatus(callback: (value: { sessionId: string; status: { type: string; activeFlags?: string[] } }) => void): () => void;
   onUserInput(callback: (value: { sessionId: string; request: { itemId: string; questions: UserInputQuestion[] } }) => void): () => void;
+  onSkillsChanged(callback: () => void): () => void;
 };
 
 declare global {

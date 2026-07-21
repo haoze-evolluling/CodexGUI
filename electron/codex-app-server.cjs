@@ -63,6 +63,10 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
 
   function handleNotification(message) {
     const params = message.params || {};
+    if (message.method === 'skills/changed') {
+      send('cli:skills-changed', {});
+      return;
+    }
     const threadId = params.threadId;
     if (message.method === 'item/agentMessage/delta' || message.method === 'item/plan/delta') {
       emitForThread('cli:data', threadId, { itemId: params.itemId, text: params.delta });
@@ -229,6 +233,9 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
         const permissionSettings = await resolvePermissionSettings(options);
         const threadId = await ensureThread({ ...options, permissionSettings });
         const input = [];
+        if (options.skill?.name && options.skill?.path) {
+          input.push({ type: 'skill', name: options.skill.name, path: options.skill.path });
+        }
         if (options.prompt) input.push({ type: 'text', text: options.prompt });
         for (const attachment of options.attachments || []) {
           if (attachment.kind === 'image') input.push({ type: 'localImage', path: attachment.path });
@@ -303,6 +310,15 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
     async listCollaborationModes() {
       await ensureReady();
       return (await request('collaborationMode/list', {})).data;
+    },
+    async listSkills(cwd, forceReload = false) {
+      if (!cwd) return [];
+      await ensureReady();
+      const result = await request('skills/list', { cwds: [cwd], forceReload });
+      const normalizedCwd = cwd.toLowerCase();
+      const entry = (result.data || []).find(item => item.cwd?.toLowerCase() === normalizedCwd)
+        || result.data?.[0];
+      return (entry?.skills || []).filter(skill => skill.enabled === true);
     },
     answerUserInput(itemId, answers) {
       const id = userInputRequests.get(itemId);

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { freshSession, groupSessions, normalizeSession, timelineOf } from './session-model';
-import type { AttachmentKind, CodexAttachment, CodexModel, CollaborationMode, Message, PermissionMode, Session, UserInputActivity } from './types';
+import type { AttachmentKind, CodexAttachment, CodexModel, CodexSkill, CollaborationMode, Message, PermissionMode, Session, UserInputActivity } from './types';
 
 const imageExtensions = new Set(['bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp']);
 const codeExtensions = new Set(['c', 'cc', 'cpp', 'cs', 'css', 'go', 'h', 'hpp', 'html', 'java', 'js', 'json', 'jsx', 'kt', 'md', 'php', 'py', 'rb', 'rs', 'scss', 'sh', 'sql', 'swift', 'toml', 'ts', 'tsx', 'vue', 'xml', 'yaml', 'yml']);
@@ -36,6 +36,8 @@ export function useSessionController() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [models, setModels] = useState<CodexModel[]>([]);
   const [collaborationModes, setCollaborationModes] = useState<CollaborationMode[]>([]);
+  const [skills, setSkills] = useState<CodexSkill[]>([]);
+  const [selectedSkill, setSelectedSkill] = useState<CodexSkill>();
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>('default');
 
   const refreshHistory = async () => {
@@ -119,6 +121,33 @@ export function useSessionController() {
     window.codex.saveSession(active);
   }, [active]);
 
+  useEffect(() => {
+    const cwd = active?.cwd;
+    let current = true;
+    setSelectedSkill(undefined);
+    if (!cwd) {
+      setSkills([]);
+      return;
+    }
+    const loadSkills = (forceReload = false) => {
+      window.codex.listSkills(cwd, forceReload).then(items => {
+        if (!current) return;
+        setSkills(items);
+        setSelectedSkill(selected => selected && items.some(skill => skill.path === selected.path) ? selected : undefined);
+      }).catch(() => {
+        if (!current) return;
+        setSkills([]);
+        setSelectedSkill(undefined);
+      });
+    };
+    loadSkills();
+    const unsubscribe = window.codex.onSkillsChanged(() => loadSkills(true));
+    return () => {
+      current = false;
+      unsubscribe();
+    };
+  }, [active?.cwd]);
+
   const appendLocalError = (text: string) => setActive(current => current ? ({
     ...current,
     timeline: [...timelineOf(current), { id: crypto.randomUUID(), type: 'message', role: 'error', text }],
@@ -127,9 +156,15 @@ export function useSessionController() {
   const send = async () => {
     if ((!input.trim() && !attachments.length) || !active || runningSessions.has(active.id)) return;
     const text = input.trim();
+    const skillPrefix = selectedSkill ? `$${selectedSkill.name}` : '';
+    const prompt = selectedSkill && (text === skillPrefix || text.startsWith(`${skillPrefix} `))
+      ? text.slice(skillPrefix.length).trimStart()
+      : text;
+    const sentSkill = prompt === text ? undefined : selectedSkill;
     const sentAttachments = attachments;
     setInput('');
     setAttachments([]);
+    setSelectedSkill(undefined);
     if (!active.cwd) {
       appendLocalError('请先选择项目文件夹。');
       return;
@@ -144,7 +179,7 @@ export function useSessionController() {
     const effectiveModel = active.model || selectedModel?.model;
     const effectiveEffort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
     const started = await window.codex.start({
-      sessionId: active.id, cwd: active.cwd, prompt: text, attachments: sentAttachments, threadId: active.threadId,
+      sessionId: active.id, cwd: active.cwd, prompt, attachments: sentAttachments, skill: sentSkill, threadId: active.threadId,
       model: effectiveModel, reasoningEffort: effectiveEffort,
       collaborationMode: collaborationModes.find(mode => mode.mode === (active.collaborationMode || 'default')),
       permissionMode,
@@ -195,6 +230,7 @@ export function useSessionController() {
     const sessionId = active.id;
     setInput('');
     setAttachments([]);
+    setSelectedSkill(undefined);
     setRunningSessions(current => without(current, sessionId));
     setWaitingSessions(current => without(current, sessionId));
     setCompactingSessions(current => without(current, sessionId));
@@ -253,6 +289,14 @@ export function useSessionController() {
       setPermissionModeState(current => current === mode ? previous : current);
     });
   };
+  const updateInput = (value: string) => {
+    setInput(value);
+    setSelectedSkill(current => current && (value === `$${current.name}` || value.startsWith(`$${current.name} `)) ? current : undefined);
+  };
+  const selectSkill = (skill: CodexSkill) => {
+    setSelectedSkill(skill);
+    setInput(`$${skill.name} `);
+  };
 
   const groups = useMemo(() => groupSessions(sessions), [sessions]);
   const running = !!active && runningSessions.has(active.id);
@@ -260,9 +304,9 @@ export function useSessionController() {
   const compacting = !!active && compactingSessions.has(active.id);
   return {
     active, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode,
-    createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, send, setActive,
+    createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
-    setInput, setModel, setPermissionMode,
+    setInput: updateInput, setModel, setPermissionMode,
     setReasoningEffort: (effort: string) => setActive(current => current ? { ...current, reasoningEffort: effort } : current),
     toggleGroup, waiting,
   };
