@@ -6,7 +6,7 @@
 .messages::-webkit-scrollbar-thumb:hover { background: #66778d; }
 .message { max-width: 900px; }
 .message label { font-size: 11px; text-transform: uppercase; color: #8490a0; }
-.message pre { font: 14px/1.6 ui-monospace, monospace; white-space: pre-wrap; margin: 5px 0; }
+.message pre { font: inherit; font-size: 14px; line-height: 1.6; white-space: pre-wrap; margin: 5px 0; }
 .markdown-body { min-width: 0; margin-top: 5px; color: #e1e7ef; font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
 .markdown-body > :first-child { margin-top: 0; }
 .markdown-body > :last-child { margin-bottom: 0; }

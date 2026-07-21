@@ -9,8 +9,8 @@
 .activity-heading span { font-size: 13px; font-weight: 600; }
 .activity-heading small { margin-left: auto; color: #94a4b8; font-size: 11px; }
 .activity.running .activity-heading small { color: #77b5ff; }
-.activity-summary { display: block; padding: 0 12px 10px; color: #b8c8db; font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
-.activity-output { max-height: 340px; overflow: auto; margin: 0; border-top: 1px solid #334051; padding: 12px; background: #10151d; color: #d7e0eb; font: 12px/1.55 ui-monospace, monospace; white-space: pre; scrollbar-color: #4a586a #10151d; scrollbar-width: thin; }
+.activity-summary { display: block; padding: 0 12px 10px; color: #b8c8db; font: inherit; font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.activity-output { max-height: 340px; overflow: auto; margin: 0; border-top: 1px solid #334051; padding: 12px; background: #10151d; color: #d7e0eb; font: inherit; font-size: 12px; line-height: 1.55; white-space: pre; scrollbar-color: #4a586a #10151d; scrollbar-width: thin; }
 .activity-output::-webkit-scrollbar { width: 7px; height: 7px; }
 .activity-output::-webkit-scrollbar-track { background: #10151d; }
 .activity-output::-webkit-scrollbar-thumb { background: #4a586a; border-radius: 7px; }
