@@ -78,6 +78,7 @@ export type CodexApi = {
   archiveSession(session: Session): Promise<ArchiveResult>;
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
   chooseFolder(): Promise<string | null>;
+  chooseFile(defaultPath?: string): Promise<string | null>;
   start(options: { sessionId: string; cwd: string; prompt: string; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;
   compact(sessionId: string, threadId?: string): Promise<boolean>;

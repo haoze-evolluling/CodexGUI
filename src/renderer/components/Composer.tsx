@@ -12,6 +12,7 @@ type ComposerProps = {
   models: CodexModel[];
   collaborationModes: CollaborationMode[];
   onInputChange(value: string): void;
+  onChooseFile(): void;
   onSend(): void;
   onCompact(): void;
   onNewConversation(): void;
@@ -169,7 +170,13 @@ export function Composer(props: ComposerProps) {
         />
         <div className="composer-toolbar">
           <div className="composer-tools" ref={selectorsRef}>
-            <button className="composer-icon" disabled title="添加附件（暂不可用）" aria-label="添加附件"><Plus size={18} /></button>
+            <button
+              className="composer-icon"
+              onClick={props.onChooseFile}
+              disabled={disabled}
+              title="添加文件"
+              aria-label="添加文件"
+            ><Plus size={18} /></button>
             <div className={`selector-control model-control ${openSelector === 'model' ? 'open' : ''}`}>
               <button
                 className="selector-trigger"

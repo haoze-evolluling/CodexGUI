@@ -50,6 +50,7 @@ export function App() {
           models={controller.models}
           collaborationModes={controller.collaborationModes}
           onInputChange={controller.setInput}
+          onChooseFile={controller.chooseFile}
           onSend={controller.send}
           onCompact={controller.compact}
           onNewConversation={() => controller.active?.cwd && controller.createInFolder(controller.active.cwd)}

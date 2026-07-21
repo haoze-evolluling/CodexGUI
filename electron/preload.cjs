@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('codex', {
     return { ok: true };
   },
   chooseFolder: () => ipcRenderer.invoke('dialog:folder'),
+  chooseFile: defaultPath => ipcRenderer.invoke('dialog:file', defaultPath),
   start: options => ipcRenderer.invoke('cli:start', options),
   stop: sessionId => ipcRenderer.invoke('cli:stop', sessionId),
   compact: (sessionId, threadId) => ipcRenderer.invoke('cli:compact', sessionId, threadId),

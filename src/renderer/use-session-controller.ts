@@ -150,6 +150,12 @@ export function useSessionController() {
 
   const createInFolder = (cwd: string) => setActive(freshSession(cwd));
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
+  const chooseFile = async () => {
+    if (!active) return;
+    const filePath = await window.codex.chooseFile(active.cwd);
+    if (!filePath) return;
+    setInput(current => current ? `${current}\n${filePath}` : filePath);
+  };
   const clearContext = async () => {
     if (!active || runningSessions.has(active.id) || compactingSessions.has(active.id)) return;
     const sessionId = active.id;
@@ -211,7 +217,7 @@ export function useSessionController() {
   const waiting = !!active && waitingSessions.has(active.id);
   const compacting = !!active && compactingSessions.has(active.id);
   return {
-    active, answerUserInput, archiveProject, archiveSession, clearContext, collapsedGroups, collaborationModes, compact, compacting,
+    active, answerUserInput, archiveProject, archiveSession, chooseFile, clearContext, collapsedGroups, collaborationModes, compact, compacting,
     createInFolder, createProjectSession, groups, input, models, refreshHistory, running, runningSessions, send, setActive,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput, setModel,
