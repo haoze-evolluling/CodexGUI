@@ -24,8 +24,8 @@
 .markdown-body strong { color: #f1f5fa; }
 .markdown-body blockquote { padding: .15em 0 .15em 1em; border-left: 3px solid #52647a; color: #aeb9c8; }
 .markdown-body blockquote > :last-child { margin-bottom: 0; }
-.markdown-body code { padding: .15em .35em; border-radius: 4px; background: #202936; color: #dce8f7; font: .92em/1.5 ui-monospace, monospace; }
-.markdown-body pre { max-width: 100%; overflow-x: auto; padding: 12px 14px; border: 1px solid #303c4d; border-radius: 6px; background: #10151d; white-space: pre; }
+.markdown-body code { padding: .15em .35em; border-radius: 4px; background: #202936; color: #dce8f7; font: inherit; font-size: .92em; line-height: 1.5; }
+.markdown-body pre { max-width: 100%; overflow-x: auto; padding: 12px 14px; border: 1px solid #303c4d; border-radius: 6px; background: #10151d; font-weight: 400; white-space: pre; }
 .markdown-body pre code { padding: 0; background: transparent; color: #d7e0eb; font: inherit; }
 .markdown-body table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
 .markdown-body th, .markdown-body td { padding: 7px 10px; border: 1px solid #394657; text-align: left; }
