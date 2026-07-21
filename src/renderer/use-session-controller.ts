@@ -150,6 +150,24 @@ export function useSessionController() {
 
   const createInFolder = (cwd: string) => setActive(freshSession(cwd));
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
+  const clearContext = () => {
+    if (!active || runningSessions.has(active.id) || compactingSessions.has(active.id)) return;
+    if (!window.confirm('清除当前对话的消息和上下文？此操作不会删除项目文件。')) return;
+    setInput('');
+    setActive(current => current ? {
+      ...current,
+      title: '新建对话',
+      messages: undefined,
+      timeline: [{
+        id: crypto.randomUUID(),
+        type: 'message',
+        role: 'system',
+        text: '上下文已清除，可以开始新的对话。',
+      }],
+      threadId: undefined,
+      updated: Date.now(),
+    } : current);
+  };
   const archiveSession = async (target = active) => {
     if (!target || runningSessions.has(target.id)) return;
     if (!window.confirm(`归档“${target.title}”后，它将从本软件的列表移除。是否继续？`)) return;
@@ -183,7 +201,7 @@ export function useSessionController() {
   const waiting = !!active && waitingSessions.has(active.id);
   const compacting = !!active && compactingSessions.has(active.id);
   return {
-    active, answerUserInput, archiveProject, archiveSession, collapsedGroups, collaborationModes, compact, compacting,
+    active, answerUserInput, archiveProject, archiveSession, clearContext, collapsedGroups, collaborationModes, compact, compacting,
     createInFolder, createProjectSession, groups, input, models, refreshHistory, running, runningSessions, send, setActive,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput, setModel,

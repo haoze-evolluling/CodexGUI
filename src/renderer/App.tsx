@@ -52,6 +52,8 @@ export function App() {
           onInputChange={controller.setInput}
           onSend={controller.send}
           onCompact={controller.compact}
+          onNewConversation={() => controller.active?.cwd && controller.createInFolder(controller.active.cwd)}
+          onClearContext={controller.clearContext}
           onModelChange={controller.setModel}
           onReasoningEffortChange={controller.setReasoningEffort}
           onModeChange={controller.setCollaborationMode}
