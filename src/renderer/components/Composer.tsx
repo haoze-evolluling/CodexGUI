@@ -9,6 +9,8 @@ export function Composer(props: ComposerProps) {
   const selectorsRef = useRef<HTMLDivElement>(null);
   const permissionSelectorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const commandMenuRef = useRef<HTMLDivElement>(null);
+  const selectedCommandRef = useRef<HTMLButtonElement>(null);
   const selectedModel = props.models.find(model => model.model === props.session?.model)
     || props.models.find(model => model.isDefault)
     || props.models[0];
@@ -42,11 +44,24 @@ export function Composer(props: ComposerProps) {
     window.addEventListener('mousedown', closeSelector);
     return () => window.removeEventListener('mousedown', closeSelector);
   }, []);
+  useEffect(() => {
+    const menu = commandMenuRef.current;
+    const selectedCommand = selectedCommandRef.current;
+    if (!menu || !selectedCommand) return;
+
+    const menuBounds = menu.getBoundingClientRect();
+    const commandBounds = selectedCommand.getBoundingClientRect();
+    if (commandBounds.top < menuBounds.top) {
+      menu.scrollTop += commandBounds.top - menuBounds.top;
+    } else if (commandBounds.bottom > menuBounds.bottom) {
+      menu.scrollTop += commandBounds.bottom - menuBounds.bottom;
+    }
+  }, [commandIndex, commandMenuOpen]);
   return (
     <footer className="composer-shell">
       <div className="composer-frame">
         {commandMenuOpen && (
-          <div className="command-menu" role="listbox" aria-label="命令和 Skills">
+          <div className="command-menu" ref={commandMenuRef} role="listbox" aria-label="命令和 Skills">
             {filteredCommands.map((command, index) => {
               const Icon = command.icon;
               return (
@@ -55,6 +70,7 @@ export function Composer(props: ComposerProps) {
                     <div className="command-menu-title">{command.kind === 'skill' ? 'Skills' : '命令'}</div>
                   )}
                   <button
+                    ref={index === commandIndex ? selectedCommandRef : null}
                     className={`command-item ${index === commandIndex ? 'selected' : ''}`}
                     onMouseDown={event => event.preventDefault()}
                     onMouseEnter={() => setCommandIndex(index)}
