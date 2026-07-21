@@ -1,4 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { timelineOf } from '../session-model';
 import type { Session } from '../types';
 import { ActivityItem } from './ActivityItem';
@@ -23,7 +25,11 @@ export function Timeline({ active, running, onAnswer }: { active?: Session; runn
       {active && timelineOf(active).map(item => item.type === 'message' ? (
         <div className={`message ${item.role}`} key={item.id}>
           <label>{roleLabel[item.role]}</label>
-          <pre>{item.text}</pre>
+          {item.role === 'assistant' ? (
+            <div className="markdown-body">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>
+            </div>
+          ) : <pre>{item.text}</pre>}
         </div>
       ) : <ActivityItem activity={item} key={item.id} onAnswer={onAnswer} />)}
       {!active && <div className="empty-conversation">请从左侧选择或新建一个对话。</div>}
