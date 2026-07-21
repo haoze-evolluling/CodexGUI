@@ -9,6 +9,7 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
   const threadsBySession = new Map();
   const turnsBySession = new Map();
   const userInputRequests = new Map();
+  const completedPlans = new Map();
 
   function write(message) {
     if (!child?.stdin.writable) throw new Error('Codex app-server is not running.');
@@ -77,13 +78,20 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
       if (status === 'completed' && (params.item?.type === 'agentMessage' || params.item?.type === 'plan') && typeof params.item.text === 'string') {
         emitForThread('cli:data', threadId, { itemId: params.item.id, text: params.item.text, full: true });
       }
+      if (status === 'completed' && params.item?.type === 'plan' && typeof params.item.text === 'string') {
+        const sessionId = sessionIdFor(threadId);
+        if (sessionId) completedPlans.set(sessionId, { itemId: params.item.id, text: params.item.text });
+      }
       const activity = activityFromItem(params.item, status);
       if (activity) emitActivity(threadId, activity);
       return;
     }
     if (message.method === 'turn/started') {
       const sessionId = sessionIdFor(threadId);
-      if (sessionId) turnsBySession.set(sessionId, params.turn?.id);
+      if (sessionId) {
+        turnsBySession.set(sessionId, params.turn?.id);
+        completedPlans.delete(sessionId);
+      }
       return;
     }
     if (message.method === 'turn/completed') {
@@ -92,7 +100,10 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
       turnsBySession.delete(sessionId);
       const error = params.turn?.error?.message;
       if (error) send('cli:error', { sessionId, error });
+      const plan = completedPlans.get(sessionId);
+      completedPlans.delete(sessionId);
       send('cli:exit', { sessionId, status: params.turn?.status });
+      if (!error && plan) send('cli:plan-ready', { sessionId, plan });
       return;
     }
     if (message.method === 'thread/compacted') {
@@ -157,6 +168,7 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
     pending.clear();
     for (const sessionId of turnsBySession.keys()) send('cli:error', { sessionId, error: failure.message });
     turnsBySession.clear();
+    completedPlans.clear();
     child = undefined;
     ready = undefined;
   }
@@ -294,6 +306,7 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
       }
       threadsBySession.delete(sessionId);
       turnsBySession.delete(sessionId);
+      completedPlans.delete(sessionId);
       return true;
     },
     async listModels() {

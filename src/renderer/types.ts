@@ -53,7 +53,15 @@ export type UserInputActivity = {
   answers?: Record<string, { answers: string[] }>;
 };
 
-export type Activity = CommandActivity | FileChangeActivity | CompactionActivity | UserInputActivity;
+export type PlanDecisionActivity = {
+  id: string;
+  type: 'plan_decision';
+  status: 'pending' | 'answered';
+  plan: string;
+  choice?: 'implement' | 'fresh' | 'stay';
+};
+
+export type Activity = CommandActivity | FileChangeActivity | CompactionActivity | UserInputActivity | PlanDecisionActivity;
 
 export type TimelineItem =
   | ({ id: string; type: 'message' } & Message)
@@ -114,6 +122,7 @@ export type CodexApi = {
   onCompacted(callback: (value: { sessionId: string }) => void): () => void;
   onStatus(callback: (value: { sessionId: string; status: { type: string; activeFlags?: string[] } }) => void): () => void;
   onUserInput(callback: (value: { sessionId: string; request: { itemId: string; questions: UserInputQuestion[] } }) => void): () => void;
+  onPlanReady(callback: (value: { sessionId: string; plan: { itemId: string; text: string } }) => void): () => void;
   onSkillsChanged(callback: () => void): () => void;
 };
 

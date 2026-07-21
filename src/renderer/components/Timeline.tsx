@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { timelineOf } from '../session-model';
-import type { Session } from '../types';
+import type { PlanDecisionActivity, Session } from '../types';
 import { ActivityItem } from './ActivityItem';
 import { AttachmentTokens } from './AttachmentTokens';
 
@@ -13,17 +13,18 @@ const roleLabel = {
   system: '系统提示',
 } as const;
 
-export function Timeline({ active, running, onAnswer }: { active?: Session; running: boolean; onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void }) {
+export function Timeline({ active, running, onAnswer, onPlanChoice }: { active?: Session; running: boolean; onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void; onPlanChoice?(activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>): void }) {
   const messagesRef = useRef<HTMLElement>(null);
+  const items = active ? timelineOf(active) : [];
 
   useLayoutEffect(() => {
     const messages = messagesRef.current;
     if (messages) messages.scrollTop = messages.scrollHeight;
-  }, [active?.id]);
+  }, [active?.id, items.length]);
 
   return (
     <section className="messages" ref={messagesRef}>
-      {active && timelineOf(active).map(item => item.type === 'message' ? (
+      {items.map(item => item.type === 'message' ? (
         <div className={`message ${item.role}`} key={item.id}>
           <label>{roleLabel[item.role]}</label>
           {!!item.attachments?.length && <AttachmentTokens attachments={item.attachments} />}
@@ -33,7 +34,7 @@ export function Timeline({ active, running, onAnswer }: { active?: Session; runn
             </div>
           ) : item.text ? <pre>{item.text}</pre> : null}
         </div>
-      ) : <ActivityItem activity={item} key={item.id} onAnswer={onAnswer} />)}
+      ) : <ActivityItem activity={item} key={item.id} onAnswer={onAnswer} onPlanChoice={onPlanChoice} />)}
       {!active && <div className="empty-conversation">请从左侧选择或新建一个对话。</div>}
       {running && (
         <div className="message thinking">

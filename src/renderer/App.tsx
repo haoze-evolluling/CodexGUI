@@ -39,7 +39,7 @@ export function App() {
             </button>
           </div>
         </header>
-        <Timeline active={controller.active} running={controller.running} onAnswer={controller.answerUserInput} />
+        <Timeline active={controller.active} running={controller.running} onAnswer={controller.answerUserInput} onPlanChoice={controller.choosePlanAction} />
         <Composer
           activeSessionId={controller.active?.id}
           session={controller.active}

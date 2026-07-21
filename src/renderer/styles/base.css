@@ -1,7 +1,8 @@
 :root { font-family: Inter, system-ui, sans-serif; color: #e8edf5; background: #11151c; }
 * { box-sizing: border-box; }
+html, body, #root { width: 100%; height: 100%; overflow: hidden; }
 body { margin: 0; }
-.app { display: flex; height: 100vh; }
+.app { display: flex; width: 100%; height: 100%; overflow: hidden; }
 button { border: 0; color: inherit; background: #273342; border-radius: 7px; padding: 10px 12px; cursor: pointer; font: inherit; transition: transform 100ms ease-out; }
 button:active:not(:disabled) { transform: scale(.96); }
 button:disabled, textarea:disabled { cursor: not-allowed; opacity: .5; }

@@ -38,5 +38,6 @@ contextBridge.exposeInMainWorld('codex', {
   onCompacted: callback => subscribe('cli:compacted', callback),
   onStatus: callback => subscribe('cli:status', callback),
   onUserInput: callback => subscribe('cli:user-input', callback),
+  onPlanReady: callback => subscribe('cli:plan-ready', callback),
   onSkillsChanged: callback => subscribe('cli:skills-changed', callback),
 });

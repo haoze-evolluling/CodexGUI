@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { freshSession, groupSessions, normalizeSession, timelineOf } from './session-model';
-import type { AttachmentKind, CodexAttachment, CodexModel, CodexSkill, CollaborationMode, Message, PermissionMode, Session, UserInputActivity } from './types';
+import type { AttachmentKind, CodexAttachment, CodexModel, CodexSkill, CollaborationMode, Message, PermissionMode, PlanDecisionActivity, Session, UserInputActivity } from './types';
 
 const imageExtensions = new Set(['bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp']);
 const codeExtensions = new Set(['c', 'cc', 'cpp', 'cs', 'css', 'go', 'h', 'hpp', 'html', 'java', 'js', 'json', 'jsx', 'kt', 'md', 'php', 'py', 'rb', 'rs', 'scss', 'sh', 'sql', 'swift', 'toml', 'ts', 'tsx', 'vue', 'xml', 'yaml', 'yml']);
@@ -108,6 +108,17 @@ export function useSessionController() {
         }],
         updated: Date.now(),
       }))),
+      window.codex.onPlanReady(value => updateSession(value.sessionId, session => {
+        const id = `plan-decision-${value.plan.itemId}`;
+        if (timelineOf(session).some(item => item.id === id)) return session;
+        return {
+          ...session,
+          timeline: [...timelineOf(session), {
+            id, type: 'plan_decision', status: 'pending', plan: value.plan.text,
+          }],
+          updated: Date.now(),
+        };
+      })),
     ];
     return () => {
       window.clearInterval(refreshInterval);
@@ -204,6 +215,56 @@ export function useSessionController() {
       ...current,
       timeline: timelineOf(current).map(item => item.id === activity.id ? { ...activity, status: 'answered', answers } : item),
     } : current);
+  };
+
+  const choosePlanAction = async (activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>) => {
+    if (!active || runningSessions.has(active.id)) return;
+    const answeredTimeline = timelineOf(active).map(item => item.id === activity.id
+      ? { ...activity, status: 'answered' as const, choice }
+      : item);
+    if (choice === 'stay') {
+      setActive({ ...active, timeline: answeredTimeline, collaborationMode: 'plan', updated: Date.now() });
+      return;
+    }
+
+    const fresh = choice === 'fresh';
+    const text = fresh ? '清除上下文并执行该计划。' : '执行该计划。';
+    const prompt = fresh
+      ? `请在新的上下文中执行以下计划。\n\n${activity.plan}`
+      : '请按照刚才制定的计划开始实施。';
+    if (!active.cwd) {
+      appendLocalError('请先选择项目文件夹。');
+      return;
+    }
+    if (fresh && !await window.codex.resetSession(active.id)) {
+      appendLocalError('无法创建新的执行上下文。');
+      return;
+    }
+
+    const nextSession = {
+      ...active,
+      threadId: fresh ? undefined : active.threadId,
+      collaborationMode: 'default' as const,
+      timeline: [...answeredTimeline, { id: crypto.randomUUID(), type: 'message' as const, role: 'user' as const, text }],
+      updated: Date.now(),
+    };
+    setActive(nextSession);
+    setRunningSessions(current => new Set(current).add(active.id));
+    const selectedModel = models.find(model => model.isDefault) || models[0];
+    const model = active.model || selectedModel?.model;
+    const reasoningEffort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
+    const started = await window.codex.start({
+      sessionId: active.id,
+      cwd: active.cwd,
+      prompt,
+      attachments: [],
+      threadId: fresh ? undefined : active.threadId,
+      model,
+      reasoningEffort,
+      collaborationMode: collaborationModes.find(mode => mode.mode === 'default'),
+      permissionMode,
+    });
+    if (!started) setRunningSessions(current => without(current, active.id));
   };
 
   const createInFolder = (cwd: string) => setActive(freshSession(cwd));
@@ -303,7 +364,7 @@ export function useSessionController() {
   const waiting = !!active && waitingSessions.has(active.id);
   const compacting = !!active && compactingSessions.has(active.id);
   return {
-    active, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode,
+    active, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode,
     createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
