@@ -271,27 +271,32 @@ export function useSessionController() {
       appendLocalError('请先选择项目文件夹。');
       return;
     }
-    if (fresh && !await window.codex.resetSession(active.id)) {
-      appendLocalError('无法创建新的执行上下文。');
-      return;
-    }
 
-    const nextSession = {
-      ...active,
-      threadId: fresh ? undefined : active.threadId,
-      threadStatus: fresh ? undefined : active.threadStatus,
-      tokenUsage: fresh ? undefined : active.tokenUsage,
-      collaborationMode: 'default' as const,
-      timeline: [...answeredTimeline, { id: crypto.randomUUID(), type: 'message' as const, role: 'user' as const, text }],
-      updated: Date.now(),
-    };
+    const answeredSession = { ...active, timeline: answeredTimeline, updated: Date.now() };
+    const nextSession: Session = fresh
+      ? {
+          ...freshSession(active.cwd),
+          title: text,
+          model: active.model,
+          reasoningEffort: active.reasoningEffort,
+          timeline: [{ id: crypto.randomUUID(), type: 'message', role: 'user', text }],
+        }
+      : {
+          ...answeredSession,
+          collaborationMode: 'default',
+          timeline: [...answeredTimeline, { id: crypto.randomUUID(), type: 'message', role: 'user', text }],
+        };
+    if (fresh) {
+      setSessions(current => current.map(session => session.id === active.id ? answeredSession : session));
+      await window.codex.saveSession(answeredSession);
+    }
     setActive(nextSession);
-    setRunningSessions(current => new Set(current).add(active.id));
+    setRunningSessions(current => new Set(current).add(nextSession.id));
     const selectedModel = models.find(model => model.isDefault) || models[0];
     const model = active.model || selectedModel?.model;
     const reasoningEffort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
     const started = await window.codex.start({
-      sessionId: active.id,
+      sessionId: nextSession.id,
       cwd: active.cwd,
       prompt,
       attachments: [],
@@ -301,7 +306,7 @@ export function useSessionController() {
       collaborationMode: collaborationModes.find(mode => mode.mode === 'default'),
       permissionMode,
     });
-    if (!started) setRunningSessions(current => without(current, active.id));
+    if (!started) setRunningSessions(current => without(current, nextSession.id));
   };
 
   const createInFolder = (cwd: string) => setActive(freshSession(cwd));
