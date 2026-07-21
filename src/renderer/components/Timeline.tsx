@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { timelineOf } from '../session-model';
 import type { Session } from '../types';
 import { ActivityItem } from './ActivityItem';
@@ -10,8 +11,15 @@ const roleLabel = {
 } as const;
 
 export function Timeline({ active, running, onAnswer }: { active?: Session; running: boolean; onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void }) {
+  const messagesRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const messages = messagesRef.current;
+    if (messages) messages.scrollTop = messages.scrollHeight;
+  }, [active?.id]);
+
   return (
-    <section className="messages">
+    <section className="messages" ref={messagesRef}>
       {active && timelineOf(active).map(item => item.type === 'message' ? (
         <div className={`message ${item.role}`} key={item.id}>
           <label>{roleLabel[item.role]}</label>
