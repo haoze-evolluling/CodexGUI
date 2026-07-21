@@ -359,12 +359,7 @@ export function useSessionController() {
   };
   const archiveSession = async (target = active) => {
     if (!target || runningSessions.has(target.id)) return;
-    setDialog({
-      title: `归档“${target.title}”？`,
-      description: '归档后，它将从本软件的列表移除。',
-      confirmLabel: '归档', cancelLabel: '取消', danger: true,
-      onConfirm: () => { setDialog(undefined); void performArchiveSession(target); },
-    });
+    await performArchiveSession(target);
   };
   const performArchiveSession = async (target: Session) => {
     const archived = await window.codex.archiveSession(target);
@@ -378,13 +373,7 @@ export function useSessionController() {
   };
   const archiveProject = async (cwd: string, projectSessions: Session[]) => {
     if (projectSessions.some(session => runningSessions.has(session.id))) return;
-    const name = cwd.split(/[/\\]/).filter(Boolean).pop() || cwd;
-    setDialog({
-      title: `归档项目“${name}”？`,
-      description: `项目中的全部 ${projectSessions.length} 个对话将从本软件的列表移除。`,
-      confirmLabel: '全部归档', cancelLabel: '取消', danger: true,
-      onConfirm: () => { setDialog(undefined); void performArchiveProject(projectSessions); },
-    });
+    await performArchiveProject(projectSessions);
   };
   const performArchiveProject = async (projectSessions: Session[]) => {
     const archived = await window.codex.archiveProject(projectSessions);

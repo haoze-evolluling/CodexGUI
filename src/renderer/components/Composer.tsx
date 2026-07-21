@@ -39,11 +39,9 @@ export function Composer(props: ComposerProps) {
   const [commandIndex, setCommandIndex] = useState(0);
   const [skillPaletteOpen, setSkillPaletteOpen] = useState(false);
   const [openSelector, setOpenSelector] = useState<'model' | 'effort' | 'permission' | null>(null);
-  const [clearConfirmationOpen, setClearConfirmationOpen] = useState(false);
   const selectorsRef = useRef<HTMLDivElement>(null);
   const permissionSelectorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const clearButtonRef = useRef<HTMLButtonElement>(null);
   const selectedModel = props.models.find(model => model.model === props.session?.model)
     || props.models.find(model => model.isDefault)
     || props.models[0];
@@ -63,7 +61,7 @@ export function Composer(props: ComposerProps) {
   const commands = useMemo(() => [
     { kind: 'command' as const, id: 'compact', name: '压缩上下文', shortcut: '/compact', description: '压缩当前对话，释放上下文空间', icon: Minimize2, disabled: disabled || !props.session?.threadId, run: props.onCompact },
     { kind: 'command' as const, id: 'new', name: '新对话', shortcut: '/new', description: '在当前项目中开始新对话', icon: FilePlus2, disabled: disabled || !props.session?.cwd, run: props.onNewConversation },
-    { kind: 'command' as const, id: 'clear', name: '清除上下文', shortcut: '/clear', description: '清空当前消息并开启新的上下文', icon: Eraser, disabled, run: () => setClearConfirmationOpen(true) },
+    { kind: 'command' as const, id: 'clear', name: '清除上下文', shortcut: '/clear', description: '清空当前消息并开启新的上下文', icon: Eraser, disabled, run: props.onClearContext },
     { kind: 'command' as const, id: 'model', name: '选择模型', shortcut: '/model', description: '更改当前对话使用的模型', icon: Bot, disabled: disabled || !props.models.length, run: () => setOpenSelector('model') },
     { kind: 'command' as const, id: 'reasoning', name: '推理强度', shortcut: '/reasoning', description: '调整当前模型的推理强度', icon: BrainCircuit, disabled: disabled || !selectedModel, run: () => setOpenSelector('effort') },
     { kind: 'command' as const, id: 'plan', name: '计划模式', shortcut: '/plan', description: '切换当前对话的计划模式', icon: ListTodo, disabled: disabled || !props.collaborationModes.some(mode => mode.mode === 'plan'), run: () => props.onModeChange(props.session?.collaborationMode === 'plan' ? 'default' : 'plan') },
@@ -107,55 +105,8 @@ export function Composer(props: ComposerProps) {
     window.addEventListener('mousedown', closeSelector);
     return () => window.removeEventListener('mousedown', closeSelector);
   }, []);
-  useEffect(() => {
-    if (clearConfirmationOpen) clearButtonRef.current?.focus();
-  }, [clearConfirmationOpen]);
-  const closeClearConfirmation = () => {
-    setClearConfirmationOpen(false);
-    window.requestAnimationFrame(() => inputRef.current?.focus());
-  };
-  const confirmClearContext = () => {
-    setClearConfirmationOpen(false);
-    props.onClearContext();
-    window.requestAnimationFrame(() => inputRef.current?.focus());
-  };
   return (
     <footer className="composer-shell">
-      {clearConfirmationOpen && (
-        <div
-          className="clear-confirm-backdrop"
-          onMouseDown={event => { if (event.target === event.currentTarget) closeClearConfirmation(); }}
-        >
-          <div
-            className="clear-confirm-dialog"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="clear-confirm-title"
-            aria-describedby="clear-confirm-description"
-            onKeyDown={event => {
-              if (event.key === 'Escape') {
-                event.preventDefault();
-                closeClearConfirmation();
-                return;
-              }
-              if (event.key === 'Enter' && !event.isComposing) {
-                event.preventDefault();
-                confirmClearContext();
-              }
-            }}
-          >
-            <div className="clear-confirm-icon"><Eraser size={19} /></div>
-            <div className="clear-confirm-copy">
-              <b id="clear-confirm-title">清除当前上下文？</b>
-              <p id="clear-confirm-description">当前消息和对话上下文将被清空，项目文件不会受到影响。</p>
-            </div>
-            <div className="clear-confirm-actions">
-              <button onClick={closeClearConfirmation}>取消</button>
-              <button ref={clearButtonRef} className="danger" onClick={confirmClearContext}>清除上下文</button>
-            </div>
-          </div>
-        </div>
-      )}
       <div className="composer-frame">
         {commandMenuOpen && (
           <div className="command-menu" role="listbox" aria-label="命令和 Skills">

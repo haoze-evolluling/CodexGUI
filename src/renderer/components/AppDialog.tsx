@@ -1,4 +1,5 @@
 import { AlertTriangle, Info } from 'lucide-react';
+import { useEffect } from 'react';
 
 export type AppDialogState = {
   title: string;
@@ -12,6 +13,23 @@ export type AppDialogState = {
 
 export function AppDialog({ dialog, onClose }: { dialog: AppDialogState; onClose(): void }) {
   const Icon = dialog.danger ? AlertTriangle : Info;
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key === 'Enter' && !event.isComposing) {
+        event.preventDefault();
+        dialog.onConfirm();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [dialog, onClose]);
+
   return (
     <div className="app-dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
       <div
@@ -20,17 +38,6 @@ export function AppDialog({ dialog, onClose }: { dialog: AppDialogState; onClose
         aria-modal="true"
         aria-labelledby="app-dialog-title"
         aria-describedby="app-dialog-description"
-        onKeyDown={event => {
-          if (event.key === 'Escape') {
-            event.preventDefault();
-            onClose();
-            return;
-          }
-          if (event.key === 'Enter' && !event.isComposing) {
-            event.preventDefault();
-            dialog.onConfirm();
-          }
-        }}
       >
         <div className={`app-dialog-icon ${dialog.danger ? 'danger' : ''}`}><Icon size={19} /></div>
         <div className="app-dialog-copy">
