@@ -64,13 +64,13 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
   function handleNotification(message) {
     const params = message.params || {};
     const threadId = params.threadId;
-    if (message.method === 'item/agentMessage/delta') {
+    if (message.method === 'item/agentMessage/delta' || message.method === 'item/plan/delta') {
       emitForThread('cli:data', threadId, { itemId: params.itemId, text: params.delta });
       return;
     }
     if (message.method === 'item/started' || message.method === 'item/completed') {
       const status = message.method === 'item/started' ? 'running' : 'completed';
-      if (status === 'completed' && params.item?.type === 'agentMessage' && typeof params.item.text === 'string') {
+      if (status === 'completed' && (params.item?.type === 'agentMessage' || params.item?.type === 'plan') && typeof params.item.text === 'string') {
         emitForThread('cli:data', threadId, { itemId: params.item.id, text: params.item.text, full: true });
       }
       const activity = activityFromItem(params.item, status);
