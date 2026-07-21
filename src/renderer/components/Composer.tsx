@@ -132,7 +132,17 @@ export function Composer(props: ComposerProps) {
             aria-modal="true"
             aria-labelledby="clear-confirm-title"
             aria-describedby="clear-confirm-description"
-            onKeyDown={event => { if (event.key === 'Escape') closeClearConfirmation(); }}
+            onKeyDown={event => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                closeClearConfirmation();
+                return;
+              }
+              if (event.key === 'Enter' && !event.isComposing) {
+                event.preventDefault();
+                confirmClearContext();
+              }
+            }}
           >
             <div className="clear-confirm-icon"><Eraser size={19} /></div>
             <div className="clear-confirm-copy">

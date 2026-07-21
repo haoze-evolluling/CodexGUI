@@ -20,7 +20,17 @@ export function AppDialog({ dialog, onClose }: { dialog: AppDialogState; onClose
         aria-modal="true"
         aria-labelledby="app-dialog-title"
         aria-describedby="app-dialog-description"
-        onKeyDown={event => { if (event.key === 'Escape') onClose(); }}
+        onKeyDown={event => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            onClose();
+            return;
+          }
+          if (event.key === 'Enter' && !event.isComposing) {
+            event.preventDefault();
+            dialog.onConfirm();
+          }
+        }}
       >
         <div className={`app-dialog-icon ${dialog.danger ? 'danger' : ''}`}><Icon size={19} /></div>
         <div className="app-dialog-copy">
