@@ -112,6 +112,10 @@ function createCodexAppServer({ attachDiffs, send, spawn }) {
     }
     if (message.method === 'thread/status/changed') {
       emitForThread('cli:status', threadId, { status: params.status });
+      return;
+    }
+    if (message.method === 'thread/tokenUsage/updated') {
+      emitForThread('cli:token-usage', threadId, { tokenUsage: params.tokenUsage });
     }
   }
 

@@ -62,6 +62,7 @@ export function App() {
           onCompact={controller.compact}
           onNewConversation={() => controller.active?.cwd && controller.createInFolder(controller.active.cwd)}
           onClearContext={controller.clearContext}
+          onShowStatus={controller.showStatus}
           onSkillSelect={controller.selectSkill}
           onModelChange={controller.setModel}
           onReasoningEffortChange={controller.setReasoningEffort}

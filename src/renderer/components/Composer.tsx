@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUp, Bot, BrainCircuit, Check, ChevronDown, Eraser, FilePlus2, GitBranch, ListTodo, Minimize2, Monitor, Plus, ShieldAlert, ShieldCheck, Sparkles, Square } from 'lucide-react';
+import { ArrowUp, AtSign, Bot, BrainCircuit, Check, ChevronDown, CircleGauge, Eraser, FilePlus2, GitBranch, ListTodo, Minimize2, Monitor, Plus, ShieldAlert, ShieldCheck, Sparkles, Square } from 'lucide-react';
 import type { CodexAttachment, CodexModel, CodexSkill, CollaborationMode, PermissionMode, Session } from '../types';
 import { AttachmentTokens } from './AttachmentTokens';
 
@@ -23,6 +23,7 @@ type ComposerProps = {
   onCompact(): void;
   onNewConversation(): void;
   onClearContext(): void;
+  onShowStatus(): void;
   onSkillSelect(skill: CodexSkill): void;
   onModelChange(value: string): void;
   onReasoningEffortChange(value: string): void;
@@ -36,6 +37,7 @@ const skillScopeLabels: Record<CodexSkill['scope'], string> = {
 
 export function Composer(props: ComposerProps) {
   const [commandIndex, setCommandIndex] = useState(0);
+  const [skillPaletteOpen, setSkillPaletteOpen] = useState(false);
   const [openSelector, setOpenSelector] = useState<'model' | 'effort' | 'permission' | null>(null);
   const [clearConfirmationOpen, setClearConfirmationOpen] = useState(false);
   const selectorsRef = useRef<HTMLDivElement>(null);
@@ -62,7 +64,14 @@ export function Composer(props: ComposerProps) {
     { kind: 'command' as const, id: 'compact', name: '压缩上下文', shortcut: '/compact', description: '压缩当前对话，释放上下文空间', icon: Minimize2, disabled: disabled || !props.session?.threadId, run: props.onCompact },
     { kind: 'command' as const, id: 'new', name: '新对话', shortcut: '/new', description: '在当前项目中开始新对话', icon: FilePlus2, disabled: disabled || !props.session?.cwd, run: props.onNewConversation },
     { kind: 'command' as const, id: 'clear', name: '清除上下文', shortcut: '/clear', description: '清空当前消息并开启新的上下文', icon: Eraser, disabled, run: () => setClearConfirmationOpen(true) },
-  ], [disabled, props.session?.cwd, props.session?.threadId, props.onCompact, props.onNewConversation, props.onClearContext]);
+    { kind: 'command' as const, id: 'model', name: '选择模型', shortcut: '/model', description: '更改当前对话使用的模型', icon: Bot, disabled: disabled || !props.models.length, run: () => setOpenSelector('model') },
+    { kind: 'command' as const, id: 'reasoning', name: '推理强度', shortcut: '/reasoning', description: '调整当前模型的推理强度', icon: BrainCircuit, disabled: disabled || !selectedModel, run: () => setOpenSelector('effort') },
+    { kind: 'command' as const, id: 'plan', name: '计划模式', shortcut: '/plan', description: '切换当前对话的计划模式', icon: ListTodo, disabled: disabled || !props.collaborationModes.some(mode => mode.mode === 'plan'), run: () => props.onModeChange(props.session?.collaborationMode === 'plan' ? 'default' : 'plan') },
+    { kind: 'command' as const, id: 'permissions', name: '权限设置', shortcut: '/permissions', description: '选择当前对话的权限模式', icon: ShieldCheck, disabled, run: () => setOpenSelector('permission') },
+    { kind: 'command' as const, id: 'status', name: '会话状态', shortcut: '/status', description: '查看线程配置和上下文用量', icon: CircleGauge, disabled: !props.activeSessionId, run: props.onShowStatus },
+    { kind: 'command' as const, id: 'skills', name: 'Skills', shortcut: '/skills', description: '浏览并选择可用的 Skill', icon: Sparkles, disabled: disabled || !props.skills.length, run: () => setSkillPaletteOpen(true) },
+    { kind: 'command' as const, id: 'mention', name: '添加文件', shortcut: '/mention', description: '选择文件并添加到当前提问', icon: AtSign, disabled, run: props.onChooseFiles },
+  ], [disabled, props.activeSessionId, props.collaborationModes, props.models.length, props.onChooseFiles, props.onCompact, props.onModeChange, props.onNewConversation, props.onShowStatus, props.session?.collaborationMode, props.session?.cwd, props.session?.threadId, props.skills.length, selectedModel]);
   const skillCommands = useMemo(() => props.skills.map(skill => ({
     kind: 'skill' as const,
     id: `skill:${skill.path}`,
@@ -75,14 +84,17 @@ export function Composer(props: ComposerProps) {
   })), [disabled, props.skills, props.onSkillSelect]);
   const menuItems = useMemo(() => [...commands, ...skillCommands], [commands, skillCommands]);
   const commandQuery = props.input.startsWith('/') ? props.input.slice(1).trim().toLowerCase() : '';
-  const filteredCommands = props.input.startsWith('/')
-    ? menuItems.filter(command => `${command.name} ${command.shortcut} ${command.description}`.toLowerCase().includes(commandQuery))
-    : [];
+  const filteredCommands = skillPaletteOpen
+    ? skillCommands
+    : props.input.startsWith('/')
+      ? menuItems.filter(command => `${command.name} ${command.shortcut} ${command.description}`.toLowerCase().includes(commandQuery))
+      : [];
   const commandMenuOpen = filteredCommands.length > 0;
   const runCommand = (index: number) => {
     const command = filteredCommands[index];
     if (!command || command.disabled) return;
     props.onInputChange('');
+    setSkillPaletteOpen(false);
     setCommandIndex(0);
     command.run();
     window.requestAnimationFrame(() => inputRef.current?.focus());
@@ -182,6 +194,7 @@ export function Composer(props: ComposerProps) {
           className="composer-input"
           value={props.input}
           onChange={event => {
+            setSkillPaletteOpen(false);
             props.onInputChange(event.target.value);
             setCommandIndex(0);
           }}
@@ -200,7 +213,8 @@ export function Composer(props: ComposerProps) {
               }
               if (event.key === 'Escape') {
                 event.preventDefault();
-                props.onInputChange('');
+                if (skillPaletteOpen) setSkillPaletteOpen(false);
+                else props.onInputChange('');
                 return;
               }
               if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey) {

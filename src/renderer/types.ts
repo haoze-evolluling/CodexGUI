@@ -19,6 +19,22 @@ export type CodexSkill = {
 };
 export type PermissionMode = 'default' | 'yolo';
 export type AppSettings = { permissionMode: PermissionMode };
+export type ThreadStatus = {
+  type: 'notLoaded' | 'idle' | 'systemError' | 'active';
+  activeFlags?: ('waitingOnApproval' | 'waitingOnUserInput')[];
+};
+export type TokenUsageBreakdown = {
+  cachedInputTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  reasoningOutputTokens: number;
+  totalTokens: number;
+};
+export type ThreadTokenUsage = {
+  last: TokenUsageBreakdown;
+  total: TokenUsageBreakdown;
+  modelContextWindow?: number | null;
+};
 
 export type FileChange = {
   path: string;
@@ -78,6 +94,8 @@ export type Session = {
   model?: string;
   reasoningEffort?: string;
   collaborationMode?: 'default' | 'plan';
+  threadStatus?: ThreadStatus;
+  tokenUsage?: ThreadTokenUsage;
 };
 
 export type SessionGroup = {
@@ -121,7 +139,8 @@ export type CodexApi = {
   onExit(callback: (value: { sessionId: string; code?: number }) => void): () => void;
   onError(callback: (value: { sessionId: string; error: string }) => void): () => void;
   onCompacted(callback: (value: { sessionId: string }) => void): () => void;
-  onStatus(callback: (value: { sessionId: string; status: { type: string; activeFlags?: string[] } }) => void): () => void;
+  onStatus(callback: (value: { sessionId: string; status: ThreadStatus }) => void): () => void;
+  onTokenUsage(callback: (value: { sessionId: string; tokenUsage: ThreadTokenUsage }) => void): () => void;
   onUserInput(callback: (value: { sessionId: string; request: { itemId: string; questions: UserInputQuestion[] } }) => void): () => void;
   onPlanReady(callback: (value: { sessionId: string; plan: { itemId: string; text: string } }) => void): () => void;
   onSkillsChanged(callback: () => void): () => void;

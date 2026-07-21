@@ -97,12 +97,19 @@ export function useSessionController() {
         appendMessage(value.sessionId, { role: 'error', text: value.error });
       }),
       window.codex.onCompacted(value => setCompactingSessions(current => without(current, value.sessionId))),
-      window.codex.onStatus(value => setWaitingSessions(current => {
-        const next = new Set(current);
-        if (value.status.type === 'active' && value.status.activeFlags?.includes('waitingOnUserInput')) next.add(value.sessionId);
-        else next.delete(value.sessionId);
-        return next;
-      })),
+      window.codex.onStatus(value => {
+        updateSession(value.sessionId, session => ({ ...session, threadStatus: value.status }));
+        setWaitingSessions(current => {
+          const next = new Set(current);
+          if (value.status.type === 'active' && value.status.activeFlags?.includes('waitingOnUserInput')) next.add(value.sessionId);
+          else next.delete(value.sessionId);
+          return next;
+        });
+      }),
+      window.codex.onTokenUsage(value => updateSession(value.sessionId, session => ({
+        ...session,
+        tokenUsage: value.tokenUsage,
+      }))),
       window.codex.onUserInput(value => updateSession(value.sessionId, session => ({
         ...session,
         timeline: [...timelineOf(session), {
@@ -246,6 +253,8 @@ export function useSessionController() {
     const nextSession = {
       ...active,
       threadId: fresh ? undefined : active.threadId,
+      threadStatus: fresh ? undefined : active.threadStatus,
+      tokenUsage: fresh ? undefined : active.tokenUsage,
       collaborationMode: 'default' as const,
       timeline: [...answeredTimeline, { id: crypto.randomUUID(), type: 'message' as const, role: 'user' as const, text }],
       updated: Date.now(),
@@ -310,6 +319,8 @@ export function useSessionController() {
         text: '上下文已清除，可以开始新的对话。',
       }],
       threadId: undefined,
+      threadStatus: undefined,
+      tokenUsage: undefined,
       updated: Date.now(),
     } : current);
     try {
@@ -383,13 +394,53 @@ export function useSessionController() {
     setInput(`$${skill.name} `);
   };
 
+  const showStatus = () => {
+    if (!active) return;
+    const effortLabels: Record<string, string> = {
+      minimal: '最低', low: '低', medium: '中', high: '高', xhigh: '最高',
+    };
+    const statusLabels: Record<string, string> = {
+      notLoaded: '未加载', idle: '空闲', systemError: '系统错误', active: '运行中',
+    };
+    const flags = active.threadStatus?.activeFlags || [];
+    const status = flags.includes('waitingOnApproval')
+      ? '等待批准'
+      : flags.includes('waitingOnUserInput')
+        ? '等待用户输入'
+        : statusLabels[active.threadStatus?.type || ''] || (runningSessions.has(active.id) ? '运行中' : '空闲');
+    const selectedModel = models.find(model => model.model === active.model)
+      || models.find(model => model.isDefault)
+      || models[0];
+    const effort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
+    const tokenUsage = active.tokenUsage;
+    const number = (value: number) => new Intl.NumberFormat('zh-CN').format(value);
+    const context = tokenUsage
+      ? `${number(tokenUsage.last.totalTokens)}${tokenUsage.modelContextWindow ? ` / ${number(tokenUsage.modelContextWindow)}` : ''}`
+      : '尚无用量数据';
+    setDialog({
+      title: '会话状态',
+      details: [
+        { label: '状态', value: status },
+        { label: '线程 ID', value: active.threadId || '尚未创建' },
+        { label: '项目', value: active.cwd || '未选择' },
+        { label: '模型', value: selectedModel?.displayName || active.model || '默认' },
+        { label: '推理强度', value: effortLabels[effort || ''] || effort || '默认' },
+        { label: '协作模式', value: active.collaborationMode === 'plan' ? '计划模式' : '默认模式' },
+        { label: '权限', value: permissionMode === 'yolo' ? 'YOLO 权限' : '默认权限' },
+        { label: '当前上下文', value: context },
+        { label: '累计 token', value: tokenUsage ? number(tokenUsage.total.totalTokens) : '尚无用量数据' },
+      ],
+      onConfirm: () => setDialog(undefined),
+    });
+  };
+
   const groups = useMemo(() => groupSessions(sessions), [sessions]);
   const running = !!active && runningSessions.has(active.id);
   const waiting = !!active && waitingSessions.has(active.id);
   const compacting = !!active && compactingSessions.has(active.id);
   return {
     active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode, dialog, closeDialog: () => setDialog(undefined),
-    createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, skills,
+    createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
     setReasoningEffort: (effort: string) => setActive(current => current ? { ...current, reasoningEffort: effort } : current),

@@ -75,6 +75,31 @@ function activityFromRecord(record) {
   return null;
 }
 
+function tokenUsageBreakdown(value) {
+  if (!value || typeof value !== 'object') return null;
+  return {
+    cachedInputTokens: Number(value.cached_input_tokens) || 0,
+    inputTokens: Number(value.input_tokens) || 0,
+    outputTokens: Number(value.output_tokens) || 0,
+    reasoningOutputTokens: Number(value.reasoning_output_tokens) || 0,
+    totalTokens: Number(value.total_tokens) || 0,
+  };
+}
+
+function tokenUsageFromRecord(record) {
+  const payload = record?.payload;
+  const info = payload?.info;
+  if (record?.type !== 'event_msg' || payload?.type !== 'token_count' || !info) return null;
+  const last = tokenUsageBreakdown(info.last_token_usage);
+  const total = tokenUsageBreakdown(info.total_token_usage);
+  if (!last || !total) return null;
+  return {
+    last,
+    total,
+    modelContextWindow: Number.isFinite(info.model_context_window) ? info.model_context_window : null,
+  };
+}
+
 function parseSessionFile(filePath) {
   let lines;
   try { lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/); } catch { return null; }
@@ -83,6 +108,7 @@ function parseSessionFile(filePath) {
   const messages = [];
   const timeline = [];
   const commands = new Map();
+  let tokenUsage;
   let updated = 0;
   for (const line of lines) {
     if (!line.trim()) continue;
@@ -92,6 +118,7 @@ function parseSessionFile(filePath) {
       const timestamp = Date.parse(record.timestamp);
       if (Number.isFinite(timestamp)) updated = Math.max(updated, timestamp);
       if (record.type === 'session_meta') meta = record.payload;
+      tokenUsage = tokenUsageFromRecord(record) || tokenUsage;
       const message = messageFromRecord(record);
       if (message) {
         messages.push(message);
@@ -124,6 +151,7 @@ function parseSessionFile(filePath) {
     title: firstUserMessage.slice(0, 64),
     messages,
     timeline,
+    ...(tokenUsage ? { tokenUsage } : {}),
     updated: updated || Date.now(),
   };
 }
@@ -155,10 +183,17 @@ function mergeSessions(saved, imported) {
   const importedByThread = new Map(imported.filter(session => session.threadId).map(session => [session.threadId, session]));
   const mergedSaved = saved.map(session => {
     const importedSession = importedByThread.get(session.threadId);
+    if (!importedSession) return session;
     const savedTimeline = Array.isArray(session.timeline) ? session.timeline : session.messages || [];
-    const importedTimeline = importedSession?.timeline || importedSession?.messages || [];
-    if (!importedSession || importedTimeline.length <= savedTimeline.length) return session;
-    return { ...session, messages: importedSession.messages, timeline: importedSession.timeline, updated: Math.max(session.updated || 0, importedSession.updated || 0) };
+    const importedTimeline = importedSession.timeline || importedSession.messages || [];
+    const newerTimeline = importedTimeline.length > savedTimeline.length;
+    if (!newerTimeline && !importedSession.tokenUsage) return session;
+    return {
+      ...session,
+      ...(newerTimeline ? { messages: importedSession.messages, timeline: importedSession.timeline } : {}),
+      ...(importedSession.tokenUsage ? { tokenUsage: importedSession.tokenUsage } : {}),
+      updated: Math.max(session.updated || 0, importedSession.updated || 0),
+    };
   });
   const seenThreads = new Set(mergedSaved.map(session => session.threadId).filter(Boolean));
   const seenIds = new Set(mergedSaved.map(session => session.id));

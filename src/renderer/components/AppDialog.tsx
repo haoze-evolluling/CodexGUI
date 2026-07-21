@@ -2,7 +2,8 @@ import { AlertTriangle, Info } from 'lucide-react';
 
 export type AppDialogState = {
   title: string;
-  description: string;
+  description?: string;
+  details?: { label: string; value: string }[];
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
@@ -24,7 +25,14 @@ export function AppDialog({ dialog, onClose }: { dialog: AppDialogState; onClose
         <div className={`app-dialog-icon ${dialog.danger ? 'danger' : ''}`}><Icon size={19} /></div>
         <div className="app-dialog-copy">
           <b id="app-dialog-title">{dialog.title}</b>
-          <p id="app-dialog-description">{dialog.description}</p>
+          {dialog.description && <p id="app-dialog-description">{dialog.description}</p>}
+          {!!dialog.details?.length && (
+            <dl className="app-dialog-details" id={dialog.description ? undefined : 'app-dialog-description'}>
+              {dialog.details.map(detail => (
+                <div key={detail.label}><dt>{detail.label}</dt><dd title={detail.value}>{detail.value}</dd></div>
+              ))}
+            </dl>
+          )}
         </div>
         <div className="app-dialog-actions">
           {dialog.cancelLabel && <button onClick={onClose}>{dialog.cancelLabel}</button>}

@@ -38,6 +38,41 @@ test('enriches a saved session when the Codex transcript has activity entries', 
   assert.deepEqual(mergeSessions(saved, imported), [{ ...saved[0], messages: imported[0].messages, timeline: imported[0].timeline, updated: 3 }]);
 });
 
+test('reads the latest token usage snapshot from a Codex transcript', () => {
+  const filePath = path.join(os.tmpdir(), `codex-history-usage-${Date.now()}.jsonl`);
+  const tokenCount = (totalTokens, lastTokens) => ({
+    type: 'event_msg',
+    payload: {
+      type: 'token_count',
+      info: {
+        total_token_usage: { input_tokens: totalTokens - 10, cached_input_tokens: 5, output_tokens: 10, reasoning_output_tokens: 2, total_tokens: totalTokens },
+        last_token_usage: { input_tokens: lastTokens - 3, cached_input_tokens: 1, output_tokens: 3, reasoning_output_tokens: 1, total_tokens: lastTokens },
+        model_context_window: 258400,
+      },
+    },
+  });
+  fs.writeFileSync(filePath, [
+    JSON.stringify({ type: 'session_meta', payload: { session_id: 'thread-usage', cwd: 'C:\\project' } }),
+    JSON.stringify(tokenCount(100, 40)),
+    JSON.stringify(tokenCount(250, 80)),
+  ].join('\n'));
+  try {
+    const session = parseSessionFile(filePath);
+    assert.equal(session.tokenUsage.last.totalTokens, 80);
+    assert.equal(session.tokenUsage.total.totalTokens, 250);
+    assert.equal(session.tokenUsage.modelContextWindow, 258400);
+  } finally { fs.unlinkSync(filePath); }
+});
+
+test('enriches a saved GUI session with imported token usage', () => {
+  const tokenUsage = {
+    last: { totalTokens: 80 }, total: { totalTokens: 250 }, modelContextWindow: 258400,
+  };
+  const saved = [{ id: 'gui-1', threadId: 'thread-1', timeline: [{ id: 'saved' }], updated: 3 }];
+  const imported = [{ id: 'codex-thread-1', threadId: 'thread-1', timeline: [], tokenUsage, updated: 2 }];
+  assert.deepEqual(mergeSessions(saved, imported), [{ ...saved[0], tokenUsage }]);
+});
+
 test('uses a Chinese title when a transcript has no user message', () => {
   const filePath = path.join(os.tmpdir(), `codex-history-empty-${Date.now()}.jsonl`);
   fs.writeFileSync(filePath, JSON.stringify({ type: 'session_meta', payload: { session_id: 'thread-empty' } }));

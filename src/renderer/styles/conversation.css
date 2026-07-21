@@ -118,6 +118,10 @@
 .app-dialog-icon.danger { color: #ff9c9c; background: #3b252b; }
 .app-dialog-copy b { display: block; font-size: 14px; }
 .app-dialog-copy p { margin: 6px 0 0; color: #9ba9ba; font-size: 12px; line-height: 1.55; }
+.app-dialog-details { display: grid; gap: 7px; margin: 10px 0 0; }
+.app-dialog-details > div { min-width: 0; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; font-size: 12px; line-height: 1.45; }
+.app-dialog-details dt { color: #7f8b9d; }
+.app-dialog-details dd { min-width: 0; margin: 0; overflow: hidden; color: #d7e0ec; text-overflow: ellipsis; white-space: nowrap; }
 .app-dialog-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; margin-top: 5px; }
 .app-dialog-actions button { padding: 7px 12px; color: #bfc9d7; background: #273342; font-size: 12px; }
 .app-dialog-actions button:hover { color: #fff; background: #334256; }
