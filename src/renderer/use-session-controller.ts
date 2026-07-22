@@ -8,6 +8,7 @@ import { resolveModel, resolveReasoningEffort } from './model-utils';
 import { useSessionEvents } from './use-session-events';
 
 export function useSessionController() {
+  const initialTheme = document.documentElement.dataset.initialTheme === 'dark' ? 'dark' : 'light';
   const [sessions, setSessions] = useState<Session[]>([]);
   const [active, setActive] = useState<Session>();
   const [input, setInput] = useState('');
@@ -22,7 +23,7 @@ export function useSessionController() {
   const [selectedSkill, setSelectedSkill] = useState<CodexSkill>();
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>('default');
   const [dialog, setDialog] = useState<AppDialogState>();
-  const [settings, setSettings] = useState<AppSettings>({ permissionMode: 'default', fontSize: 'small', theme: 'light' });
+  const [settings, setSettings] = useState<AppSettings>({ permissionMode: 'default', fontSize: 'small', theme: initialTheme });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [installation, setInstallation] = useState<CodexInstallation>();
 

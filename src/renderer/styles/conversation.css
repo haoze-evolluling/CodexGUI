@@ -120,6 +120,7 @@
 .send-button { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; border-radius: 50%; color: #11151c; background: #e8edf5; }
 .send-button:hover:not(:disabled) { background: #fff; }
 .send-button.stop { color: #fff; background: #9b4b58; }
+.send-button.stop:hover:not(:disabled) { color: #fff; background: #b95a68; }
 .command-menu { position: absolute; z-index: 20; left: 0; right: 0; bottom: calc(100% + 8px); max-height: min(360px, calc(100vh - 220px)); overflow-y: auto; padding: 6px; background: #1b222d; border: 1px solid #394554; border-radius: 8px; box-shadow: 0 14px 36px rgb(0 0 0 / 38%); scrollbar-color: #4a586a #1b222d; scrollbar-width: thin; }
 .command-menu-title { padding: 6px 9px 7px; color: #7f8b9d; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 .command-item { width: 100%; min-height: 52px; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 7px 9px; color: #b5c0ce; background: transparent; text-align: left; }

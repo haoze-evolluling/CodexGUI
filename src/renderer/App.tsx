@@ -11,7 +11,8 @@ import { useSessionController } from './use-session-controller';
 export function App() {
   const controller = useSessionController();
   const fontSize = controller.settings.fontSize || 'small';
-  const theme = controller.settings.theme || 'light';
+  const initialTheme = document.documentElement.dataset.initialTheme === 'dark' ? 'dark' : 'light';
+  const theme = controller.settings.theme || initialTheme;
   const [systemPrefersDark, setSystemPrefersDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   useEffect(() => {

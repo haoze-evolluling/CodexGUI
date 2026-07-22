@@ -1,9 +1,18 @@
 <!doctype html>
-<html lang="zh-CN" style="background:#f7f9fc">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="color-scheme" content="light dark" />
-    <style>html,body{margin:0;background:#f7f9fc}</style>
+    <style>html,body{margin:0;background:#11151c}</style>
+    <script>
+      const requestedTheme = new URLSearchParams(location.search).get('initialTheme');
+      const initialTheme = requestedTheme === 'light' || requestedTheme === 'dark'
+        ? requestedTheme
+        : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.initialTheme = initialTheme;
+      document.documentElement.style.background = initialTheme === 'dark' ? '#11151c' : '#f7f9fc';
+    </script>
+    <style>html[data-initial-theme="light"],html[data-initial-theme="light"] body{background:#f7f9fc}</style>
   </head>
   <body><div id="root"></div><script type="module" src="/src/renderer/main.tsx"></script></body>
 </html>
