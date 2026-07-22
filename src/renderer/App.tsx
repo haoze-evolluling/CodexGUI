@@ -1,4 +1,4 @@
-import { Archive } from 'lucide-react';
+import { Archive, Undo2 } from 'lucide-react';
 import { Composer } from './components/Composer';
 import { AppDialog } from './components/AppDialog';
 import { Sidebar } from './components/Sidebar';
@@ -53,6 +53,14 @@ export function App() {
               <div className="header-actions">
                 <button
                   className="icon"
+                  onClick={controller.rollback}
+                  title={controller.canRollback ? '撤销最近一轮对话' : '没有可撤销的对话'}
+                  disabled={!controller.canRollback}
+                >
+                  <Undo2 size={18} />
+                </button>
+                <button
+                  className="icon"
                   onClick={() => controller.archiveSession()}
                   title={controller.running ? '正在执行，无法归档' : '归档对话'}
                   disabled={!controller.active || controller.running}
@@ -81,6 +89,7 @@ export function App() {
               onRemoveAttachment={controller.removeAttachment}
               onSend={controller.send}
               onCompact={controller.compact}
+              onRollback={controller.rollback}
               onNewConversation={() => controller.active?.cwd && controller.createInFolder(controller.active.cwd)}
               onClearContext={controller.clearContext}
               onShowStatus={controller.showStatus}

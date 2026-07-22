@@ -141,6 +141,7 @@ export type CodexApi = {
   start(options: { sessionId: string; cwd: string; prompt: string; attachments: CodexAttachment[]; skill?: Pick<CodexSkill, 'name' | 'path'>; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode; permissionMode: PermissionMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;
   compact(sessionId: string, threadId?: string): Promise<boolean>;
+  rollback(sessionId: string, threadId: string): Promise<boolean>;
   resetSession(sessionId: string): Promise<boolean>;
   listModels(): Promise<CodexModel[]>;
   listCollaborationModes(): Promise<CollaborationMode[]>;

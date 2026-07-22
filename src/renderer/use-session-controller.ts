@@ -150,6 +150,42 @@ export function useSessionController() {
     }
   };
 
+  const rollback = async () => {
+    if (!active?.threadId || runningSessions.has(active.id) || compactingSessions.has(active.id)) return;
+    const timeline = timelineOf(active);
+    let lastUserIndex = -1;
+    for (let index = timeline.length - 1; index >= 0; index -= 1) {
+      const item = timeline[index];
+      if (item.type === 'message' && item.role === 'user') {
+        lastUserIndex = index;
+        break;
+      }
+    }
+    if (lastUserIndex < 0) return;
+    const target = active;
+    try {
+      if (!await window.codex.rollback(target.id, target.threadId)) throw new Error('无法撤销最近一轮对话。');
+      const nextTimeline = timeline.slice(0, lastUserIndex);
+      const firstUserMessage = nextTimeline.find(item => item.type === 'message' && item.role === 'user');
+      setActive(current => current?.id === target.id ? {
+        ...current,
+        title: firstUserMessage?.type === 'message'
+          ? (firstUserMessage.text || firstUserMessage.attachments?.[0]?.name || '附件').slice(0, 32)
+          : '新建对话',
+        messages: undefined,
+        timeline: nextTimeline,
+        tokenUsage: undefined,
+        updated: Date.now(),
+      } : current);
+    } catch (error) {
+      setDialog({
+        title: '撤销失败',
+        description: error instanceof Error ? error.message : String(error),
+        onConfirm: () => setDialog(undefined),
+      });
+    }
+  };
+
   const answerUserInput = async (activity: UserInputActivity, answers: Record<string, { answers: string[] }>) => {
     if (!await window.codex.answerUserInput(activity.id, answers)) return;
     setActive(current => current ? {
@@ -381,8 +417,10 @@ export function useSessionController() {
   const running = !!active && runningSessions.has(active.id);
   const waiting = !!active && waitingSessions.has(active.id);
   const compacting = !!active && compactingSessions.has(active.id);
+  const canRollback = !!active?.threadId && !running && !compacting
+    && timelineOf(active).some(item => item.type === 'message' && item.role === 'user');
   return {
-    active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode, dialog, closeDialog: () => setDialog(undefined),
+    active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, canRollback, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode, dialog, closeDialog: () => setDialog(undefined),
     closeSettings: () => setSettingsOpen(false), installation, openSettings, saveCodexPath, setFontSize, settings, settingsOpen,
     createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
@@ -391,6 +429,6 @@ export function useSessionController() {
       setActive(current => current ? { ...current, reasoningEffort: effort } : current);
       window.codex.saveSettings({ reasoningEffort: effort }).then(setSettings).catch(() => undefined);
     },
-    toggleGroup, waiting,
+    rollback, toggleGroup, waiting,
   };
 }

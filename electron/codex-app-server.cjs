@@ -301,6 +301,18 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
       await request('thread/compact/start', { threadId: known });
       return true;
     },
+    async rollback(sessionId, threadId) {
+      await ensureReady();
+      const known = threadsBySession.get(sessionId)?.threadId || threadId;
+      if (!known || turnsBySession.has(sessionId)) return false;
+      sessionsByThread.set(known, sessionId);
+      if (!threadsBySession.has(sessionId)) {
+        await request('thread/resume', { threadId: known });
+        threadsBySession.set(sessionId, { threadId: known, cwd: process.cwd() });
+      }
+      await request('thread/rollback', { threadId: known, numTurns: 1 });
+      return true;
+    },
     resetSession(sessionId) {
       if (!sessionId) return false;
       const thread = threadsBySession.get(sessionId);

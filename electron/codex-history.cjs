@@ -179,18 +179,50 @@ function loadCodexHistory(codexHome) {
     .sort((left, right) => right.updated - left.updated);
 }
 
+function mergeGuiSystemMessages(savedTimeline, importedTimeline) {
+  const systemsByPosition = new Map();
+  const importedSystemKeys = new Set(importedTimeline
+    .filter(item => item?.type === 'message' && item.role === 'system')
+    .map(item => `${item.text || ''}\n${JSON.stringify(item.attachments || [])}`));
+  let nonSystemPosition = 0;
+  for (const item of savedTimeline) {
+    if (item?.type === 'message' && item.role === 'system') {
+      const key = `${item.text || ''}\n${JSON.stringify(item.attachments || [])}`;
+      if (importedSystemKeys.has(key)) continue;
+      const messages = systemsByPosition.get(nonSystemPosition) || [];
+      messages.push(item);
+      systemsByPosition.set(nonSystemPosition, messages);
+    } else {
+      nonSystemPosition += 1;
+    }
+  }
+
+  const merged = [];
+  nonSystemPosition = 0;
+  for (const item of importedTimeline) {
+    merged.push(...(systemsByPosition.get(nonSystemPosition) || []), item);
+    systemsByPosition.delete(nonSystemPosition);
+    if (!(item?.type === 'message' && item.role === 'system')) nonSystemPosition += 1;
+  }
+  for (const messages of systemsByPosition.values()) merged.push(...messages);
+  return merged;
+}
+
 function mergeSessions(saved, imported) {
   const importedByThread = new Map(imported.filter(session => session.threadId).map(session => [session.threadId, session]));
   const mergedSaved = saved.map(session => {
     const importedSession = importedByThread.get(session.threadId);
     if (!importedSession) return session;
     const savedTimeline = Array.isArray(session.timeline) ? session.timeline : session.messages || [];
-    const importedTimeline = importedSession.timeline || importedSession.messages || [];
-    const newerTimeline = importedTimeline.length > savedTimeline.length;
-    if (!newerTimeline && !importedSession.tokenUsage) return session;
+    const hasImportedTimeline = Array.isArray(importedSession.timeline) || Array.isArray(importedSession.messages);
+    const importedTimeline = Array.isArray(importedSession.timeline) ? importedSession.timeline : importedSession.messages || [];
+    if (!hasImportedTimeline && !importedSession.tokenUsage) return session;
     return {
       ...session,
-      ...(newerTimeline ? { messages: importedSession.messages, timeline: importedSession.timeline } : {}),
+      ...(hasImportedTimeline ? {
+        messages: importedSession.messages,
+        timeline: mergeGuiSystemMessages(savedTimeline, importedTimeline),
+      } : {}),
       ...(importedSession.tokenUsage ? { tokenUsage: importedSession.tokenUsage } : {}),
       updated: Math.max(session.updated || 0, importedSession.updated || 0),
     };

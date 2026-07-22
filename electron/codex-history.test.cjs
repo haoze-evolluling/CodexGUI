@@ -38,6 +38,36 @@ test('enriches a saved session when the Codex transcript has activity entries', 
   assert.deepEqual(mergeSessions(saved, imported), [{ ...saved[0], messages: imported[0].messages, timeline: imported[0].timeline, updated: 3 }]);
 });
 
+test('uses a shorter diverged Codex timeline while preserving GUI system messages and metadata', () => {
+  const welcome = { id: 'welcome', type: 'message', role: 'system', text: '准备就绪' };
+  const saved = [{
+    id: 'gui-1', threadId: 'thread-1', title: '界面标题', cwd: 'C:\\project', model: 'custom-model', updated: 5,
+    messages: [{ role: 'user', text: '问题' }, { role: 'assistant', text: '旧回答' }],
+    timeline: [welcome, { id: 'old-user', type: 'message', role: 'user', text: '问题' }, { id: 'old-answer', type: 'message', role: 'assistant', text: '旧回答' }, { id: 'old-follow-up', type: 'message', role: 'user', text: '旧追问' }],
+  }];
+  const imported = [{
+    id: 'codex-thread-1', threadId: 'thread-1', title: '导入标题', cwd: 'C:\\project', updated: 4,
+    messages: [{ role: 'user', text: '问题' }, { role: 'assistant', text: '新回答' }],
+    timeline: [{ id: 'new-user', type: 'message', role: 'user', text: '问题' }, { id: 'new-answer', type: 'message', role: 'assistant', text: '新回答' }],
+  }];
+
+  assert.deepEqual(mergeSessions(saved, imported), [{
+    ...saved[0],
+    messages: imported[0].messages,
+    timeline: [welcome, ...imported[0].timeline],
+    updated: 5,
+  }]);
+});
+
+test('uses Codex content when diverged timelines have the same length', () => {
+  const saved = [{ id: 'gui-1', threadId: 'thread-1', timeline: [{ id: 'old', type: 'message', role: 'assistant', text: '旧分支' }], updated: 3 }];
+  const imported = [{ id: 'codex-thread-1', threadId: 'thread-1', messages: [{ role: 'assistant', text: '新分支' }], timeline: [{ id: 'new', type: 'message', role: 'assistant', text: '新分支' }], updated: 3 }];
+
+  assert.deepEqual(mergeSessions(saved, imported), [{
+    ...saved[0], messages: imported[0].messages, timeline: imported[0].timeline,
+  }]);
+});
+
 test('reads the latest token usage snapshot from a Codex transcript', () => {
   const filePath = path.join(os.tmpdir(), `codex-history-usage-${Date.now()}.jsonl`);
   const tokenCount = (totalTokens, lastTokens) => ({
@@ -70,7 +100,7 @@ test('enriches a saved GUI session with imported token usage', () => {
   };
   const saved = [{ id: 'gui-1', threadId: 'thread-1', timeline: [{ id: 'saved' }], updated: 3 }];
   const imported = [{ id: 'codex-thread-1', threadId: 'thread-1', timeline: [], tokenUsage, updated: 2 }];
-  assert.deepEqual(mergeSessions(saved, imported), [{ ...saved[0], tokenUsage }]);
+  assert.deepEqual(mergeSessions(saved, imported), [{ ...saved[0], messages: undefined, timeline: [], tokenUsage }]);
 });
 
 test('uses a Chinese title when a transcript has no user message', () => {

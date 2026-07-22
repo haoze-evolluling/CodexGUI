@@ -19,6 +19,7 @@ export type ComposerProps = {
   onRemoveAttachment(id: string): void;
   onSend(message?: string): void;
   onCompact(): void;
+  onRollback(): void;
   onNewConversation(): void;
   onClearContext(): void;
   onShowStatus(): void;
