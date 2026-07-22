@@ -18,6 +18,10 @@ function normalizeFontSize(value) {
   return value === 'medium' || value === 'large' ? value : 'small';
 }
 
+function normalizeTheme(value) {
+  return value === 'dark' || value === 'system' ? value : 'light';
+}
+
 function normalizeSettings(value) {
   const codexPath = typeof value?.codexPath === 'string' ? value.codexPath.trim() : '';
   const model = typeof value?.model === 'string' ? value.model.trim() : '';
@@ -25,6 +29,7 @@ function normalizeSettings(value) {
   return {
     permissionMode: value?.permissionMode === 'yolo' ? 'yolo' : 'default',
     fontSize: normalizeFontSize(value?.fontSize),
+    theme: normalizeTheme(value?.theme),
     ...(codexPath ? { codexPath } : {}),
     ...(model ? { model } : {}),
     ...(reasoningEffort ? { reasoningEffort } : {}),

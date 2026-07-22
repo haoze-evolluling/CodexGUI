@@ -5,14 +5,26 @@ import { Sidebar } from './components/Sidebar';
 import { SettingsPage } from './components/SettingsPage';
 import { Timeline } from './components/Timeline';
 import { TitleBar } from './components/TitleBar';
+import { useEffect, useState } from 'react';
 import { useSessionController } from './use-session-controller';
 
 export function App() {
   const controller = useSessionController();
   const fontSize = controller.settings.fontSize || 'small';
+  const theme = controller.settings.theme || 'light';
+  const [systemPrefersDark, setSystemPrefersDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-color-scheme: dark)');
+    const update = () => setSystemPrefersDark(query.matches);
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+
+  const effectiveTheme = theme === 'system' ? (systemPrefersDark ? 'dark' : 'light') : theme;
 
   return (
-    <div className={`app font-size-${fontSize}`}>
+    <div className={`app theme-${effectiveTheme} font-size-${fontSize}`}>
       <TitleBar />
       {controller.dialog && <AppDialog dialog={controller.dialog} onClose={controller.closeDialog} />}
       <div className="app-workspace">
@@ -37,10 +49,12 @@ export function App() {
           <SettingsPage
             codexPath={controller.settings.codexPath}
             fontSize={fontSize}
+            theme={theme}
             installation={controller.installation}
             savingDisabled={controller.runningSessions.size > 0}
             onClose={controller.closeSettings}
             onFontSizeChange={controller.setFontSize}
+            onThemeChange={controller.setTheme}
             onSave={controller.saveCodexPath}
           />
         ) : (

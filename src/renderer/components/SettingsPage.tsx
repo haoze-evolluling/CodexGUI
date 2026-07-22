@@ -1,6 +1,6 @@
-import { CheckCircle2, Clipboard, FolderOpen, RotateCcw, Settings, TriangleAlert, X } from 'lucide-react';
+import { CheckCircle2, Clipboard, FolderOpen, Monitor, Moon, RotateCcw, Settings, Sun, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { CodexInstallation, FontSize, SaveCodexPathResult } from '../types';
+import type { CodexInstallation, FontSize, SaveCodexPathResult, ThemeMode } from '../types';
 
 const installCommand = 'npm install -g @openai/codex';
 const sourceLabels = { custom: '自定义路径', official: '官方版本', npm: 'NPM 版本' } as const;
@@ -9,14 +9,21 @@ const fontSizeOptions: Array<{ value: FontSize; label: string; hint: string }> =
   { value: 'medium', label: '中', hint: '稍大，16px' },
   { value: 'large', label: '大', hint: '更易读，18px' },
 ];
+const themeOptions: Array<{ value: ThemeMode; label: string; hint: string; icon: typeof Sun }> = [
+  { value: 'light', label: '浅色模式', hint: '明亮、清晰的工作界面', icon: Sun },
+  { value: 'dark', label: '深色模式', hint: '低光环境下更舒适', icon: Moon },
+  { value: 'system', label: '跟随系统', hint: '随系统外观自动切换', icon: Monitor },
+];
 
 type SettingsPageProps = {
   codexPath?: string;
   fontSize: FontSize;
+  theme: ThemeMode;
   installation?: CodexInstallation;
   savingDisabled: boolean;
   onClose(): void;
   onFontSizeChange(size: FontSize): void;
+  onThemeChange(theme: ThemeMode): void;
   onSave(path: string): Promise<SaveCodexPathResult>;
 };
 
@@ -65,7 +72,7 @@ export function SettingsPage(props: SettingsPageProps) {
       <header className="settings-page-header">
         <div>
           <b>设置</b>
-          <span className="path">调整 Codex 路径与界面字体</span>
+          <span className="path">调整应用外观、字体与 Codex 路径</span>
         </div>
         <div className="header-actions">
           <button className="icon" onClick={props.onClose} title="返回对话" aria-label="返回对话">
@@ -75,6 +82,25 @@ export function SettingsPage(props: SettingsPageProps) {
       </header>
 
       <div className="settings-page-body">
+        <section className="settings-section">
+          <div className="settings-section-title">
+            <Sun size={18} />
+            <div>
+              <b>外观</b>
+              <p className="settings-hint">选择应用的显示主题。</p>
+            </div>
+          </div>
+          <div className="theme-options" role="radiogroup" aria-label="主题模式">
+            {themeOptions.map(option => {
+              const Icon = option.icon;
+              return <button key={option.value} type="button" className={`theme-option ${props.theme === option.value ? 'selected' : ''}`} onClick={() => props.onThemeChange(option.value)} role="radio" aria-checked={props.theme === option.value}>
+                <Icon size={18} />
+                <span><b>{option.label}</b><small>{option.hint}</small></span>
+              </button>;
+            })}
+          </div>
+        </section>
+
         <section className="settings-section">
           <div className="settings-section-title">
             <Settings size={18} />

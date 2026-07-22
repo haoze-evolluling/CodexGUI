@@ -2,3 +2,69 @@
 @import './styles/sidebar.css';
 @import './styles/conversation.css';
 @import './styles/activity.css';
+
+/* Light palette is scoped so the existing dark interface remains available unchanged. */
+.app.theme-dark, .theme-dark main, .theme-dark .settings-page { background: #11151c; }
+.app.theme-light { color: #1f2937; background: #f7f9fc; }
+.theme-light .title-bar, .theme-light main, .theme-light .settings-page { background: #f7f9fc; }
+.theme-light .title-bar, .theme-light header, .theme-light .settings-page-header, .theme-light aside, .theme-light .sidebar-footer { color: #263241; border-color: #dce3ec; }
+.theme-light .title-bar { background: #ffffff; }
+.theme-light aside { background: #f1f4f8; }
+.theme-light .path, .theme-light .group-path, .theme-light .group-toggle small, .theme-light .empty-sessions, .theme-light .message label, .theme-light .composer-meta, .theme-light .settings-hint, .theme-light .installation-status span { color: #69778a; }
+.theme-light button { color: #334155; background: #e8edf3; }
+.theme-light .icon, .theme-light .group-toggle, .theme-light .group-new, .theme-light .group-archive, .theme-light .group-sessions .session-select, .theme-light .sidebar-footer button, .theme-light .composer-icon, .theme-light .mode-toggle, .theme-light .permission-trigger { background: transparent; }
+.theme-light .window-controls button { color: #536174; }
+.theme-light .window-controls button:hover, .theme-light .icon:hover, .theme-light .sidebar-actions .icon:hover, .theme-light .group-toggle:hover, .theme-light .group-toggle:focus-visible, .theme-light .session-row.selected .session-select, .theme-light .session-row:hover .session-select, .theme-light .sidebar-footer button:hover, .theme-light .composer-icon:hover:not(:disabled), .theme-light .mode-toggle:hover:not(:disabled), .theme-light .permission-trigger:hover:not(:disabled) { color: #172033; background: #dfe7f1; }
+.theme-light .messages, .theme-light .settings-page-body { scrollbar-color: #b6c2d1 #f7f9fc; }
+.theme-light .messages::-webkit-scrollbar-track { background: #f7f9fc; }
+.theme-light .messages::-webkit-scrollbar-thumb { background: #b6c2d1; border-color: #f7f9fc; }
+.theme-light .markdown-body { color: #293548; }
+.theme-light .markdown-body h1, .theme-light .markdown-body h2, .theme-light .markdown-body h3, .theme-light .markdown-body h4, .theme-light .markdown-body h5, .theme-light .markdown-body h6, .theme-light .markdown-body strong { color: #172033; }
+.theme-light .markdown-body h1, .theme-light .markdown-body h2, .theme-light .markdown-body th, .theme-light .markdown-body td, .theme-light .markdown-body hr { border-color: #d9e1eb; }
+.theme-light .markdown-body code, .theme-light .markdown-body th, .theme-light .markdown-body tr:nth-child(even), .theme-light .custom-model-input, .theme-light .other-answer, .theme-light .path-field input { color: #27364a; background: #eef2f7; }
+.theme-light .markdown-body pre, .theme-light .activity-output { color: #26364a; background: #f0f3f7; border-color: #d9e1eb; }
+.theme-light .message.user .markdown-body, .theme-light .message.user .markdown-body p, .theme-light .message.user .markdown-body li, .theme-light .message.user .markdown-body strong { color: #1264bb; }
+.theme-light .composer-card, .theme-light .settings-section, .theme-light .app-dialog, .theme-light .clear-confirm-dialog { background: #ffffff; border-color: #d9e1eb; box-shadow: 0 8px 24px rgb(28 39 56 / 10%); }
+.theme-light .composer-card:focus-within { border-color: #80aee3; box-shadow: 0 10px 28px rgb(37 99 180 / 14%); }
+.theme-light .composer-input { color: #202c3d; }
+.theme-light .composer-input::placeholder, .theme-light .custom-model-input::placeholder, .theme-light .other-answer::placeholder { color: #8491a3; }
+.theme-light .attachment-token, .theme-light .selector-trigger, .theme-light .installation-status, .theme-light .install-command, .theme-light .font-size-option, .theme-light .theme-option, .theme-light .activity, .theme-light .user-input-activity, .theme-light .plan-decision { color: #344256; background: #f4f7fa; border-color: #d7e0ea; }
+.theme-light .attachment-tokens.editable .attachment-token:hover, .theme-light .selector-control:hover .selector-trigger:not(:disabled), .theme-light .selector-control.open .selector-trigger, .theme-light .font-size-option:hover, .theme-light .theme-option:hover, .theme-light .activity-heading:hover, .theme-light .choice:hover, .theme-light .choice:focus-within, .theme-light .plan-decision > button:hover { color: #172033; background: #e7eef7; border-color: #a9bdd6; }
+.theme-light .selector-menu, .theme-light .command-menu { background: #ffffff; border-color: #cbd6e3; box-shadow: 0 16px 36px rgb(28 39 56 / 18%); }
+.theme-light .selector-option, .theme-light .command-item { color: #364458; }
+.theme-light .selector-option:hover, .theme-light .selector-option.selected, .theme-light .command-item.selected:not(:disabled), .theme-light .command-item:hover:not(:disabled) { color: #18253a; background: #e8f0fa; }
+.theme-light .selector-option small, .theme-light .command-item small, .theme-light .command-menu-title, .theme-light .selector-menu-heading { color: #6c7a8d; }
+.theme-light .mode-toggle.selected, .theme-light .choice.selected { color: #135da9; background: #e1eefc; border-color: #91b9e7; }
+.theme-light .send-button { color: #ffffff; background: #1769d1; }
+.theme-light .send-button:hover:not(:disabled), .theme-light .settings-actions .primary:hover, .theme-light .custom-model-apply:hover:not(:disabled) { background: #0f5dbd; }
+.theme-light .settings-section-title > svg { color: #2474c7; }
+.theme-light .font-size-option.selected, .theme-light .theme-option.selected { color: #174f8d; background: #e8f2ff; border-color: #5d9fe5; box-shadow: 0 0 0 1px rgb(93 159 229 / 26%); }
+.theme-light .font-size-option small, .theme-light .theme-option small, .theme-light .install-command span { color: #69778a; }
+.theme-light .installation-status.ready { background: #edf8f1; border-color: #a5d7b8; }
+.theme-light .installation-status.missing { background: #fff7e9; border-color: #edca91; }
+.theme-light .reset-path { color: #4b5d73; border-color: #c9d5e2; }
+.theme-light .reset-path:hover:not(:disabled) { color: #1e2b3d; background: #e8eef5; }
+.theme-light .app-dialog-copy p, .theme-light .clear-confirm-copy p, .theme-light .app-dialog-details dt { color: #6b788a; }
+.theme-light .app-dialog-details dd { color: #27364a; }
+.theme-light .app-dialog-actions button, .theme-light .clear-confirm-actions button { color: #3b4b60; background: #e8edf3; }
+.theme-light .clear-confirm-backdrop, .theme-light .app-dialog-backdrop { background: rgb(32 43 59 / 30%); }
+.theme-light .activity { border-color: #d4dee9; background: #ffffff; }
+.theme-light .activity-heading small, .theme-light .activity-summary, .theme-light .file-change p { color: #65758a; }
+.theme-light .file-list, .theme-light .file-change { border-color: #e0e6ee; }
+.theme-light .file-diff .diff-addition { color: #176d3b; background: #e8f7ed; }
+.theme-light .file-diff .diff-deletion { color: #b42335; background: #ffebee; }
+.theme-light .user-input-activity p, .theme-light .plan-decision > b { color: #1f2c3f; }
+.theme-light .choice, .theme-light .plan-decision > button { color: #46566c; }
+.theme-light .choice small, .theme-light .plan-decision small { color: #718096; }
+.theme-light .user-input-activity > button, .theme-light .settings-actions .primary, .theme-light .custom-model-apply { color: #fff; background: #1769d1; }
+.theme-light .error pre { color: #c73747; }
+
+.theme-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.theme-option { min-height: 86px; display: flex; align-items: flex-start; gap: 9px; padding: 12px; color: #bdc8d7; background: #151b24; border: 1px solid #3a475a; border-radius: 8px; text-align: left; }
+.theme-option > svg { flex: 0 0 auto; margin-top: 1px; color: #8dbdff; }
+.theme-option span, .theme-option b, .theme-option small { display: block; }
+.theme-option b { font-size: 13px; }
+.theme-option small { margin-top: 4px; color: #91a0b3; font-size: 11px; line-height: 1.4; }
+.theme-option:hover { color: #f1f6fd; background: #1f2938; border-color: #567094; }
+.theme-option.selected { color: #eef5ff; background: #1a2c45; border-color: #4f8fe0; box-shadow: 0 0 0 1px rgb(79 143 224 / 35%); }
+@media (max-width: 900px) { .theme-options { grid-template-columns: 1fr; } }
