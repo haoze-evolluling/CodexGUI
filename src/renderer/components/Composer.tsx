@@ -3,27 +3,7 @@ import { ArrowUp, Bot, BrainCircuit, Check, ChevronDown, GitBranch, ListTodo, Mo
 import { AttachmentTokens } from './AttachmentTokens';
 import type { ComposerProps } from './composer-types';
 import { useComposerCommands } from './use-composer-commands';
-import type { CodexModel } from '../types';
-
-const defaultReasoningEfforts = [
-  { reasoningEffort: 'minimal', description: '快速响应，适合简单任务' },
-  { reasoningEffort: 'low', description: '轻量推理，适合日常问题' },
-  { reasoningEffort: 'medium', description: '平衡速度与推理深度' },
-  { reasoningEffort: 'high', description: '深入推理，适合复杂任务' },
-  { reasoningEffort: 'xhigh', description: '最大推理深度，耗时更长' },
-];
-
-function customModel(name: string): CodexModel {
-  return {
-    id: `custom:${name}`,
-    model: name,
-    displayName: name,
-    description: '自定义模型',
-    isDefault: false,
-    defaultReasoningEffort: 'medium',
-    supportedReasoningEfforts: defaultReasoningEfforts,
-  };
-}
+import { resolveModel, resolveReasoningEffort } from '../model-utils';
 
 export function Composer(props: ComposerProps) {
   const [openSelector, setOpenSelector] = useState<'model' | 'effort' | 'permission' | null>(null);
@@ -34,11 +14,7 @@ export function Composer(props: ComposerProps) {
   const selectedCommandRef = useRef<HTMLButtonElement>(null);
   const [customModelDraft, setCustomModelDraft] = useState('');
   const requestedModel = props.session?.model || props.preferredModel || '';
-  const selectedModel = props.models.find(model => model.model === props.session?.model)
-    || props.models.find(model => model.model === props.preferredModel)
-    || (requestedModel ? customModel(requestedModel) : undefined)
-    || props.models.find(model => model.isDefault)
-    || props.models[0];
+  const selectedModel = resolveModel(props.models, props.session?.model, props.preferredModel);
   const disabled = !props.activeSessionId || props.running || props.compacting;
   const effortLabels: Record<string, string> = {
     minimal: '最低', low: '低', medium: '中', high: '高', xhigh: '最高',
@@ -50,7 +26,7 @@ export function Composer(props: ComposerProps) {
     high: '深入推理，适合复杂任务',
     xhigh: '最大推理深度，耗时更长',
   };
-  const activeEffort = props.session?.reasoningEffort || selectedModel?.defaultReasoningEffort || '';
+  const activeEffort = resolveReasoningEffort(props.session?.reasoningEffort, selectedModel) || '';
   const status = props.compacting ? '正在压缩上下文...' : props.waiting ? '等待你的选择' : props.running ? '思考中...' : '准备就绪';
   const { commandIndex, commandMenuOpen, filteredCommands, runCommand: executeCommand, setCommandIndex, setSkillPaletteOpen, skillPaletteOpen } = useComposerCommands({
     ...props,

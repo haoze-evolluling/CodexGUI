@@ -21,11 +21,13 @@ function normalizeFontSize(value) {
 function normalizeSettings(value) {
   const codexPath = typeof value?.codexPath === 'string' ? value.codexPath.trim() : '';
   const model = typeof value?.model === 'string' ? value.model.trim() : '';
+  const reasoningEffort = typeof value?.reasoningEffort === 'string' ? value.reasoningEffort.trim() : '';
   return {
     permissionMode: value?.permissionMode === 'yolo' ? 'yolo' : 'default',
     fontSize: normalizeFontSize(value?.fontSize),
     ...(codexPath ? { codexPath } : {}),
     ...(model ? { model } : {}),
+    ...(reasoningEffort ? { reasoningEffort } : {}),
   };
 }
 

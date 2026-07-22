@@ -4,6 +4,7 @@ import type { AppSettings, CodexAttachment, CodexInstallation, CodexModel, Codex
 import type { AppDialogState } from './components/AppDialog';
 import { addUniqueAttachments } from './attachment-utils';
 import { without } from './session-set-utils';
+import { resolveModel, resolveReasoningEffort } from './model-utils';
 import { useSessionEvents } from './use-session-events';
 
 export function useSessionController() {
@@ -126,11 +127,9 @@ export function useSessionController() {
       title: active.title === '新建对话' ? (text || sentAttachments[0]?.name || '附件').slice(0, 32) : active.title,
     });
     setRunningSessions(current => new Set(current).add(active.id));
-    const selectedModel = models.find(model => model.model === settings.model)
-      || models.find(model => model.isDefault)
-      || models[0];
+    const selectedModel = resolveModel(models, active.model, settings.model);
     const effectiveModel = active.model || settings.model || selectedModel?.model;
-    const effectiveEffort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
+    const effectiveEffort = resolveReasoningEffort(active.reasoningEffort, selectedModel);
     const started = await window.codex.start({
       sessionId: active.id, cwd: active.cwd, prompt, attachments: sentAttachments, skill: sentSkill, threadId: active.threadId,
       model: effectiveModel, reasoningEffort: effectiveEffort,
@@ -199,11 +198,9 @@ export function useSessionController() {
     }
     setActive(nextSession);
     setRunningSessions(current => new Set(current).add(nextSession.id));
-    const selectedModel = models.find(model => model.model === settings.model)
-      || models.find(model => model.isDefault)
-      || models[0];
+    const selectedModel = resolveModel(models, active.model, settings.model);
     const model = active.model || settings.model || selectedModel?.model;
-    const reasoningEffort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
+    const reasoningEffort = resolveReasoningEffort(active.reasoningEffort, selectedModel);
     const started = await window.codex.start({
       sessionId: nextSession.id,
       cwd: active.cwd,
@@ -218,7 +215,11 @@ export function useSessionController() {
     if (!started) setRunningSessions(current => without(current, nextSession.id));
   };
 
-  const createInFolder = (cwd: string) => setActive({ ...freshSession(cwd), ...(settings.model ? { model: settings.model } : {}) });
+  const createInFolder = (cwd: string) => setActive({
+    ...freshSession(cwd),
+    ...(settings.model ? { model: settings.model } : {}),
+    ...(settings.reasoningEffort ? { reasoningEffort: settings.reasoningEffort } : {}),
+  });
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
   const addFiles = (filePaths: string[]) => {
     if (!filePaths.length) return;
@@ -293,9 +294,17 @@ export function useSessionController() {
     const next = new Set(current); if (next.has(cwd)) next.delete(cwd); else next.add(cwd); return next;
   });
   const setModel = (model: string) => {
-    const selected = models.find(item => item.model === model);
-    setActive(current => current ? { ...current, model, reasoningEffort: selected?.defaultReasoningEffort } : current);
-    window.codex.saveSettings({ model }).then(setSettings).catch(() => undefined);
+    const selected = resolveModel(models, model);
+    const reasoningEffort = selected?.defaultReasoningEffort;
+    setActive(current => current ? {
+      ...current,
+      model,
+      reasoningEffort: reasoningEffort || current.reasoningEffort,
+    } : current);
+    window.codex.saveSettings({
+      model,
+      ...(reasoningEffort ? { reasoningEffort } : {}),
+    }).then(setSettings).catch(() => undefined);
   };
   const setFontSize = (fontSize: FontSize) => {
     setSettings(current => ({ ...current, fontSize }));
@@ -344,11 +353,8 @@ export function useSessionController() {
       : flags.includes('waitingOnUserInput')
         ? '等待用户输入'
         : statusLabels[active.threadStatus?.type || ''] || (runningSessions.has(active.id) ? '运行中' : '空闲');
-    const selectedModel = models.find(model => model.model === active.model)
-      || models.find(model => model.model === settings.model)
-      || models.find(model => model.isDefault)
-      || models[0];
-    const effort = active.reasoningEffort || selectedModel?.defaultReasoningEffort;
+    const selectedModel = resolveModel(models, active.model, settings.model);
+    const effort = resolveReasoningEffort(active.reasoningEffort, selectedModel);
     const tokenUsage = active.tokenUsage;
     const number = (value: number) => new Intl.NumberFormat('zh-CN').format(value);
     const context = tokenUsage
@@ -381,7 +387,10 @@ export function useSessionController() {
     createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
-    setReasoningEffort: (effort: string) => setActive(current => current ? { ...current, reasoningEffort: effort } : current),
+    setReasoningEffort: (effort: string) => {
+      setActive(current => current ? { ...current, reasoningEffort: effort } : current);
+      window.codex.saveSettings({ reasoningEffort: effort }).then(setSettings).catch(() => undefined);
+    },
     toggleGroup, waiting,
   };
 }
