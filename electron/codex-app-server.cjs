@@ -156,7 +156,7 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
     child.on('error', failAll);
     child.on('close', code => failAll(new Error(`Codex app-server exited with code ${code}.`)));
     ready = request('initialize', {
-      clientInfo: { name: 'codex_gui', title: 'Codex GUI', version: '0.1.0' },
+      clientInfo: { name: 'codex_gui', title: 'Codex GUI', version: '0.1.10' },
       capabilities: { experimentalApi: true },
     }).then(result => {
       write({ method: 'initialized', params: {} });
