@@ -14,11 +14,16 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
 }
 
+function normalizeFontSize(value) {
+  return value === 'medium' || value === 'large' ? value : 'small';
+}
+
 function normalizeSettings(value) {
   const codexPath = typeof value?.codexPath === 'string' ? value.codexPath.trim() : '';
   const model = typeof value?.model === 'string' ? value.model.trim() : '';
   return {
     permissionMode: value?.permissionMode === 'yolo' ? 'yolo' : 'default',
+    fontSize: normalizeFontSize(value?.fontSize),
     ...(codexPath ? { codexPath } : {}),
     ...(model ? { model } : {}),
   };

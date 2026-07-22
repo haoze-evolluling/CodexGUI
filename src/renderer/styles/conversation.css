@@ -6,8 +6,8 @@
 .messages::-webkit-scrollbar-thumb:hover { background: #66778d; }
 .message { max-width: 900px; }
 .message label { font-size: 11px; text-transform: uppercase; color: #8490a0; }
-.message pre { font: inherit; font-size: 14px; line-height: 1.6; white-space: pre-wrap; margin: 5px 0; }
-.markdown-body { min-width: 0; margin-top: 5px; color: #e1e7ef; font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
+.message pre { font: inherit; font-size: var(--chat-font-size); line-height: 1.6; white-space: pre-wrap; margin: 5px 0; }
+.markdown-body { min-width: 0; margin-top: 5px; color: #e1e7ef; font-size: var(--chat-font-size); line-height: var(--chat-line-height); overflow-wrap: anywhere; }
 .markdown-body > :first-child { margin-top: 0; }
 .markdown-body > :last-child { margin-bottom: 0; }
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 { margin: 1.25em 0 .55em; color: #f2f6fb; line-height: 1.3; }
@@ -34,7 +34,17 @@
 .markdown-body hr { height: 1px; margin: 1.5em 0; border: 0; background: #394657; }
 .markdown-body img { max-width: 100%; height: auto; }
 .markdown-body input[type="checkbox"] { margin-right: .45em; }
-.user pre { color: #a9d5ff; }
+.user pre { color: #5ba8ff; }
+.message.user .markdown-body,
+.message.user .markdown-body p,
+.message.user .markdown-body li,
+.message.user .markdown-body strong { color: #5ba8ff; }
+.message.user .markdown-body h1,
+.message.user .markdown-body h2,
+.message.user .markdown-body h3,
+.message.user .markdown-body h4,
+.message.user .markdown-body h5,
+.message.user .markdown-body h6 { color: #7cbcff; }
 .error pre { color: #ff9b9b; }
 .empty-conversation { color: #8490a0; margin: auto; }
 .thinking-status { display: flex; align-items: center; gap: 5px; margin-top: 9px; color: #aab5c5; font-size: 14px; line-height: 1.6; }
@@ -47,7 +57,7 @@
 .composer-card { overflow: hidden; background: #1b222d; border: 1px solid #394554; border-radius: 18px; box-shadow: 0 8px 24px rgb(0 0 0 / 24%); transition: border-color 140ms ease, box-shadow 140ms ease; }
 .composer-card.selector-active { overflow: visible; }
 .composer-card:focus-within { border-color: #607087; box-shadow: 0 10px 28px rgb(0 0 0 / 30%); }
-.composer-input { display: block; width: 100%; min-height: 72px; max-height: 220px; resize: none; overflow-y: auto; background: transparent; color: #e8edf5; border: 0; padding: 17px 16px 8px; font-size: 14px; line-height: 1.55; outline: none; }
+.composer-input { display: block; width: 100%; min-height: 72px; max-height: 220px; resize: none; overflow-y: hidden; background: transparent; color: #e8edf5; border: 0; padding: 17px 16px 8px; font-size: var(--composer-font-size); line-height: 1.55; outline: none; }
 .composer-input::placeholder { color: #778497; }
 .attachment-tokens { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0; }
 .composer-card > .attachment-tokens { margin: 0; padding: 12px 14px 0; }
@@ -119,7 +129,7 @@
 .command-item b { font-size: 13px; font-weight: 600; }
 .command-item small { margin-top: 3px; overflow: hidden; color: #7f8b9d; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .command-item kbd { padding: 3px 6px; color: #8490a0; background: #11151c; border: 1px solid #394554; border-radius: 5px; font: 11px ui-monospace, monospace; }
-.clear-confirm-backdrop, .app-dialog-backdrop, .settings-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(6 9 14 / 68%); }
+.clear-confirm-backdrop, .app-dialog-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(6 9 14 / 68%); }
 .app-dialog { width: min(390px, 100%); display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; padding: 18px; color: #e8edf5; background: #1b222d; border: 1px solid #46546a; border-radius: 8px; box-shadow: 0 22px 60px rgb(0 0 0 / 52%); }
 .app-dialog-icon { width: 38px; height: 38px; display: grid; place-items: center; color: #8fc0ff; background: #25364b; border-radius: 7px; }
 .app-dialog-icon.danger { color: #ff9c9c; background: #3b252b; }
@@ -135,34 +145,6 @@
 .app-dialog-actions .primary { color: #fff; background: #1769d1; }
 .app-dialog-actions .danger { color: #fff; background: #a44753; }
 .app-dialog-actions .danger:hover { background: #bd5260; }
-.settings-dialog { width: min(520px, 100%); overflow: hidden; color: #e8edf5; background: #1b222d; border: 1px solid #46546a; border-radius: 8px; box-shadow: 0 22px 60px rgb(0 0 0 / 52%); }
-.settings-header { height: 54px; padding: 0 14px 0 18px; border-bottom: 1px solid #344052; }
-.settings-header, .settings-header > div { display: flex; align-items: center; justify-content: space-between; }
-.settings-header > div { gap: 9px; }
-.settings-content { display: grid; gap: 10px; padding: 18px; }
-.settings-content > label { font-size: 13px; font-weight: 700; }
-.settings-hint { margin: -4px 0 2px; color: #91a0b3; font-size: 12px; line-height: 1.5; }
-.path-field { display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 6px; }
-.path-field input { min-width: 0; height: 40px; padding: 0 11px; color: #e8edf5; background: #111820; border: 1px solid #46566b; border-radius: 6px; outline: none; font-size: 12px; }
-.path-field input:focus { border-color: #6597d2; box-shadow: 0 0 0 2px rgb(83 145 230 / 14%); }
-.path-field .icon { height: 40px; background: #273342; }
-.reset-path { width: fit-content; display: flex; align-items: center; gap: 6px; padding: 5px 7px; color: #9cabbc; background: transparent; font-size: 12px; }
-.installation-status { min-width: 0; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 9px; padding: 11px; border: 1px solid #3c4d61; border-radius: 7px; background: #18212c; }
-.installation-status.ready > svg { color: #75c99a; }
-.installation-status.missing > svg { color: #e5b56d; }
-.installation-status b, .installation-status span { display: block; }
-.installation-status b { font-size: 12px; }
-.installation-status span { margin-top: 3px; overflow: hidden; color: #91a0b3; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.install-command { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) 34px; align-items: center; gap: 9px; padding: 8px 9px; background: #111820; border: 1px solid #344052; border-radius: 6px; }
-.install-command > span { color: #91a0b3; font-size: 11px; }
-.install-command code { overflow: hidden; color: #d6e4f5; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.install-command .icon { padding: 7px; color: #9fc6f5; }
-.settings-warning, .settings-error { margin: 0; font-size: 12px; line-height: 1.45; }
-.settings-warning { color: #e5b56d; }
-.settings-error { color: #ff9c9c; }
-.settings-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid #344052; }
-.settings-actions button { padding: 7px 12px; color: #bfc9d7; font-size: 12px; }
-.settings-actions .primary { color: #fff; background: #1769d1; }
 .clear-confirm-dialog { width: min(390px, 100%); display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; padding: 18px; color: #e8edf5; background: #1b222d; border: 1px solid #46546a; border-radius: 8px; box-shadow: 0 22px 60px rgb(0 0 0 / 52%); }
 .clear-confirm-icon { width: 38px; height: 38px; display: grid; place-items: center; color: #ff9c9c; background: #3b252b; border-radius: 7px; }
 .clear-confirm-copy b { display: block; font-size: 14px; }
@@ -220,4 +202,51 @@
   .composer-meta { align-items: flex-start; }
   .composer-context, .composer-status { gap: 8px; }
   .branch-status { display: none !important; }
+}
+
+
+.path-field { display: grid; grid-template-columns: minmax(0, 1fr) 38px; gap: 8px; align-items: center; }
+.path-field input { min-width: 0; height: 38px; padding: 0 12px; color: #e8edf5; background: #111820; border: 1px solid #46566b; border-radius: 8px; outline: none; font: inherit; font-size: 13px; }
+.path-field input:focus { border-color: #6597d2; box-shadow: 0 0 0 2px rgb(83 145 230 / 14%); }
+.path-field .icon { height: 38px; width: 38px; display: grid; place-items: center; color: #aeb9c8; background: #273342; border-radius: 8px; }
+.path-field .icon:hover { color: #e8edf5; background: #314054; }
+.reset-path { width: fit-content; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; color: #a9b7c9; background: transparent; border: 1px solid #3a475a; border-radius: 7px; font-size: 12px; }
+.reset-path:hover:not(:disabled) { color: #e8edf5; background: #273342; }
+.installation-status { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; padding: 12px; border-radius: 10px; border: 1px solid #3a475a; background: #151b24; }
+.installation-status.ready { border-color: #2f5f48; background: #14231c; }
+.installation-status.missing { border-color: #6a4530; background: #241910; }
+.installation-status > svg { margin-top: 1px; }
+.installation-status.ready > svg { color: #7dcea0; }
+.installation-status.missing > svg { color: #e5b56d; }
+.installation-status b { display: block; font-size: 13px; }
+.installation-status span { margin-top: 3px; overflow: hidden; color: #91a0b3; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.install-command { display: grid; grid-template-columns: auto minmax(0, 1fr) 34px; gap: 8px; align-items: center; padding: 10px 12px; background: #151b24; border: 1px solid #3a475a; border-radius: 10px; }
+.install-command span { color: #91a0b3; font-size: 12px; }
+.install-command code { overflow: hidden; color: #d6e4f5; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+
+.settings-page { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: #11151c; }
+.settings-page-header { height: 64px; border-bottom: 1px solid #29313d; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; }
+.settings-page-header b { display: block; }
+.settings-page-body { flex: 1; min-height: 0; overflow: auto; padding: 24px 10%; display: grid; gap: 18px; justify-items: center; align-content: start; scrollbar-color: #4a586a #11151c; scrollbar-width: thin; }
+.settings-section { width: min(720px, 100%); display: grid; gap: 12px; max-width: 720px; padding: 18px; background: #1b222d; border: 1px solid #344052; border-radius: 12px; }
+.settings-section-title { display: flex; align-items: flex-start; gap: 10px; }
+.settings-section-title > svg { margin-top: 2px; color: #8dbdff; flex: 0 0 auto; }
+.settings-section-title b { display: block; font-size: 15px; }
+.settings-field-label { font-size: 13px; font-weight: 700; }
+.settings-hint { margin: 4px 0 0; color: #91a0b3; font-size: 12px; line-height: 1.5; }
+.font-size-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.font-size-option { display: grid; gap: 4px; min-height: 72px; padding: 12px; color: #bdc8d7; background: #151b24; border: 1px solid #3a475a; border-radius: 10px; text-align: left; }
+.font-size-option:hover { color: #f1f6fd; background: #1f2938; border-color: #567094; }
+.font-size-option.selected { color: #eef5ff; background: #1a2c45; border-color: #4f8fe0; box-shadow: 0 0 0 1px rgb(79 143 224 / 35%); }
+.font-size-option b { font-size: 16px; }
+.font-size-option small { color: #91a0b3; font-size: 12px; line-height: 1.4; }
+.settings-warning, .settings-error { margin: 0; font-size: 12px; line-height: 1.45; }
+.settings-warning { color: #e5b56d; }
+.settings-error { color: #ff9c9c; }
+.settings-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.settings-actions button { padding: 7px 12px; color: #bfc9d7; font-size: 12px; }
+.settings-actions .primary { color: #fff; background: #1769d1; }
+@media (max-width: 900px) {
+  .settings-page-body { padding-left: 5%; padding-right: 5%; }
+  .font-size-options { grid-template-columns: 1fr; }
 }

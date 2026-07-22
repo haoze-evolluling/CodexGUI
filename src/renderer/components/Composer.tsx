@@ -61,6 +61,35 @@ export function Composer(props: ComposerProps) {
   const runCommand = (index: number) => {
     if (executeCommand(index)) window.requestAnimationFrame(() => inputRef.current?.focus());
   };
+  const resizeComposerInput = (textarea?: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    const maxHeight = 220;
+    const minHeight = 72;
+    textarea.style.height = 'auto';
+    const contentHeight = textarea.scrollHeight;
+    const nextHeight = Math.min(Math.max(contentHeight, minHeight), maxHeight);
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden';
+  };
+
+  const keepCaretVisible = (textarea?: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    resizeComposerInput(textarea);
+    // Typing/newlines usually keep the caret at the end; ensure the viewport follows it.
+    if (textarea.selectionEnd >= textarea.value.length - 1) {
+      textarea.scrollTop = textarea.scrollHeight;
+      return;
+    }
+    try {
+      // Chromium supports scrollIntoView on the caret via selection.
+      textarea.focus({ preventScroll: true });
+      const length = textarea.selectionEnd;
+      textarea.setSelectionRange(length, length);
+    } catch {
+      // ignore selection failures
+    }
+  };
+
   useEffect(() => {
     const closeSelector = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -82,6 +111,9 @@ export function Composer(props: ComposerProps) {
       menu.scrollTop += commandBounds.bottom - menuBounds.bottom;
     }
   }, [commandIndex, commandMenuOpen]);
+  useEffect(() => {
+    keepCaretVisible(inputRef.current);
+  }, [props.input]);
   return (
     <footer className="composer-shell">
       <div className="composer-frame">
@@ -136,6 +168,7 @@ export function Composer(props: ComposerProps) {
             setSkillPaletteOpen(false);
             props.onInputChange(event.target.value);
             setCommandIndex(0);
+            window.requestAnimationFrame(() => keepCaretVisible(event.target));
           }}
           onKeyDown={event => {
             if (event.key === 'Backspace' && !props.input && event.currentTarget.selectionStart === 0 && props.attachments.length) {
@@ -150,7 +183,10 @@ export function Composer(props: ComposerProps) {
               const end = textarea.selectionEnd;
               const nextValue = `${props.input.slice(0, start)}\n${props.input.slice(end)}`;
               props.onInputChange(nextValue);
-              window.requestAnimationFrame(() => textarea.setSelectionRange(start + 1, start + 1));
+              window.requestAnimationFrame(() => {
+                textarea.setSelectionRange(start + 1, start + 1);
+                keepCaretVisible(textarea);
+              });
               return;
             }
             if (commandMenuOpen) {

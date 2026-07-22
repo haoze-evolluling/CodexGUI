@@ -1,19 +1,26 @@
 import { CheckCircle2, Clipboard, FolderOpen, RotateCcw, Settings, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { CodexInstallation, SaveCodexPathResult } from '../types';
+import type { CodexInstallation, FontSize, SaveCodexPathResult } from '../types';
 
 const installCommand = 'npm install -g @openai/codex';
 const sourceLabels = { custom: '自定义路径', official: '官方版本', npm: 'NPM 版本' } as const;
+const fontSizeOptions: Array<{ value: FontSize; label: string; hint: string }> = [
+  { value: 'small', label: '小', hint: '当前默认，14px' },
+  { value: 'medium', label: '中', hint: '稍大，16px' },
+  { value: 'large', label: '大', hint: '更易读，18px' },
+];
 
-type SettingsDialogProps = {
+type SettingsPageProps = {
   codexPath?: string;
+  fontSize: FontSize;
   installation?: CodexInstallation;
   savingDisabled: boolean;
   onClose(): void;
+  onFontSizeChange(size: FontSize): void;
   onSave(path: string): Promise<SaveCodexPathResult>;
 };
 
-export function SettingsDialog(props: SettingsDialogProps) {
+export function SettingsPage(props: SettingsPageProps) {
   const [path, setPath] = useState(props.codexPath || '');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -34,8 +41,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
     setError('');
     try {
       const result = await props.onSave(path);
-      if (result.ok) props.onClose();
-      else setError(result.error);
+      if (!result.ok) setError(result.error);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -53,17 +59,56 @@ export function SettingsDialog(props: SettingsDialogProps) {
   const installationError = props.installation && props.installation.status !== 'ready'
     ? props.installation.error
     : undefined;
-  return (
-    <div className="settings-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) props.onClose(); }}>
-      <section className="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title" onKeyDown={event => { if (event.key === 'Escape') props.onClose(); }}>
-        <header className="settings-header">
-          <div><Settings size={18} /><b id="settings-title">设置</b></div>
-          <button className="icon" onClick={props.onClose} title="关闭设置" aria-label="关闭设置"><X size={18} /></button>
-        </header>
 
-        <div className="settings-content">
-          <label htmlFor="codex-path">Codex 安装路径</label>
-          <p className="settings-hint">选择 Codex 的可执行入口。留空时将自动搜索官方版本和 NPM 版本。</p>
+  return (
+    <main className="settings-page">
+      <header className="settings-page-header">
+        <div>
+          <b>设置</b>
+          <span className="path">调整 Codex 路径与界面字体</span>
+        </div>
+        <div className="header-actions">
+          <button className="icon" onClick={props.onClose} title="返回对话" aria-label="返回对话">
+            <X size={18} />
+          </button>
+        </div>
+      </header>
+
+      <div className="settings-page-body">
+        <section className="settings-section">
+          <div className="settings-section-title">
+            <Settings size={18} />
+            <div>
+              <b>界面字体</b>
+              <p className="settings-hint">调整对话内容与输入框的字号，当前默认档位为“小”。</p>
+            </div>
+          </div>
+          <div className="font-size-options" role="radiogroup" aria-label="字体大小">
+            {fontSizeOptions.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                className={`font-size-option ${props.fontSize === option.value ? 'selected' : ''}`}
+                onClick={() => props.onFontSizeChange(option.value)}
+                role="radio"
+                aria-checked={props.fontSize === option.value}
+              >
+                <b>{option.label}</b>
+                <small>{option.hint}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section-title">
+            <Settings size={18} />
+            <div>
+              <b>Codex 安装路径</b>
+              <p className="settings-hint">选择 Codex 的可执行入口。留空时将自动搜索官方版本和 NPM 版本。</p>
+            </div>
+          </div>
+          <label className="settings-field-label" htmlFor="codex-path">可执行文件路径</label>
           <div className="path-field">
             <input
               id="codex-path"
@@ -72,7 +117,9 @@ export function SettingsDialog(props: SettingsDialogProps) {
               placeholder={readyInstallation?.path || '自动检测'}
               spellCheck={false}
             />
-            <button className="icon" onClick={chooseExecutable} title="浏览 Codex 可执行文件" aria-label="浏览 Codex 可执行文件"><FolderOpen size={18} /></button>
+            <button className="icon" onClick={chooseExecutable} title="浏览 Codex 可执行文件" aria-label="浏览 Codex 可执行文件">
+              <FolderOpen size={18} />
+            </button>
           </div>
           <button className="reset-path" onClick={() => { setPath(''); setError(''); }} disabled={!path}>
             <RotateCcw size={15} /> 恢复自动检测
@@ -95,15 +142,17 @@ export function SettingsDialog(props: SettingsDialogProps) {
               </button>
             </div>
           )}
+
           {props.savingDisabled && <p className="settings-warning">Codex 正在执行任务，请在任务结束后更改路径。</p>}
           {error && <p className="settings-error">{error}</p>}
-        </div>
 
-        <footer className="settings-actions">
-          <button onClick={props.onClose}>取消</button>
-          <button className="primary" onClick={save} disabled={saving || props.savingDisabled}>{saving ? '保存中…' : '保存'}</button>
-        </footer>
-      </section>
-    </div>
+          <div className="settings-actions">
+            <button className="primary" onClick={save} disabled={saving || props.savingDisabled}>
+              {saving ? '保存中…' : '保存路径'}
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

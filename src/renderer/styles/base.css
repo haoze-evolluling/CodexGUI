@@ -6,7 +6,10 @@
   font-display: swap;
 }
 
-:root { font-family: 'MiSans', system-ui, sans-serif; font-weight: 600; color: #e8edf5; background: #11151c; }
+:root { font-family: 'MiSans', system-ui, sans-serif; font-weight: 600; color: #e8edf5; background: #11151c; --chat-font-size: 14px; --chat-line-height: 1.65; --composer-font-size: 14px; }
+.app.font-size-small { --chat-font-size: 14px; --chat-line-height: 1.65; --composer-font-size: 14px; }
+.app.font-size-medium { --chat-font-size: 16px; --chat-line-height: 1.65; --composer-font-size: 16px; }
+.app.font-size-large { --chat-font-size: 18px; --chat-line-height: 1.7; --composer-font-size: 18px; }
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; overflow: hidden; }
 body { margin: 0; }

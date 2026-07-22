@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { freshSession, groupSessions, normalizeSession, timelineOf } from './session-model';
-import type { AppSettings, CodexAttachment, CodexInstallation, CodexModel, CodexSkill, CollaborationMode, PermissionMode, PlanDecisionActivity, SaveCodexPathResult, Session, UserInputActivity } from './types';
+import type { AppSettings, CodexAttachment, CodexInstallation, CodexModel, CodexSkill, CollaborationMode, FontSize, PermissionMode, PlanDecisionActivity, SaveCodexPathResult, Session, UserInputActivity } from './types';
 import type { AppDialogState } from './components/AppDialog';
 import { addUniqueAttachments } from './attachment-utils';
 import { without } from './session-set-utils';
@@ -21,7 +21,7 @@ export function useSessionController() {
   const [selectedSkill, setSelectedSkill] = useState<CodexSkill>();
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>('default');
   const [dialog, setDialog] = useState<AppDialogState>();
-  const [settings, setSettings] = useState<AppSettings>({ permissionMode: 'default' });
+  const [settings, setSettings] = useState<AppSettings>({ permissionMode: 'default', fontSize: 'small' });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [installation, setInstallation] = useState<CodexInstallation>();
 
@@ -297,6 +297,11 @@ export function useSessionController() {
     setActive(current => current ? { ...current, model, reasoningEffort: selected?.defaultReasoningEffort } : current);
     window.codex.saveSettings({ model }).then(setSettings).catch(() => undefined);
   };
+  const setFontSize = (fontSize: FontSize) => {
+    setSettings(current => ({ ...current, fontSize }));
+    window.codex.saveSettings({ fontSize }).then(setSettings).catch(() => undefined);
+  };
+
   const setPermissionMode = (mode: PermissionMode) => {
     const previous = permissionMode;
     setPermissionModeState(mode);
@@ -372,7 +377,7 @@ export function useSessionController() {
   const compacting = !!active && compactingSessions.has(active.id);
   return {
     active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode, dialog, closeDialog: () => setDialog(undefined),
-    closeSettings: () => setSettingsOpen(false), installation, openSettings, saveCodexPath, settings, settingsOpen,
+    closeSettings: () => setSettingsOpen(false), installation, openSettings, saveCodexPath, setFontSize, settings, settingsOpen,
     createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
