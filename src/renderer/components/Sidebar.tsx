@@ -50,7 +50,7 @@ export function Sidebar(props: SidebarProps) {
                     <Plus size={16} />
                   </button>
                 )}
-                {group.cwd && (
+                {group.cwd && group.items.length > 0 && (
                   <button
                     className="icon group-archive"
                     onClick={() => props.onArchiveProject(group.cwd, group.items)}

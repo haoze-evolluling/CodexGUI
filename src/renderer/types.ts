@@ -20,7 +20,7 @@ export type CodexSkill = {
 export type PermissionMode = 'default' | 'yolo';
 export type FontSize = 'small' | 'medium' | 'large';
 export type ThemeMode = 'light' | 'dark' | 'system';
-export type AppSettings = { permissionMode: PermissionMode; fontSize: FontSize; theme: ThemeMode; codexPath?: string; model?: string; reasoningEffort?: string };
+export type AppSettings = { permissionMode: PermissionMode; fontSize: FontSize; theme: ThemeMode; codexPath?: string; model?: string; reasoningEffort?: string; projectPaths?: string[] };
 export type CodexInstallation =
   | { status: 'ready'; path: string; source: 'custom' | 'official' | 'npm' }
   | { status: 'missing' | 'invalid'; path?: string; error: string };

@@ -26,6 +26,9 @@ function normalizeSettings(value) {
   const codexPath = typeof value?.codexPath === 'string' ? value.codexPath.trim() : '';
   const model = typeof value?.model === 'string' ? value.model.trim() : '';
   const reasoningEffort = typeof value?.reasoningEffort === 'string' ? value.reasoningEffort.trim() : '';
+  const projectPaths = Array.isArray(value?.projectPaths)
+    ? [...new Set(value.projectPaths.filter(projectPath => typeof projectPath === 'string').map(projectPath => projectPath.trim()).filter(Boolean))]
+    : [];
   return {
     permissionMode: value?.permissionMode === 'yolo' ? 'yolo' : 'default',
     fontSize: normalizeFontSize(value?.fontSize),
@@ -33,6 +36,7 @@ function normalizeSettings(value) {
     ...(codexPath ? { codexPath } : {}),
     ...(model ? { model } : {}),
     ...(reasoningEffort ? { reasoningEffort } : {}),
+    ...(projectPaths.length ? { projectPaths } : {}),
   };
 }
 

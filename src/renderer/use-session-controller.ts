@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { freshSession, groupSessions, normalizeSession, timelineOf } from './session-model';
 import type { AppSettings, CodexAttachment, CodexInstallation, CodexModel, CodexSkill, CollaborationMode, FontSize, PermissionMode, PlanDecisionActivity, SaveCodexPathResult, Session, ThemeMode, UserInputActivity } from './types';
 import type { AppDialogState } from './components/AppDialog';
@@ -26,6 +26,27 @@ export function useSessionController() {
   const [settings, setSettings] = useState<AppSettings>({ permissionMode: 'default', fontSize: 'small', theme: initialTheme });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [installation, setInstallation] = useState<CodexInstallation>();
+  const settingsRef = useRef(settings);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  const rememberProjects = (projectPaths: string[]) => {
+    const current = settingsRef.current;
+    const nextProjectPaths = [...new Set([
+      ...(current.projectPaths || []),
+      ...projectPaths.filter(Boolean),
+    ])];
+    if (nextProjectPaths.length === (current.projectPaths || []).length) return;
+    const next = { ...current, projectPaths: nextProjectPaths };
+    settingsRef.current = next;
+    setSettings(next);
+    window.codex.saveSettings({ projectPaths: nextProjectPaths }).then(saved => {
+      settingsRef.current = saved;
+      setSettings(saved);
+    }).catch(() => undefined);
+  };
 
   const openSettings = () => {
     setDialog(undefined);
@@ -50,6 +71,7 @@ export function useSessionController() {
     const items = await window.codex.loadHistory();
     if (!items) return;
     const normalized = items.map(normalizeSession);
+    rememberProjects(normalized.map(item => item.cwd));
     setSessions(normalized);
     setActive(current => normalized.find(item => item.id === current?.id) || normalized[0]);
   };
@@ -252,11 +274,14 @@ export function useSessionController() {
     if (!started) setRunningSessions(current => without(current, nextSession.id));
   };
 
-  const createInFolder = (cwd: string) => setActive({
-    ...freshSession(cwd),
-    ...(settings.model ? { model: settings.model } : {}),
-    ...(settings.reasoningEffort ? { reasoningEffort: settings.reasoningEffort } : {}),
-  });
+  const createInFolder = (cwd: string) => {
+    rememberProjects([cwd]);
+    setActive({
+      ...freshSession(cwd),
+      ...(settings.model ? { model: settings.model } : {}),
+      ...(settings.reasoningEffort ? { reasoningEffort: settings.reasoningEffort } : {}),
+    });
+  };
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
   const addFiles = (filePaths: string[]) => {
     if (!filePaths.length) return;
@@ -419,7 +444,7 @@ export function useSessionController() {
     });
   };
 
-  const groups = useMemo(() => groupSessions(sessions), [sessions]);
+  const groups = useMemo(() => groupSessions(sessions, settings.projectPaths), [sessions, settings.projectPaths]);
   const running = !!active && runningSessions.has(active.id);
   const waiting = !!active && waitingSessions.has(active.id);
   const compacting = !!active && compactingSessions.has(active.id);

@@ -32,8 +32,9 @@ export const freshSession = (cwd = ''): Session => ({
   collaborationMode: 'default',
 });
 
-export const groupSessions = (sessions: Session[]): SessionGroup[] => {
+export const groupSessions = (sessions: Session[], projectPaths: string[] = []): SessionGroup[] => {
   const byPath = new Map<string, Session[]>();
+  for (const projectPath of projectPaths) byPath.set(projectPath, []);
   for (const session of sessions) {
     const group = byPath.get(session.cwd) || [];
     group.push(session);
@@ -43,7 +44,7 @@ export const groupSessions = (sessions: Session[]): SessionGroup[] => {
     .map(([cwd, items]) => ({
       cwd,
       items: items.sort((left, right) => right.updated - left.updated),
-      updated: Math.max(...items.map(item => item.updated)),
+      updated: Math.max(0, ...items.map(item => item.updated)),
     }))
     .sort((left, right) => right.updated - left.updated);
 };
