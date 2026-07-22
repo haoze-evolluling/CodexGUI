@@ -3,6 +3,27 @@ import { ArrowUp, Bot, BrainCircuit, Check, ChevronDown, GitBranch, ListTodo, Mo
 import { AttachmentTokens } from './AttachmentTokens';
 import type { ComposerProps } from './composer-types';
 import { useComposerCommands } from './use-composer-commands';
+import type { CodexModel } from '../types';
+
+const defaultReasoningEfforts = [
+  { reasoningEffort: 'minimal', description: '快速响应，适合简单任务' },
+  { reasoningEffort: 'low', description: '轻量推理，适合日常问题' },
+  { reasoningEffort: 'medium', description: '平衡速度与推理深度' },
+  { reasoningEffort: 'high', description: '深入推理，适合复杂任务' },
+  { reasoningEffort: 'xhigh', description: '最大推理深度，耗时更长' },
+];
+
+function customModel(name: string): CodexModel {
+  return {
+    id: `custom:${name}`,
+    model: name,
+    displayName: name,
+    description: '自定义模型',
+    isDefault: false,
+    defaultReasoningEffort: 'medium',
+    supportedReasoningEfforts: defaultReasoningEfforts,
+  };
+}
 
 export function Composer(props: ComposerProps) {
   const [openSelector, setOpenSelector] = useState<'model' | 'effort' | 'permission' | null>(null);
@@ -11,8 +32,11 @@ export function Composer(props: ComposerProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const commandMenuRef = useRef<HTMLDivElement>(null);
   const selectedCommandRef = useRef<HTMLButtonElement>(null);
+  const [customModelDraft, setCustomModelDraft] = useState('');
+  const requestedModel = props.session?.model || props.preferredModel || '';
   const selectedModel = props.models.find(model => model.model === props.session?.model)
     || props.models.find(model => model.model === props.preferredModel)
+    || (requestedModel ? customModel(requestedModel) : undefined)
     || props.models.find(model => model.isDefault)
     || props.models[0];
   const disabled = !props.activeSessionId || props.running || props.compacting;
@@ -167,8 +191,12 @@ export function Composer(props: ComposerProps) {
             <div className={`selector-control model-control ${openSelector === 'model' ? 'open' : ''}`}>
               <button
                 className="selector-trigger"
-                onClick={() => setOpenSelector(current => current === 'model' ? null : 'model')}
-                disabled={disabled || !props.models.length}
+                onClick={() => setOpenSelector(current => {
+                  if (current === 'model') return null;
+                  setCustomModelDraft(selectedModel?.model || requestedModel || '');
+                  return 'model';
+                })}
+                disabled={disabled}
                 aria-label="选择模型"
                 aria-expanded={openSelector === 'model'}
               >
@@ -179,6 +207,28 @@ export function Composer(props: ComposerProps) {
               {openSelector === 'model' && (
                 <div className="selector-menu model-menu" role="listbox" aria-label="模型列表">
                   <div className="selector-menu-heading">选择模型</div>
+                  <form
+                    className="custom-model-form"
+                    onSubmit={event => {
+                      event.preventDefault();
+                      const name = customModelDraft.trim();
+                      if (!name) return;
+                      props.onModelChange(name);
+                      setOpenSelector(null);
+                    }}
+                  >
+                    <input
+                      className="custom-model-input"
+                      value={customModelDraft}
+                      onChange={event => setCustomModelDraft(event.target.value)}
+                      placeholder="输入自定义模型名称"
+                      spellCheck={false}
+                      aria-label="自定义模型名称"
+                    />
+                    <button type="submit" className="custom-model-apply" disabled={!customModelDraft.trim()}>
+                      使用
+                    </button>
+                  </form>
                   {props.models.map(model => {
                     const active = model.model === selectedModel?.model;
                     return (
@@ -195,6 +245,18 @@ export function Composer(props: ComposerProps) {
                       </button>
                     );
                   })}
+                  {requestedModel && !props.models.some(model => model.model === requestedModel) && (
+                    <button
+                      className={`selector-option model-option ${selectedModel?.model === requestedModel ? 'selected' : ''}`}
+                      onClick={() => { props.onModelChange(requestedModel); setOpenSelector(null); }}
+                      role="option"
+                      aria-selected={selectedModel?.model === requestedModel}
+                    >
+                      <Bot size={16} />
+                      <span><b>{requestedModel}</b><small>自定义模型</small></span>
+                      {selectedModel?.model === requestedModel && <Check size={16} />}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

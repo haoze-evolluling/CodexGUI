@@ -28,7 +28,7 @@ export function Timeline({ active, running, onAnswer, onPlanChoice }: { active?:
         <div className={`message ${item.role}`} key={item.id}>
           <label>{roleLabel[item.role]}</label>
           {!!item.attachments?.length && <AttachmentTokens attachments={item.attachments} />}
-          {item.role === 'assistant' ? (
+          {item.role === 'assistant' || item.role === 'user' ? (
             <div className="markdown-body">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>
             </div>
