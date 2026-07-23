@@ -73,8 +73,8 @@ function sessionFiles(root) {
   return files;
 }
 
-function loadCodexHistory(codexHome) {
-  const sessionsRoot = path.join(codexHome, 'sessions');
+function loadCodexHistory(codexHome, directory = 'sessions') {
+  const sessionsRoot = path.join(codexHome, directory);
   return sessionFiles(sessionsRoot)
     .map(parseSessionFile)
     .filter(Boolean)

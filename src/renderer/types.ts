@@ -137,7 +137,6 @@ export type CodexApi = {
   saveSettings(settings: Partial<AppSettings>): Promise<AppSettings>;
   getCodexInstallation(): Promise<CodexInstallation>;
   saveCodexPath(codexPath: string): Promise<SaveCodexPathResult>;
-  saveSession(session: Session): Promise<Session[]>;
   archiveSession(session: Session): Promise<ArchiveResult>;
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
   listArchivedSessions(): Promise<Session[]>;

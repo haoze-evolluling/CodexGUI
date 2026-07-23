@@ -47,7 +47,6 @@ export function useSessionEvents(options: Options) {
           changed = true;
           return next;
         });
-        if (nextSession) window.codex.saveSession(nextSession);
         return changed ? nextItems : items;
       });
     };

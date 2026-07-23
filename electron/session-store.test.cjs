@@ -5,30 +5,28 @@ const path = require('path');
 const test = require('node:test');
 const { createSessionStore } = require('./session-store.cjs');
 
-test('persists sessions and archived thread ids independently', () => {
+test('does not expose GUI session or archive persistence', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-gui-store-'));
   const store = createSessionStore(
     path.join(directory, 'sessions.json'),
     path.join(directory, 'archived-threads.json'),
   );
   try {
-    store.saveSessions([{ id: 'session-1' }]);
-    store.saveArchivedThreads(new Set(['thread-1']));
-    assert.deepEqual(store.loadSessions(), [{ id: 'session-1' }]);
-    assert.deepEqual([...store.loadArchivedThreads()], ['thread-1']);
+    assert.equal('loadSessions' in store, false);
+    assert.equal('loadArchivedSessions' in store, false);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });
 
-test('uses empty collections when persisted files cannot be read', () => {
+test('does not create GUI session files', () => {
   const directory = path.join(os.tmpdir(), `missing-codex-gui-store-${Date.now()}`);
   const store = createSessionStore(
     path.join(directory, 'sessions.json'),
     path.join(directory, 'archived-threads.json'),
   );
-  assert.deepEqual(store.loadSessions(), []);
-  assert.deepEqual([...store.loadArchivedThreads()], []);
+  assert.equal(fs.existsSync(path.join(directory, 'sessions.json')), false);
+  assert.equal(fs.existsSync(path.join(directory, 'archived-threads.json')), false);
 });
 
 test('persists Codex path and merges partial setting updates', () => {

@@ -188,7 +188,6 @@ export function useSessionController() {
   useEffect(() => {
     if (!active) return;
     setSessions(items => [active, ...items.filter(item => item.id !== active.id)]);
-    window.codex.saveSession(active);
     window.codex.rememberSessionTitle(active.id, active.title).catch(() => undefined);
   }, [active]);
 
@@ -285,31 +284,10 @@ export function useSessionController() {
   const rollback = async () => {
     if (!active?.threadId || runningSessions.has(active.id) || compactingSessions.has(active.id)) return;
     const threadId = active.threadId;
-    const timeline = timelineOf(active);
-    let lastUserIndex = -1;
-    for (let index = timeline.length - 1; index >= 0; index -= 1) {
-      const item = timeline[index];
-      if (item.type === 'message' && item.role === 'user') {
-        lastUserIndex = index;
-        break;
-      }
-    }
-    if (lastUserIndex < 0) return;
     const target = active;
     try {
       if (!await window.codex.rollback(target.id, threadId)) throw new Error('无法撤销最近一轮对话。');
-      const nextTimeline = timeline.slice(0, lastUserIndex);
-      const firstUserMessage = nextTimeline.find(item => item.type === 'message' && item.role === 'user');
-      setActive(current => current?.id === target.id ? {
-        ...current,
-        title: firstUserMessage?.type === 'message'
-          ? (firstUserMessage.text || firstUserMessage.attachments?.[0]?.name || '附件').slice(0, 32)
-          : '新建对话',
-        messages: undefined,
-        timeline: nextTimeline,
-        tokenUsage: undefined,
-        updated: Date.now(),
-      } : current);
+      await refreshHistory();
     } catch (error) {
       setDialog({
         title: '撤销失败',
@@ -363,7 +341,6 @@ export function useSessionController() {
         };
     if (fresh) {
       setSessions(current => current.map(session => session.id === active.id ? answeredSession : session));
-      await window.codex.saveSession(answeredSession);
     }
     setActive(nextSession);
     setRunningSessions(current => new Set(current).add(nextSession.id));
@@ -475,7 +452,6 @@ export function useSessionController() {
       setActive(next);
       return;
     }
-    window.codex.saveSession(next);
   };
   const deleteProject = async (cwd: string, projectSessions: Session[]) => {
     if (projectSessions.some(session => runningSessions.has(session.id))) return;

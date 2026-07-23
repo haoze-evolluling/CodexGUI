@@ -262,6 +262,24 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
       await request('thread/rollback', { threadId: known, numTurns: 1 });
       return true;
     },
+    async archive(threadId) {
+      await ensureReady();
+      if (!threadId) return false;
+      await request('thread/archive', { threadId });
+      return true;
+    },
+    async restore(threadId) {
+      await ensureReady();
+      if (!threadId) return false;
+      await request('thread/unarchive', { threadId });
+      return true;
+    },
+    async remove(threadId) {
+      await ensureReady();
+      if (!threadId) return false;
+      await request('thread/delete', { threadId });
+      return true;
+    },
     resetSession(sessionId) {
       if (!sessionId) return false;
       const thread = threadsBySession.get(sessionId);

@@ -16,7 +16,6 @@ contextBridge.exposeInMainWorld('codex', {
   saveSettings: settings => ipcRenderer.invoke('settings:save', settings),
   getCodexInstallation: () => ipcRenderer.invoke('codex:installation'),
   saveCodexPath: codexPath => ipcRenderer.invoke('codex:path-save', codexPath),
-  saveSession: session => ipcRenderer.invoke('sessions:save', session),
   archiveSession: session => ipcRenderer.invoke('sessions:archive', session),
   listArchivedSessions: () => ipcRenderer.invoke('sessions:archived-list'),
   restoreArchivedSession: session => ipcRenderer.invoke('sessions:restore', session),

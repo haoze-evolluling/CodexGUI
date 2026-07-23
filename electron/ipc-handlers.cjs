@@ -1,14 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { shell } = require('electron');
-const {
-  findArchivedSession,
-  normalizeArchivedSessions,
-  removeArchivedSessionEntry,
-  removeArchivedSessions,
-  upsertArchivedSession,
-} = require('./codex-archive.cjs');
-const { loadCodexHistory, mergeSessions } = require('./codex-history.cjs');
+const { loadCodexHistory } = require('./codex-history.cjs');
 const { openPathInVsCode, openPathWithDefaultApp, resolveSessionFilePath } = require('./open-path.cjs');
 const { filterProjectFiles, listProjectFiles } = require('./project-files.cjs');
 
@@ -23,10 +16,9 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
   });
   ipcMain.handle('window:close', () => getWindow()?.close());
   const history = () => {
-    const archivedThreads = store.loadArchivedThreads();
-    return mergeSessions(store.loadSessions(), loadCodexHistory(codexHome))
-      .filter(session => !session.threadId || !archivedThreads.has(session.threadId));
+    return loadCodexHistory(codexHome);
   };
+  const archivedHistory = () => loadCodexHistory(codexHome, 'archived_sessions');
 
   ipcMain.handle('sessions:list', history);
   ipcMain.handle('sessions:history', history);
@@ -47,74 +39,50 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
     }
     return { ok: true, settings: next, installation };
   });
-  ipcMain.handle('sessions:save', (_, session) => {
-    const all = store.loadSessions().filter(item => item.id !== session.id);
-    all.unshift(session);
-    store.saveSessions(all);
-    return all;
-  });
-  ipcMain.handle('sessions:archive', (_, session) => {
-    if (!session?.id) return { ok: false, error: '无效的会话。' };
-    store.saveSessions(removeArchivedSessions(store.loadSessions(), session));
-    store.saveArchivedSessions(upsertArchivedSession(store.loadArchivedSessions(), session));
-    return { ok: true };
-  });
-  ipcMain.handle('sessions:archived-list', () => store.loadArchivedSessions());
-  ipcMain.handle('sessions:restore', (_, target) => {
-    const archived = findArchivedSession(store.loadArchivedSessions(), target);
-    if (!archived) return { ok: false, error: '未找到归档会话。' };
-
-    let restored = archived;
-    if ((!Array.isArray(restored.timeline) || !restored.timeline.length) && restored.threadId) {
-      const fromHistory = loadCodexHistory(codexHome).find(session => session.threadId === restored.threadId);
-      if (fromHistory) {
-        restored = {
-          ...fromHistory,
-          id: archived.id.startsWith('archived-') ? fromHistory.id : archived.id,
-          title: archived.title && archived.title !== '已归档对话' ? archived.title : fromHistory.title,
-          cwd: archived.cwd || fromHistory.cwd,
-          model: archived.model || fromHistory.model,
-          reasoningEffort: archived.reasoningEffort || fromHistory.reasoningEffort,
-          collaborationMode: archived.collaborationMode || fromHistory.collaborationMode,
-          updated: Math.max(archived.updated || 0, fromHistory.updated || 0, Date.now()),
-        };
-      }
+  ipcMain.handle('sessions:archive', async (_, session) => {
+    if (!session?.threadId) return { ok: false, error: '该对话尚未创建 Codex 线程，无法归档。' };
+    try {
+      return await codexProcess.archive(session.threadId) ? { ok: true } : { ok: false, error: '无法归档该对话。' };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
-
-    if (!restored.cwd && !restored.threadId) {
-      return { ok: false, error: '该归档会话缺少可恢复的内容。' };
+  });
+  ipcMain.handle('sessions:archived-list', archivedHistory);
+  ipcMain.handle('sessions:restore', async (_, target) => {
+    if (!target?.threadId) return { ok: false, error: '无效的归档对话。' };
+    try {
+      if (!await codexProcess.restore(target.threadId)) return { ok: false, error: '无法恢复该对话。' };
+      const session = history().find(item => item.threadId === target.threadId);
+      return session ? { ok: true, session } : { ok: false, error: 'Codex 尚未返回已恢复的对话。' };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
-
-    const { archivedAt, ...session } = restored;
-    const all = store.loadSessions().filter(item => item.id !== session.id && (!session.threadId || item.threadId !== session.threadId));
-    all.unshift(session);
-    store.saveSessions(all);
-    store.saveArchivedSessions(removeArchivedSessionEntry(store.loadArchivedSessions(), archived));
-    return { ok: true, session };
   });
-  ipcMain.handle('sessions:archived-remove', (_, target) => {
-    const archived = findArchivedSession(store.loadArchivedSessions(), target);
-    if (!archived) return { ok: false, error: '未找到归档会话。' };
-    store.saveArchivedSessions(removeArchivedSessionEntry(store.loadArchivedSessions(), archived));
-    return { ok: true };
+  ipcMain.handle('sessions:archived-remove', async (_, target) => {
+    if (!target?.threadId) return { ok: false, error: '无效的归档对话。' };
+    try {
+      return await codexProcess.remove(target.threadId) ? { ok: true } : { ok: false, error: '无法删除该对话。' };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
   });
-  ipcMain.handle('sessions:archived-clear', () => {
-    store.saveArchivedSessions([]);
-    return { ok: true };
+  ipcMain.handle('sessions:archived-clear', async () => {
+    const archived = archivedHistory();
+    const results = await Promise.all(archived.map(session => codexProcess.remove(session.threadId).catch(() => false)));
+    return results.every(Boolean) ? { ok: true } : { ok: false, error: '部分归档对话未能删除。' };
   });
-  ipcMain.handle('projects:delete', (_, cwd, sessions) => {
+  ipcMain.handle('projects:delete', async (_, cwd, sessions) => {
     if (typeof cwd !== 'string' || !cwd) return { ok: false, error: '无效的项目。' };
     if (!Array.isArray(sessions) || sessions.some(session => !session?.id || session.cwd !== cwd)) {
       return { ok: false, error: '无效的项目会话。' };
     }
-    let storedSessions = store.loadSessions();
-    let archivedSessions = store.loadArchivedSessions();
-    for (const session of sessions) {
-      storedSessions = removeArchivedSessions(storedSessions, session);
-      archivedSessions = upsertArchivedSession(archivedSessions, session);
+    if (sessions.some(session => !session.threadId)) return { ok: false, error: '项目中存在尚未创建 Codex 线程的对话。' };
+    try {
+      const results = await Promise.all(sessions.map(session => codexProcess.remove(session.threadId)));
+      if (!results.every(Boolean)) return { ok: false, error: '部分对话未能删除。' };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
-    store.saveSessions(storedSessions);
-    store.saveArchivedSessions(archivedSessions);
     const settings = store.loadSettings();
     store.saveSettings({ projectPaths: (settings.projectPaths || []).filter(projectPath => projectPath !== cwd) });
     return { ok: true };
