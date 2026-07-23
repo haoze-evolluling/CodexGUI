@@ -1,4 +1,4 @@
-import { type MouseEvent, useLayoutEffect, useRef } from 'react';
+import { type ClipboardEvent, type MouseEvent, useLayoutEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { timelineOf } from '../session-model';
@@ -32,6 +32,13 @@ export function Timeline({ active, running, onAnswer, onPlanChoice, onSelectedTe
         if (!text || !selection?.rangeCount || !messagesRef.current?.contains(selection.getRangeAt(0).commonAncestorContainer)) return;
         event.preventDefault();
         onSelectedTextContextMenu?.(event, text);
+      }}
+      onCopy={(event: ClipboardEvent<HTMLElement>) => {
+        const selection = window.getSelection();
+        const text = selection?.toString();
+        if (!text || !selection?.rangeCount || !messagesRef.current?.contains(selection.getRangeAt(0).commonAncestorContainer)) return;
+        event.preventDefault();
+        event.clipboardData.setData('text/plain', text);
       }}
     >
       {items.map(item => item.type === 'message' ? (
