@@ -233,6 +233,8 @@
 .path-field { display: grid; grid-template-columns: minmax(0, 1fr) 38px; gap: 8px; align-items: center; }
 .path-field input { min-width: 0; height: 38px; padding: 0 12px; color: #e8edf5; background: #111820; border: 1px solid #46566b; border-radius: 8px; outline: none; font: inherit; font-size: 13px; }
 .path-field input:focus { border-color: #6597d2; box-shadow: 0 0 0 2px rgb(83 145 230 / 14%); }
+.settings-number-input { width: min(180px, 100%); height: 38px; padding: 0 12px; color: #e8edf5; background: #111820; border: 1px solid #46566b; border-radius: 8px; outline: none; font: inherit; font-size: 13px; }
+.settings-number-input:focus { border-color: #6597d2; box-shadow: 0 0 0 2px rgb(83 145 230 / 14%); }
 .path-field .icon { height: 38px; width: 38px; display: grid; place-items: center; color: #aeb9c8; background: #273342; border-radius: 8px; }
 .path-field .icon:hover { color: #e8edf5; background: #314054; }
 .reset-path { width: fit-content; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; color: #a9b7c9; background: transparent; border: 1px solid #3a475a; border-radius: 7px; font-size: 12px; }

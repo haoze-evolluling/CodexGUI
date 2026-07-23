@@ -104,10 +104,12 @@ export function App() {
             codexPath={controller.settings.codexPath}
             fontSize={fontSize}
             theme={theme}
+            historyRefreshIntervalSeconds={controller.settings.historyRefreshIntervalSeconds}
             installation={controller.installation}
             savingDisabled={controller.runningSessions.size > 0}
             onClose={controller.closeSettings}
             onFontSizeChange={controller.setFontSize}
+            onHistoryRefreshIntervalSecondsChange={controller.setHistoryRefreshIntervalSeconds}
             onThemeChange={controller.setTheme}
             onSave={controller.saveCodexPath}
           />

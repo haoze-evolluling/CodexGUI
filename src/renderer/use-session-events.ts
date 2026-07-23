@@ -5,6 +5,7 @@ import { without } from './session-set-utils';
 import type { AppSettings, CodexInstallation, CodexModel, CollaborationMode, Message, PermissionMode, Session } from './types';
 
 type Options = {
+  historyRefreshIntervalSeconds: number;
   refreshHistory(): Promise<void>;
   showMissingCodex(installation: CodexInstallation): void;
   setActive: Dispatch<SetStateAction<Session | undefined>>;
@@ -28,7 +29,7 @@ export function useSessionEvents(options: Options) {
       options.setPermissionMode(value.permissionMode);
     }).catch(() => options.setPermissionMode('default'));
     window.codex.getCodexInstallation().then(options.showMissingCodex).catch(() => undefined);
-    const refreshInterval = window.setInterval(options.refreshHistory, 60_000);
+    const refreshInterval = window.setInterval(options.refreshHistory, options.historyRefreshIntervalSeconds * 1_000);
 
     const updateSession = (sessionId: string, update: (session: Session) => Session) => {
       options.setSessions(items => items.map(session => {
@@ -99,5 +100,5 @@ export function useSessionEvents(options: Options) {
       window.clearInterval(refreshInterval);
       unsubscribe.forEach(removeListener => removeListener());
     };
-  }, []);
+  }, [options.historyRefreshIntervalSeconds]);
 }

@@ -22,6 +22,12 @@ function normalizeTheme(value) {
   return value === 'dark' || value === 'system' ? value : 'light';
 }
 
+function normalizeHistoryRefreshInterval(value) {
+  const interval = Number(value);
+  if (!Number.isFinite(interval)) return 10;
+  return Math.min(3600, Math.max(5, Math.round(interval)));
+}
+
 function normalizeSettings(value) {
   const codexPath = typeof value?.codexPath === 'string' ? value.codexPath.trim() : '';
   const model = typeof value?.model === 'string' ? value.model.trim() : '';
@@ -33,6 +39,7 @@ function normalizeSettings(value) {
     permissionMode: value?.permissionMode === 'yolo' ? 'yolo' : 'default',
     fontSize: normalizeFontSize(value?.fontSize),
     theme: normalizeTheme(value?.theme),
+    historyRefreshIntervalSeconds: normalizeHistoryRefreshInterval(value?.historyRefreshIntervalSeconds),
     ...(codexPath ? { codexPath } : {}),
     ...(model ? { model } : {}),
     ...(reasoningEffort ? { reasoningEffort } : {}),

@@ -15,7 +15,7 @@
 .theme-light .markdown-body { color: #293548; }
 .theme-light .markdown-body h1, .theme-light .markdown-body h2, .theme-light .markdown-body h3, .theme-light .markdown-body h4, .theme-light .markdown-body h5, .theme-light .markdown-body h6, .theme-light .markdown-body strong { color: #172033; }
 .theme-light .markdown-body h1, .theme-light .markdown-body h2, .theme-light .markdown-body th, .theme-light .markdown-body td, .theme-light .markdown-body hr { border-color: #d9e1eb; }
-.theme-light .markdown-body code, .theme-light .markdown-body th, .theme-light .markdown-body tr:nth-child(even), .theme-light .custom-model-input, .theme-light .other-answer, .theme-light .path-field input { color: #27364a; background: #eef2f7; }
+.theme-light .markdown-body code, .theme-light .markdown-body th, .theme-light .markdown-body tr:nth-child(even), .theme-light .custom-model-input, .theme-light .other-answer, .theme-light .path-field input, .theme-light .settings-number-input { color: #27364a; background: #eef2f7; }
 .theme-light .markdown-body pre, .theme-light .activity-output { color: #26364a; background: #f0f3f7; border-color: #d9e1eb; }
 .theme-light .message.user .markdown-body, .theme-light .message.user .markdown-body p, .theme-light .message.user .markdown-body li, .theme-light .message.user .markdown-body strong { color: #1264bb; }
 .theme-light .composer-card, .theme-light .settings-section, .theme-light .app-dialog, .theme-light .clear-confirm-dialog { background: #ffffff; border-color: #d9e1eb; box-shadow: 0 8px 24px rgb(28 39 56 / 10%); }
