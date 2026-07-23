@@ -38,7 +38,7 @@ test('enriches a saved session when the Codex transcript has activity entries', 
   assert.deepEqual(mergeSessions(saved, imported), [{ ...saved[0], messages: imported[0].messages, timeline: imported[0].timeline, updated: 3 }]);
 });
 
-test('uses a shorter diverged Codex timeline while preserving GUI system messages and metadata', () => {
+test('keeps a newer saved timeline while preserving GUI system messages and metadata', () => {
   const welcome = { id: 'welcome', type: 'message', role: 'system', text: '准备就绪' };
   const saved = [{
     id: 'gui-1', threadId: 'thread-1', title: '界面标题', cwd: 'C:\\project', model: 'custom-model', updated: 5,
@@ -53,8 +53,6 @@ test('uses a shorter diverged Codex timeline while preserving GUI system message
 
   assert.deepEqual(mergeSessions(saved, imported), [{
     ...saved[0],
-    messages: imported[0].messages,
-    timeline: [welcome, ...imported[0].timeline],
     updated: 5,
   }]);
 });

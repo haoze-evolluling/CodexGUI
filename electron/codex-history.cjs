@@ -217,9 +217,10 @@ function mergeSessions(saved, imported) {
     const hasImportedTimeline = Array.isArray(importedSession.timeline) || Array.isArray(importedSession.messages);
     const importedTimeline = Array.isArray(importedSession.timeline) ? importedSession.timeline : importedSession.messages || [];
     if (!hasImportedTimeline && !importedSession.tokenUsage) return session;
+    const importedIsCurrent = (importedSession.updated || 0) >= (session.updated || 0);
     return {
       ...session,
-      ...(hasImportedTimeline ? {
+      ...(hasImportedTimeline && importedIsCurrent ? {
         messages: importedSession.messages,
         timeline: mergeGuiSystemMessages(savedTimeline, importedTimeline),
       } : {}),
