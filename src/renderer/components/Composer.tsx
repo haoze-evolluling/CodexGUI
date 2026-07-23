@@ -89,19 +89,26 @@ export function Composer(props: ComposerProps) {
     keepCaretVisible(editor);
   };
 
+  const readEditorText = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
+    if (node.nodeType === Node.ELEMENT_NODE && (node as Element).hasAttribute('data-line-break-caret')) return '';
+    if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === 'BR') return '\n';
+    return Array.from(node.childNodes).map(readEditorText).join('');
+  };
+
   const readEditorBody = (editor: HTMLDivElement) => {
     const copy = editor.cloneNode(true) as HTMLDivElement;
     copy.querySelector('[data-skill-token]')?.remove();
-    return copy.innerText.replace(/\r/g, '');
+    return readEditorText(copy).replace(/\r/g, '');
   };
 
   const updateFromEditor = (editor: HTMLDivElement) => {
-    const body = props.selectedSkill ? readEditorBody(editor) : editor.innerText.replace(/\r/g, '');
+    const body = props.selectedSkill ? readEditorBody(editor) : readEditorText(editor).replace(/\r/g, '');
     props.onInputChange(skillPrefix ? `${skillPrefix}${body ? ` ${body}` : ''}` : body);
   };
 
   const syncEditorContent = (editor: HTMLDivElement) => {
-    const currentBody = props.selectedSkill ? readEditorBody(editor) : editor.innerText.replace(/\r/g, '');
+    const currentBody = props.selectedSkill ? readEditorBody(editor) : readEditorText(editor).replace(/\r/g, '');
     const currentValue = skillPrefix ? `${skillPrefix}${currentBody ? ` ${currentBody}` : ''}` : currentBody;
     if (currentValue === props.input && (!!props.selectedSkill === !!editor.querySelector('[data-skill-token]'))) return;
 
@@ -138,6 +145,27 @@ export function Composer(props: ComposerProps) {
     const textNode = document.createTextNode(text);
     range.insertNode(textNode);
     range.setStartAfter(textNode);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    updateFromEditor(editor);
+    window.requestAnimationFrame(() => keepCaretVisible(editor));
+  };
+
+  const insertLineBreakAtSelection = (editor: HTMLDivElement) => {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) return;
+    range.deleteContents();
+    const lineBreak = document.createElement('br');
+    const caret = document.createElement('span');
+    caret.dataset.lineBreakCaret = 'true';
+    caret.textContent = '\u200B';
+    range.insertNode(lineBreak);
+    range.setStartAfter(lineBreak);
+    range.insertNode(caret);
+    range.setStartAfter(caret);
     range.collapse(true);
     selection.removeAllRanges();
     selection.addRange(range);
@@ -240,7 +268,12 @@ export function Composer(props: ComposerProps) {
               : '';
             if (!text) return;
             event.preventDefault();
+            event.clipboardData.clearData();
             event.clipboardData.setData('text/plain', text);
+          }}
+          onPaste={event => {
+            event.preventDefault();
+            insertTextAtSelection(event.currentTarget, event.clipboardData.getData('text/plain').replace(/\r\n?/g, '\n'));
           }}
           onKeyDown={event => {
             const editor = event.currentTarget;
@@ -257,7 +290,7 @@ export function Composer(props: ComposerProps) {
             }
             if (event.key === 'Enter' && event.ctrlKey) {
               event.preventDefault();
-              insertTextAtSelection(editor, '\n');
+              insertLineBreakAtSelection(editor);
               return;
             }
             if (commandMenuOpen) {

@@ -44,16 +44,19 @@ export function Timeline({
       ref={messagesRef}
       onContextMenu={event => {
         const selection = window.getSelection();
+        const range = selection?.rangeCount ? selection.getRangeAt(0) : undefined;
         const text = selection?.toString().trim();
-        if (!text || !selection?.rangeCount || !messagesRef.current?.contains(selection.getRangeAt(0).commonAncestorContainer)) return;
+        if (!text || !range || !messagesRef.current || !range.intersectsNode(messagesRef.current)) return;
         event.preventDefault();
         onSelectedTextContextMenu?.(event, text);
       }}
       onCopy={(event: ClipboardEvent<HTMLElement>) => {
         const selection = window.getSelection();
+        const range = selection?.rangeCount ? selection.getRangeAt(0) : undefined;
         const text = selection?.toString();
-        if (!text || !selection?.rangeCount || !messagesRef.current?.contains(selection.getRangeAt(0).commonAncestorContainer)) return;
+        if (!text || !range || !messagesRef.current || !range.intersectsNode(messagesRef.current)) return;
         event.preventDefault();
+        event.clipboardData.clearData();
         event.clipboardData.setData('text/plain', text);
       }}
     >
