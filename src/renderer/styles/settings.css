@@ -2,6 +2,10 @@
 
 .archive-search-input { width: min(720px, 100%); }
 .archive-list-section { gap: 14px; }
+.archive-list-section .settings-section-title { width: 100%; }
+.archive-clear-button { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; padding: 7px 10px; border-radius: 8px; font-size: 12px; }
+.archive-clear-button.danger { color: #ffb4b4; border-color: #6a3a3a; background: #2a1717; }
+.archive-clear-button.danger:hover:not(:disabled) { color: #ffe0e0; background: #3a1d1d; border-color: #8a4a4a; }
 .archive-list { display: grid; gap: 10px; }
 .archive-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px; background: #151b24; border: 1px solid #3a475a; border-radius: 10px; }
 .archive-item-main { display: grid; gap: 4px; min-width: 0; }

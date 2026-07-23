@@ -93,5 +93,6 @@
 .theme-light .archive-item-actions button { color: #334155; background: #eef3f9; border-color: #d0dae8; }
 .theme-light .archive-item-actions button:hover { color: #0f172a; background: #e2eaf5; border-color: #b7c7dc; }
 .theme-light .archive-item-actions button.danger { color: #b42318; background: #fff1f0; border-color: #f0c2bd; }
+.theme-light .archive-clear-button.danger { color: #b42318; background: #fff1f0; border-color: #f0c2bd; }
 .theme-light .file-change-actions button { color: #334155; background: #eef3f9; border-color: #d0dae8; }
 .theme-light .file-change-actions button:hover:not(:disabled) { color: #0f172a; background: #e2eaf5; border-color: #b7c7dc; }

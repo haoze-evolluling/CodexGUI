@@ -98,6 +98,10 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
     store.saveArchivedSessions(removeArchivedSessionEntry(store.loadArchivedSessions(), archived));
     return { ok: true };
   });
+  ipcMain.handle('sessions:archived-clear', () => {
+    store.saveArchivedSessions([]);
+    return { ok: true };
+  });
   ipcMain.handle('projects:delete', (_, cwd, sessions) => {
     if (typeof cwd !== 'string' || !cwd) return { ok: false, error: '无效的项目。' };
     if (!Array.isArray(sessions) || sessions.some(session => !session?.id || session.cwd !== cwd)) {

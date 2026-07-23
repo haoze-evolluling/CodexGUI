@@ -143,6 +143,7 @@ export type CodexApi = {
   listArchivedSessions(): Promise<Session[]>;
   restoreArchivedSession(session: Pick<Session, 'id' | 'threadId'> | Session): Promise<RestoreArchiveResult>;
   removeArchivedSession(session: Pick<Session, 'id' | 'threadId'> | Session): Promise<ArchiveResult>;
+  clearArchivedSessions(): Promise<ArchiveResult>;
   deleteProject(cwd: string, sessions: Session[]): Promise<ArchiveResult>;
   chooseFolder(): Promise<string | null>;
   chooseFiles(defaultPath?: string): Promise<string[]>;

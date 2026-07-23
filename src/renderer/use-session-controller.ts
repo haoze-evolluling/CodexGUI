@@ -577,6 +577,26 @@ export function useSessionController() {
     });
   };
 
+  const clearArchivedSessions = () => {
+    if (!archivedSessions.length) return;
+    setDialog({
+      title: '清空全部归档',
+      description: '确定彻底移除全部归档会话吗？此操作不会删除 Codex 原始历史文件。',
+      confirmLabel: '全部清除',
+      cancelLabel: '取消',
+      danger: true,
+      onConfirm: async () => {
+        setDialog(undefined);
+        const result = await window.codex.clearArchivedSessions();
+        if (!result.ok) {
+          setDialog({ title: '清除失败', description: result.error || '未知错误', onConfirm: () => setDialog(undefined) });
+          return;
+        }
+        setArchivedSessions([]);
+      },
+    });
+  };
+
   const openPath = async (filePath: string, cwd = active?.cwd) => {
     const result = await window.codex.openPath(cwd, filePath);
     if (!result.ok) {
@@ -689,7 +709,7 @@ export function useSessionController() {
     && timelineOf(active).some(item => item.type === 'message' && item.role === 'user');
   return {
     active, addFiles, answerUserInput, archiveOpen, archiveProject, archiveSession, archivedSessions, attachments, canRollback, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
-    closeArchive: () => setArchiveOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, openArchive, openInVsCode, openPath, openSettings, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, setFontSize, setTheme, settings, settingsOpen,
+    clearArchivedSessions, closeArchive: () => setArchiveOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, openArchive, openInVsCode, openPath, openSettings, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, setFontSize, setTheme, settings, settingsOpen,
     createInFolder, createProjectSession, groups, input, models, moveProject, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive, setHistoryRefreshIntervalSeconds, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,

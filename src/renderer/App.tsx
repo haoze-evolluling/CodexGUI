@@ -146,6 +146,7 @@ export function App() {
           <ArchivePage
             sessions={controller.archivedSessions}
             onClose={controller.closeArchive}
+            onClear={controller.clearArchivedSessions}
             onRefresh={controller.refreshArchivedSessions}
             onRemove={controller.removeArchivedSession}
             onRestore={controller.restoreArchivedSession}

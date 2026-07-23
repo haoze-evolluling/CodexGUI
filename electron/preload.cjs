@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('codex', {
   listArchivedSessions: () => ipcRenderer.invoke('sessions:archived-list'),
   restoreArchivedSession: session => ipcRenderer.invoke('sessions:restore', session),
   removeArchivedSession: session => ipcRenderer.invoke('sessions:archived-remove', session),
+  clearArchivedSessions: () => ipcRenderer.invoke('sessions:archived-clear'),
   archiveProject: async sessions => {
     for (const session of sessions) {
       const result = await ipcRenderer.invoke('sessions:archive', session);

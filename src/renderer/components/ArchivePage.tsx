@@ -15,6 +15,7 @@ function formatTime(value?: number) {
 type ArchivePageProps = {
   sessions: Session[];
   onClose(): void;
+  onClear(): void;
   onRefresh(): void;
   onRemove(session: Session): void;
   onRestore(session: Session): void;
@@ -73,6 +74,15 @@ export function ArchivePage(props: ArchivePageProps) {
               <b>归档列表</b>
               <p className="settings-hint">共 {filtered.length} 条记录。</p>
             </div>
+            <button
+              className="archive-clear-button danger"
+              onClick={props.onClear}
+              disabled={!props.sessions.length}
+              title="全部清除归档"
+            >
+              <Trash2 size={15} />
+              全部清除
+            </button>
           </div>
 
           {!filtered.length && (
