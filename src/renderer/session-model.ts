@@ -45,8 +45,7 @@ export const groupSessions = (sessions: Session[], projectPaths: string[] = []):
       cwd,
       items: items.sort((left, right) => right.updated - left.updated),
       updated: Math.max(0, ...items.map(item => item.updated)),
-    }))
-    .sort((left, right) => right.updated - left.updated);
+    }));
 };
 
 export const projectName = (cwd: string) =>

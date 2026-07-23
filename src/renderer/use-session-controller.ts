@@ -341,6 +341,42 @@ export function useSessionController() {
     if (projectSessions.some(session => runningSessions.has(session.id))) return;
     await performArchiveProject(projectSessions);
   };
+  const deleteProject = async (cwd: string, projectSessions: Session[]) => {
+    if (projectSessions.some(session => runningSessions.has(session.id))) return;
+    setDialog({
+      title: '删除项目',
+      description: `将删除“${cwd.split(/[/\\\\]/).filter(Boolean).pop() || cwd}”及其 ${projectSessions.length} 个对话记录。项目文件不会被删除。`,
+      confirmLabel: '删除项目',
+      cancelLabel: '取消',
+      danger: true,
+      onConfirm: async () => {
+        setDialog(undefined);
+        let result;
+        try {
+          result = await window.codex.deleteProject(cwd, projectSessions);
+        } catch {
+          setDialog({ title: '删除失败', description: '无法删除项目，请稍后重试。', onConfirm: () => setDialog(undefined) });
+          return;
+        }
+        if (!result.ok) {
+          setDialog({ title: '删除失败', description: result.error || '未知错误', onConfirm: () => setDialog(undefined) });
+          return;
+        }
+        const ids = new Set(projectSessions.map(session => session.id));
+        const remaining = sessions.filter(session => !ids.has(session.id));
+        setSessions(remaining);
+        setActive(current => current && ids.has(current.id) ? remaining[0] : current);
+        setCollapsedGroups(current => {
+          const next = new Set(current);
+          next.delete(cwd);
+          return next;
+        });
+        const nextSettings = { ...settingsRef.current, projectPaths: (settingsRef.current.projectPaths || []).filter(projectPath => projectPath !== cwd) };
+        settingsRef.current = nextSettings;
+        setSettings(nextSettings);
+      },
+    });
+  };
   const performArchiveProject = async (projectSessions: Session[]) => {
     const archived = await window.codex.archiveProject(projectSessions);
     if (!archived.ok) {
@@ -451,7 +487,7 @@ export function useSessionController() {
   const canRollback = !!active?.threadId && !running && !compacting
     && timelineOf(active).some(item => item.type === 'message' && item.role === 'user');
   return {
-    active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, canRollback, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, permissionMode, dialog, closeDialog: () => setDialog(undefined),
+    active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, canRollback, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
     closeSettings: () => setSettingsOpen(false), installation, openSettings, saveCodexPath, setFontSize, setTheme, settings, settingsOpen,
     createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),

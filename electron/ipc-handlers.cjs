@@ -52,6 +52,23 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
     }
     return { ok: true };
   });
+  ipcMain.handle('projects:delete', (_, cwd, sessions) => {
+    if (typeof cwd !== 'string' || !cwd) return { ok: false, error: '无效的项目。' };
+    if (!Array.isArray(sessions) || sessions.some(session => !session?.id || session.cwd !== cwd)) {
+      return { ok: false, error: '无效的项目会话。' };
+    }
+    let storedSessions = store.loadSessions();
+    const archivedThreads = store.loadArchivedThreads();
+    for (const session of sessions) {
+      storedSessions = removeArchivedSessions(storedSessions, session);
+      if (session.threadId) archivedThreads.add(session.threadId);
+    }
+    store.saveSessions(storedSessions);
+    store.saveArchivedThreads(archivedThreads);
+    const settings = store.loadSettings();
+    store.saveSettings({ projectPaths: (settings.projectPaths || []).filter(projectPath => projectPath !== cwd) });
+    return { ok: true };
+  });
   ipcMain.handle('dialog:folder', async () => {
     const result = await dialog.showOpenDialog(getWindow(), { properties: ['openDirectory'] });
     return result.canceled ? null : result.filePaths[0];

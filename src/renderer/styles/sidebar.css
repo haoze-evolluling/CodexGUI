@@ -1,4 +1,9 @@
-aside { width: 260px; display: flex; flex-direction: column; background: #171c25; border-right: 1px solid #29313d; padding: 18px 12px; overflow: hidden; }
+.sidebar-shell { position: relative; flex: 0 0 auto; min-width: 210px; max-width: 480px; }
+aside { width: 100%; height: 100%; display: flex; flex-direction: column; background: #171c25; border-right: 1px solid #29313d; padding: 18px 12px; overflow: hidden; }
+.sidebar-resizer { position: absolute; z-index: 10; top: 0; right: -4px; width: 8px; height: 100%; cursor: col-resize; touch-action: none; }
+.sidebar-resizer::after { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; transition: background-color 120ms ease; }
+.sidebar-resizer:hover::after, .sidebar-resizer:focus-visible::after { background: #72b3ff; }
+.sidebar-resizer:focus-visible { outline: none; }
 aside::-webkit-scrollbar { display: none; }
 .brand { font-size: 18px; font-weight: 700; display: flex; gap: 9px; align-items: center; padding: 4px 8px 20px; }
 .sidebar-actions { display: flex; gap: 6px; padding: 0 4px; }
@@ -17,11 +22,11 @@ aside::-webkit-scrollbar { display: none; }
 .session-row { display: flex; align-items: center; min-width: 0; }
 .group-sessions .session-select { flex: 1; background: transparent; text-align: left; padding: 8px 4px 8px 26px; min-width: 0; font-size: 14px; }
 .session-row.selected .session-select, .session-row:hover .session-select { background: #273342; }
+.session-running { flex: 0 0 auto; margin: 0 4px; color: #72b3ff; animation: session-running-spin 900ms linear infinite; }
 .group-sessions .session-archive { padding: 6px; margin-right: 2px; flex: 0 0 auto; }
 .group-sessions span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty-sessions { margin: 12px 8px; color: #8490a0; font-size: 12px; line-height: 1.5; }
 .sidebar-footer { flex: 0 0 auto; margin-top: 12px; padding: 10px 4px 0; border-top: 1px solid #29313d; }
 .sidebar-footer button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 9px 10px; color: #b7c2d0; background: transparent; text-align: left; }
 .sidebar-footer button:hover { color: #fff; background: #273342; }
-@media (min-width: 701px) { aside { width: 300px; } }
-@media (max-width: 700px) { aside { width: 210px; } }
+@keyframes session-running-spin { to { transform: rotate(360deg); } }

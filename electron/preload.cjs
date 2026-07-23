@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('codex', {
     }
     return { ok: true };
   },
+  deleteProject: (cwd, sessions) => ipcRenderer.invoke('projects:delete', cwd, sessions),
   chooseFolder: () => ipcRenderer.invoke('dialog:folder'),
   chooseFiles: defaultPath => ipcRenderer.invoke('dialog:files', defaultPath),
   chooseCodexExecutable: defaultPath => ipcRenderer.invoke('dialog:codex-executable', defaultPath),

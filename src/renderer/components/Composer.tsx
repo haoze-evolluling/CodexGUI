@@ -146,6 +146,22 @@ export function Composer(props: ComposerProps) {
             setCommandIndex(0);
             window.requestAnimationFrame(() => keepCaretVisible(event.target));
           }}
+          onContextMenu={event => {
+            event.preventDefault();
+            const textarea = event.currentTarget;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            props.onInputContextMenu(event, text => {
+              const nextValue = `${props.input.slice(0, start)}${text}${props.input.slice(end)}`;
+              props.onInputChange(nextValue);
+              window.requestAnimationFrame(() => {
+                textarea.focus();
+                const caret = start + text.length;
+                textarea.setSelectionRange(caret, caret);
+                keepCaretVisible(textarea);
+              });
+            });
+          }}
           onKeyDown={event => {
             if (event.key === 'Backspace' && !props.input && event.currentTarget.selectionStart === 0 && props.attachments.length) {
               event.preventDefault();

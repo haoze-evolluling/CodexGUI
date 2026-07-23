@@ -1,4 +1,10 @@
 .messages { flex: 1; overflow: auto; padding: 28px 10%; display: flex; flex-direction: column; align-items: flex-start; align-content: start; gap: 18px; scrollbar-color: #4a586a #11151c; scrollbar-width: thin; }
+.context-menu { position: fixed; z-index: 200; min-width: 132px; padding: 4px; background: #202936; border: 1px solid #4a5a70; border-radius: 7px; box-shadow: 0 14px 32px rgb(0 0 0 / 42%); }
+.context-menu button { width: 100%; padding: 7px 9px; color: #dce5f0; background: transparent; border-radius: 4px; text-align: left; font-size: 13px; }
+.context-menu button:hover, .context-menu button:focus-visible { color: #fff; background: #2b3a4d; outline: none; }
+.context-menu button.danger { color: #ffabab; }
+.context-menu button.danger:hover, .context-menu button.danger:focus-visible { color: #fff; background: #753b46; }
+.context-menu button:disabled { cursor: not-allowed; }
 .messages > * { flex: 0 0 auto; }
 .messages::-webkit-scrollbar { width: 10px; }
 .messages::-webkit-scrollbar-track { background: #11151c; }

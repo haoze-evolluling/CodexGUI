@@ -135,6 +135,7 @@ export type CodexApi = {
   saveSession(session: Session): Promise<Session[]>;
   archiveSession(session: Session): Promise<ArchiveResult>;
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
+  deleteProject(cwd: string, sessions: Session[]): Promise<ArchiveResult>;
   chooseFolder(): Promise<string | null>;
   chooseFiles(defaultPath?: string): Promise<string[]>;
   chooseCodexExecutable(defaultPath?: string): Promise<string | null>;

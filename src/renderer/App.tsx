@@ -5,8 +5,12 @@ import { Sidebar } from './components/Sidebar';
 import { SettingsPage } from './components/SettingsPage';
 import { Timeline } from './components/Timeline';
 import { TitleBar } from './components/TitleBar';
-import { useEffect, useState } from 'react';
+import { ContextMenu, type ContextMenuItem } from './components/ContextMenu';
+import { type MouseEvent, useEffect, useState } from 'react';
 import { useSessionController } from './use-session-controller';
+import type { Session } from './types';
+
+type OpenContextMenu = { x: number; y: number; items: ContextMenuItem[] };
 
 export function App() {
   const controller = useSessionController();
@@ -14,6 +18,40 @@ export function App() {
   const initialTheme = document.documentElement.dataset.initialTheme === 'dark' ? 'dark' : 'light';
   const theme = controller.settings.theme || initialTheme;
   const [systemPrefersDark, setSystemPrefersDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [contextMenu, setContextMenu] = useState<OpenContextMenu>();
+
+  const openProjectMenu = (event: MouseEvent, cwd: string, sessions: Session[]) => {
+    event.preventDefault();
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      items: [{
+        label: '删除项目',
+        danger: true,
+        disabled: sessions.some(session => controller.runningSessions.has(session.id)),
+        onSelect: () => controller.deleteProject(cwd, sessions),
+      }],
+    });
+  };
+
+  const openCopyMenu = (event: MouseEvent, text: string) => {
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      items: [{ label: '复制', onSelect: () => navigator.clipboard.writeText(text).catch(() => undefined) }],
+    });
+  };
+
+  const openPasteMenu = (event: MouseEvent, insertText: (text: string) => void) => {
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      items: [{
+        label: '粘贴',
+        onSelect: () => navigator.clipboard.readText().then(insertText).catch(() => undefined),
+      }],
+    });
+  };
 
   useEffect(() => {
     const query = window.matchMedia('(prefers-color-scheme: dark)');
@@ -38,6 +76,7 @@ export function App() {
           onArchiveSession={controller.archiveSession}
           onCreateInFolder={controller.createInFolder}
           onCreateProject={controller.createProjectSession}
+          onProjectContextMenu={openProjectMenu}
           onRefresh={controller.refreshHistory}
           onSelect={session => {
             controller.closeSettings();
@@ -84,7 +123,7 @@ export function App() {
                 </button>
               </div>
             </header>
-            <Timeline active={controller.active} running={controller.running} onAnswer={controller.answerUserInput} onPlanChoice={controller.choosePlanAction} />
+            <Timeline active={controller.active} running={controller.running} onAnswer={controller.answerUserInput} onPlanChoice={controller.choosePlanAction} onSelectedTextContextMenu={openCopyMenu} />
             <Composer
               activeSessionId={controller.active?.id}
               session={controller.active}
@@ -99,6 +138,7 @@ export function App() {
               collaborationModes={controller.collaborationModes}
               permissionMode={controller.permissionMode}
               onInputChange={controller.setInput}
+              onInputContextMenu={openPasteMenu}
               onChooseFiles={controller.chooseFiles}
               onAddFiles={controller.addFiles}
               onRemoveAttachment={controller.removeAttachment}
@@ -117,6 +157,7 @@ export function App() {
           </main>
         )}
       </div>
+      {contextMenu && <ContextMenu {...contextMenu} onClose={() => setContextMenu(undefined)} />}
     </div>
   );
 }

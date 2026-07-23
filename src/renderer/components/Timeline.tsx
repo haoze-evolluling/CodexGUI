@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { type MouseEvent, useLayoutEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { timelineOf } from '../session-model';
@@ -13,7 +13,7 @@ const roleLabel = {
   system: '系统提示',
 } as const;
 
-export function Timeline({ active, running, onAnswer, onPlanChoice }: { active?: Session; running: boolean; onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void; onPlanChoice?(activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>): void }) {
+export function Timeline({ active, running, onAnswer, onPlanChoice, onSelectedTextContextMenu }: { active?: Session; running: boolean; onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void; onPlanChoice?(activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>): void; onSelectedTextContextMenu?(event: MouseEvent, text: string): void }) {
   const messagesRef = useRef<HTMLElement>(null);
   const items = active ? timelineOf(active) : [];
 
@@ -23,7 +23,17 @@ export function Timeline({ active, running, onAnswer, onPlanChoice }: { active?:
   }, [active?.id, items.length]);
 
   return (
-    <section className="messages" ref={messagesRef}>
+    <section
+      className="messages"
+      ref={messagesRef}
+      onContextMenu={event => {
+        const selection = window.getSelection();
+        const text = selection?.toString().trim();
+        if (!text || !selection?.rangeCount || !messagesRef.current?.contains(selection.getRangeAt(0).commonAncestorContainer)) return;
+        event.preventDefault();
+        onSelectedTextContextMenu?.(event, text);
+      }}
+    >
       {items.map(item => item.type === 'message' ? (
         <div className={`message ${item.role}`} key={item.id}>
           <label>{roleLabel[item.role]}</label>

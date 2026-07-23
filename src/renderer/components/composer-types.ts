@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react';
 import type { CodexAttachment, CodexModel, CodexSkill, CollaborationMode, PermissionMode, Session } from '../types';
 
 export type ComposerProps = {
@@ -14,6 +15,7 @@ export type ComposerProps = {
   collaborationModes: CollaborationMode[];
   permissionMode: PermissionMode;
   onInputChange(value: string): void;
+  onInputContextMenu(event: MouseEvent, insertText: (text: string) => void): void;
   onChooseFiles(): void;
   onAddFiles(paths: string[]): void;
   onRemoveAttachment(id: string): void;
