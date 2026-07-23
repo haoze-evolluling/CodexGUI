@@ -177,6 +177,7 @@ export function useSessionController() {
 
   const rollback = async () => {
     if (!active?.threadId || runningSessions.has(active.id) || compactingSessions.has(active.id)) return;
+    const threadId = active.threadId;
     const timeline = timelineOf(active);
     let lastUserIndex = -1;
     for (let index = timeline.length - 1; index >= 0; index -= 1) {
@@ -189,7 +190,7 @@ export function useSessionController() {
     if (lastUserIndex < 0) return;
     const target = active;
     try {
-      if (!await window.codex.rollback(target.id, target.threadId)) throw new Error('无法撤销最近一轮对话。');
+      if (!await window.codex.rollback(target.id, threadId)) throw new Error('无法撤销最近一轮对话。');
       const nextTimeline = timeline.slice(0, lastUserIndex);
       const firstUserMessage = nextTimeline.find(item => item.type === 'message' && item.role === 'user');
       setActive(current => current?.id === target.id ? {
@@ -477,7 +478,7 @@ export function useSessionController() {
 
   const showStatus = () => {
     if (!active) return;
-    setDialog(createSessionStatusDialog({ active, models, preferredModel: settings.model, permissionMode, running: runningSessions.has(active.id), onClose: () => setDialog(undefined) }));
+    setDialog(createSessionStatusDialog({ session: active, models, preferredModel: settings.model, permissionMode, running: runningSessions.has(active.id), onClose: () => setDialog(undefined) }));
   };
 
   const groups = useMemo(() => groupSessions(sessions, settings.projectPaths), [sessions, settings.projectPaths]);

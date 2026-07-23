@@ -208,7 +208,7 @@ export function Composer(props: ComposerProps) {
             setSkillPaletteOpen(false);
             updateFromEditor(event.currentTarget);
             setCommandIndex(0);
-            window.requestAnimationFrame(() => keepCaretVisible(event.target));
+            window.requestAnimationFrame(() => keepCaretVisible(event.currentTarget));
           }}
           onContextMenu={event => {
             event.preventDefault();
