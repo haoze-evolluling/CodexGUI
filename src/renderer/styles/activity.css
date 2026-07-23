@@ -18,7 +18,7 @@
 .file-list { border-top: 1px solid #334051; }
 .file-change { padding: 10px 12px; border-bottom: 1px solid #29313d; }
 .file-change:last-child { border-bottom: 0; }
-.file-change > div { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+.file-change-header > div:first-child, .file-change > div:not(.file-change-header):not(.file-change-actions) { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
 .file-change b { color: #80c99b; font-size: 11px; flex: 0 0 auto; }
 .file-change code { font: inherit; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .file-change p { margin: 8px 0 0; color: #8490a0; font-size: 12px; }
@@ -28,3 +28,11 @@
 .file-diff .diff-deletion { color: #ffabb4; background: #4a2029; }
 .file-activity .activity-heading svg:nth-child(2) { color: #80c99b; }
 .command-activity.completed .activity-heading svg:nth-child(2) { color: #75b6ff; }
+
+.file-change-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.file-change-header > div:first-child { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+.file-change-actions { display: inline-flex; gap: 6px; flex: 0 0 auto; }
+.file-change-actions button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; color: #b7c4d5; background: #223041; border: 1px solid #3a4a5f; border-radius: 7px; font-size: 11px; }
+.file-change-actions button:hover:not(:disabled) { color: #f2f7ff; background: #2b3c51; border-color: #567094; }
+.file-change-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+

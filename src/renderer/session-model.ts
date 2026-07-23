@@ -11,6 +11,23 @@ export const timelineOf = (session: Session): TimelineItem[] =>
     ? session.timeline
     : (session.messages || []).map(messageItem);
 
+export const activityCount = (items: TimelineItem[] = []) =>
+  items.filter(item => item.type !== 'message').length;
+
+export const shouldKeepLiveTimeline = (
+  live: TimelineItem[],
+  incoming: TimelineItem[],
+  options?: { running?: boolean; liveUpdated?: number; incomingUpdated?: number },
+) => {
+  if (options?.running) return true;
+  const liveActivities = activityCount(live);
+  const incomingActivities = activityCount(incoming);
+  if (liveActivities > incomingActivities) return true;
+  if (live.length > incoming.length) return true;
+  if ((options?.liveUpdated || 0) > (options?.incomingUpdated || 0) && live.length >= incoming.length) return true;
+  return false;
+};
+
 export const normalizeSession = (session: Session): Session => ({
   ...session,
   timeline: timelineOf(session),

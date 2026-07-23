@@ -98,7 +98,34 @@ test('enriches a saved GUI session with imported token usage', () => {
   };
   const saved = [{ id: 'gui-1', threadId: 'thread-1', timeline: [{ id: 'saved' }], updated: 3 }];
   const imported = [{ id: 'codex-thread-1', threadId: 'thread-1', timeline: [], tokenUsage, updated: 2 }];
-  assert.deepEqual(mergeSessions(saved, imported), [{ ...saved[0], messages: undefined, timeline: [], tokenUsage }]);
+  assert.deepEqual(mergeSessions(saved, imported), [{ ...saved[0], tokenUsage }]);
+});
+
+test('does not replace a richer live timeline with a newer but shorter transcript', () => {
+  const saved = [{
+    id: 'gui-1',
+    threadId: 'thread-1',
+    updated: 10,
+    timeline: [
+      { id: 'user', type: 'message', role: 'user', text: '改一下' },
+      { id: 'cmd', type: 'command', status: 'completed', command: 'npm test', output: 'ok' },
+      { id: 'agent', type: 'message', role: 'assistant', text: '完成' },
+    ],
+  }];
+  const imported = [{
+    id: 'codex-thread-1',
+    threadId: 'thread-1',
+    updated: 20,
+    messages: [{ role: 'user', text: '改一下' }, { role: 'assistant', text: '完成' }],
+    timeline: [
+      { id: 'message-0', type: 'message', role: 'user', text: '改一下' },
+      { id: 'message-1', type: 'message', role: 'assistant', text: '完成' },
+    ],
+  }];
+  assert.deepEqual(mergeSessions(saved, imported), [{
+    ...saved[0],
+    updated: 20,
+  }]);
 });
 
 test('uses a Chinese title when a transcript has no user message', () => {
@@ -107,3 +134,31 @@ test('uses a Chinese title when a transcript has no user message', () => {
   try { assert.equal(parseSessionFile(filePath).title, '未命名对话'); }
   finally { fs.unlinkSync(filePath); }
 });
+
+test('keeps a same-length live timeline when it has more activities than the transcript', () => {
+  const saved = [{
+    id: 'gui-1',
+    threadId: 'thread-1',
+    updated: 5,
+    timeline: [
+      { id: 'user', type: 'message', role: 'user', text: '请修改' },
+      { id: 'cmd', type: 'command', status: 'completed', command: 'npm test', output: 'ok' },
+      { id: 'agent', type: 'message', role: 'assistant', text: '完成' },
+    ],
+  }];
+  const imported = [{
+    id: 'codex-thread-1',
+    threadId: 'thread-1',
+    updated: 10,
+    timeline: [
+      { id: 'message-0', type: 'message', role: 'user', text: '请修改' },
+      { id: 'message-1', type: 'message', role: 'assistant', text: '完成' },
+      { id: 'message-2', type: 'message', role: 'assistant', text: '补充说明' },
+    ],
+  }];
+  assert.deepEqual(mergeSessions(saved, imported), [{
+    ...saved[0],
+    updated: 10,
+  }]);
+});
+

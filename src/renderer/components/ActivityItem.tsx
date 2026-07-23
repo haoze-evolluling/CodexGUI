@@ -1,9 +1,23 @@
 import { useState } from 'react';
-import { Check, ChevronRight, FileCode, Minimize2, Terminal } from 'lucide-react';
+import { Check, ChevronRight, Code2, ExternalLink, FileCode, Minimize2, Terminal } from 'lucide-react';
 import { diffLineClass } from '../session-model';
 import type { Activity, PlanDecisionActivity } from '../types';
 
-export function ActivityItem({ activity, onAnswer, onPlanChoice }: { activity: Activity; onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void; onPlanChoice?(activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>): void }) {
+export function ActivityItem({
+  activity,
+  cwd,
+  onAnswer,
+  onOpenPath,
+  onOpenInVsCode,
+  onPlanChoice,
+}: {
+  activity: Activity;
+  cwd?: string;
+  onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void;
+  onOpenPath?(path: string): void;
+  onOpenInVsCode?(path: string): void;
+  onPlanChoice?(activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>): void;
+}) {
   const [values, setValues] = useState<Record<string, string>>({});
   if (activity.type === 'plan_decision') {
     if (activity.status === 'answered') return null;
@@ -93,9 +107,21 @@ export function ActivityItem({ activity, onAnswer, onPlanChoice }: { activity: A
       <div className="file-list">
         {activity.files.map(file => (
           <section className="file-change" key={file.path}>
-            <div>
-              <b>{file.kind === 'add' ? '新增' : file.kind === 'delete' ? '删除' : '修改'}</b>
-              <code>{file.path}</code>
+            <div className="file-change-header">
+              <div>
+                <b>{file.kind === 'add' ? '新增' : file.kind === 'delete' ? '删除' : '修改'}</b>
+                <code title={file.path}>{file.path}</code>
+              </div>
+              <div className="file-change-actions">
+                <button type="button" onClick={() => onOpenPath?.(file.path)} title="用默认应用打开" disabled={!cwd && !/^[A-Za-z]:[\\/]|^\\|^\//.test(file.path)}>
+                  <ExternalLink size={14} />
+                  打开
+                </button>
+                <button type="button" onClick={() => onOpenInVsCode?.(file.path)} title="在 VS Code 中打开" disabled={!cwd && !/^[A-Za-z]:[\\/]|^\\|^\//.test(file.path)}>
+                  <Code2 size={14} />
+                  VS Code
+                </button>
+              </div>
             </div>
             {file.diff ? (
               <pre className="activity-output file-diff">

@@ -110,6 +110,32 @@ function mergeGuiSystemMessages(savedTimeline, importedTimeline) {
   return merged;
 }
 
+function timelineLength(timeline) {
+  return Array.isArray(timeline) ? timeline.length : 0;
+}
+
+function activityCount(timeline) {
+  if (!Array.isArray(timeline)) return 0;
+  return timeline.filter(item => item && item.type && item.type !== 'message').length;
+}
+
+function shouldPreferImportedTimeline(savedTimeline, importedTimeline, importedIsCurrent) {
+  const savedLength = timelineLength(savedTimeline);
+  const importedLength = timelineLength(importedTimeline);
+  const savedActivities = activityCount(savedTimeline);
+  const importedActivities = activityCount(importedTimeline);
+  if (!importedLength && savedLength) return false;
+  // Live GUI timelines often contain command/file activities that are delayed or
+  // incomplete in on-disk Codex transcripts. Never drop richer activity content.
+  if (savedActivities > importedActivities) return false;
+  if (importedIsCurrent) {
+    return importedLength > savedLength
+      || (importedLength === savedLength && importedActivities >= savedActivities && importedLength > 0);
+  }
+  return importedLength > savedLength
+    || (importedLength === savedLength && importedActivities > savedActivities);
+}
+
 function mergeSessions(saved, imported) {
   const importedByThread = new Map(imported.filter(session => session.threadId).map(session => [session.threadId, session]));
   const mergedSaved = saved.map(session => {
@@ -120,9 +146,11 @@ function mergeSessions(saved, imported) {
     const importedTimeline = Array.isArray(importedSession.timeline) ? importedSession.timeline : importedSession.messages || [];
     if (!hasImportedTimeline && !importedSession.tokenUsage) return session;
     const importedIsCurrent = (importedSession.updated || 0) >= (session.updated || 0);
+    const useImportedTimeline = hasImportedTimeline
+      && shouldPreferImportedTimeline(savedTimeline, importedTimeline, importedIsCurrent);
     return {
       ...session,
-      ...(hasImportedTimeline && importedIsCurrent ? {
+      ...(useImportedTimeline ? {
         messages: importedSession.messages,
         timeline: mergeGuiSystemMessages(savedTimeline, importedTimeline),
       } : {}),

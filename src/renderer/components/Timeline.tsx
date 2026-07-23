@@ -13,7 +13,23 @@ const roleLabel = {
   system: '系统提示',
 } as const;
 
-export function Timeline({ active, running, onAnswer, onPlanChoice, onSelectedTextContextMenu }: { active?: Session; running: boolean; onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void; onPlanChoice?(activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>): void; onSelectedTextContextMenu?(event: MouseEvent, text: string): void }) {
+export function Timeline({
+  active,
+  running,
+  onAnswer,
+  onOpenPath,
+  onOpenInVsCode,
+  onPlanChoice,
+  onSelectedTextContextMenu,
+}: {
+  active?: Session;
+  running: boolean;
+  onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void;
+  onOpenPath?(path: string): void;
+  onOpenInVsCode?(path: string): void;
+  onPlanChoice?(activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>): void;
+  onSelectedTextContextMenu?(event: MouseEvent, text: string): void;
+}) {
   const messagesRef = useRef<HTMLElement>(null);
   const items = active ? timelineOf(active) : [];
 
@@ -51,7 +67,17 @@ export function Timeline({ active, running, onAnswer, onPlanChoice, onSelectedTe
             </div>
           ) : item.text ? <pre>{item.text}</pre> : null}
         </div>
-      ) : <ActivityItem activity={item} key={item.id} onAnswer={onAnswer} onPlanChoice={onPlanChoice} />)}
+      ) : (
+        <ActivityItem
+          activity={item}
+          cwd={active?.cwd}
+          key={item.id}
+          onAnswer={onAnswer}
+          onOpenPath={onOpenPath}
+          onOpenInVsCode={onOpenInVsCode}
+          onPlanChoice={onPlanChoice}
+        />
+      ))}
       {!active && <div className="empty-conversation">请从左侧选择或新建一个对话。</div>}
       {running && (
         <div className="message thinking">

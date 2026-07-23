@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const { createCodexAppServer } = require('./codex-app-server.cjs');
@@ -8,6 +8,8 @@ const { registerIpcHandlers } = require('./ipc-handlers.cjs');
 const { createSessionStore } = require('./session-store.cjs');
 
 let win;
+const sessionTitles = new Map();
+const recentErrors = new Set();
 
 function resolveInitialTheme(theme) {
   if (theme === 'dark') return 'dark';
@@ -36,20 +38,57 @@ function createWindow(theme) {
   else win.loadFile(path.join(__dirname, '../dist/index.html'), { query: { initialTheme } });
 }
 
+function notifySessionFinished(payload, failed) {
+  if (!win || win.isDestroyed() || win.isFocused()) return;
+  if (!Notification.isSupported()) return;
+  const sessionId = payload?.sessionId;
+  if (!sessionId) return;
+  const title = sessionTitles.get(sessionId) || 'Codex 会话';
+  const notification = new Notification({
+    title,
+    body: failed ? '会话执行失败' : '会话已完成',
+  });
+  notification.on('click', () => {
+    if (!win || win.isDestroyed()) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+    win.webContents.send('sessions:focus', { sessionId });
+  });
+  notification.show();
+}
+
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
+  const userData = app.getPath('userData');
   const store = createSessionStore(
-    path.join(app.getPath('userData'), 'sessions.json'),
-    path.join(app.getPath('userData'), 'archived-threads.json'),
-    path.join(app.getPath('userData'), 'settings.json'),
+    path.join(userData, 'sessions.json'),
+    path.join(userData, 'archived-threads.json'),
+    path.join(userData, 'settings.json'),
+    path.join(userData, 'archived-sessions.json'),
   );
   createWindow(store.loadSettings().theme);
   const getInstallation = () => resolveCodexInstallation({ customPath: store.loadSettings().codexPath });
   const codexProcess = createCodexAppServer({
     attachDiffs: createDiffAttacher(spawn),
     getSpawnConfig: () => buildCodexSpawnConfig(getInstallation()),
-    send: (channel, value) => win.webContents.send(channel, value),
+    send: (channel, value) => {
+      if (channel === 'cli:error' && value?.sessionId) recentErrors.add(value.sessionId);
+      if (channel === 'cli:exit' && value?.sessionId) {
+        const failed = recentErrors.has(value.sessionId) || value.status === 'failed' || value.status === 'error';
+        recentErrors.delete(value.sessionId);
+        notifySessionFinished(value, failed);
+      }
+      win?.webContents.send(channel, value);
+    },
     spawn,
+  });
+
+  ipcMain.handle('sessions:remember-title', (_, sessionId, title) => {
+    if (typeof sessionId === 'string' && sessionId) {
+      sessionTitles.set(sessionId, typeof title === 'string' && title.trim() ? title.trim() : 'Codex 会话');
+    }
+    return true;
   });
 
   registerIpcHandlers({

@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('codex', {
   saveCodexPath: codexPath => ipcRenderer.invoke('codex:path-save', codexPath),
   saveSession: session => ipcRenderer.invoke('sessions:save', session),
   archiveSession: session => ipcRenderer.invoke('sessions:archive', session),
+  listArchivedSessions: () => ipcRenderer.invoke('sessions:archived-list'),
+  restoreArchivedSession: session => ipcRenderer.invoke('sessions:restore', session),
+  removeArchivedSession: session => ipcRenderer.invoke('sessions:archived-remove', session),
   archiveProject: async sessions => {
     for (const session of sessions) {
       const result = await ipcRenderer.invoke('sessions:archive', session);
@@ -29,7 +32,11 @@ contextBridge.exposeInMainWorld('codex', {
   chooseFolder: () => ipcRenderer.invoke('dialog:folder'),
   chooseFiles: defaultPath => ipcRenderer.invoke('dialog:files', defaultPath),
   chooseCodexExecutable: defaultPath => ipcRenderer.invoke('dialog:codex-executable', defaultPath),
+  listProjectFiles: cwd => ipcRenderer.invoke('files:list-project', cwd),
+  openPath: (cwd, filePath) => ipcRenderer.invoke('files:open', cwd, filePath),
+  openInVsCode: (cwd, filePath) => ipcRenderer.invoke('files:open-vscode', cwd, filePath),
   getPathForFile: file => webUtils.getPathForFile(file),
+  rememberSessionTitle: (sessionId, title) => ipcRenderer.invoke('sessions:remember-title', sessionId, title),
   start: options => ipcRenderer.invoke('cli:start', options),
   stop: sessionId => ipcRenderer.invoke('cli:stop', sessionId),
   compact: (sessionId, threadId) => ipcRenderer.invoke('cli:compact', sessionId, threadId),
@@ -50,4 +57,5 @@ contextBridge.exposeInMainWorld('codex', {
   onUserInput: callback => subscribe('cli:user-input', callback),
   onPlanReady: callback => subscribe('cli:plan-ready', callback),
   onSkillsChanged: callback => subscribe('cli:skills-changed', callback),
+  onFocusSession: callback => subscribe('sessions:focus', callback),
 });

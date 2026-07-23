@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { normalizeArchivedSessions, threadIdsFromArchivedSessions } = require('./codex-archive.cjs');
 
 function readJson(filePath, fallback) {
   try {
@@ -47,7 +48,24 @@ function normalizeSettings(value) {
   };
 }
 
-function createSessionStore(dataFile, archivedThreadsFile, settingsFile) {
+function createSessionStore(dataFile, archivedThreadsFile, settingsFile, archivedSessionsFile) {
+  const resolveArchivedSessionsFile = () => archivedSessionsFile || (archivedThreadsFile
+    ? path.join(path.dirname(archivedThreadsFile), 'archived-sessions.json')
+    : null);
+
+  const loadLegacyThreadIds = () => {
+    const values = readJson(archivedThreadsFile, []);
+    return Array.isArray(values) ? values.filter(value => typeof value === 'string' && value) : [];
+  };
+
+  const persistArchivedSessions = sessions => {
+    const normalized = normalizeArchivedSessions(sessions);
+    const file = resolveArchivedSessionsFile();
+    if (file) writeJson(file, normalized);
+    if (archivedThreadsFile) writeJson(archivedThreadsFile, [...threadIdsFromArchivedSessions(normalized)]);
+    return normalized;
+  };
+
   return {
     loadSessions() {
       return readJson(dataFile, []);
@@ -56,11 +74,42 @@ function createSessionStore(dataFile, archivedThreadsFile, settingsFile) {
       writeJson(dataFile, sessions);
     },
     loadArchivedThreads() {
-      const values = readJson(archivedThreadsFile, []);
-      return new Set(Array.isArray(values) ? values.filter(value => typeof value === 'string') : []);
+      return threadIdsFromArchivedSessions(this.loadArchivedSessions());
     },
     saveArchivedThreads(threadIds) {
-      writeJson(archivedThreadsFile, [...threadIds]);
+      const ids = new Set(Array.isArray(threadIds) ? threadIds : [...threadIds].filter(value => typeof value === 'string' && value));
+      const current = this.loadArchivedSessions();
+      const retained = current.filter(session => !session.threadId || ids.has(session.threadId));
+      for (const threadId of ids) {
+        if (retained.some(session => session.threadId === threadId)) continue;
+        retained.push({
+          id: `archived-${threadId}`,
+          title: '已归档对话',
+          cwd: '',
+          threadId,
+          updated: Date.now(),
+          archivedAt: Date.now(),
+        });
+      }
+      persistArchivedSessions(retained);
+    },
+    loadArchivedSessions() {
+      const file = resolveArchivedSessionsFile();
+      const fromFile = file ? normalizeArchivedSessions(readJson(file, [])) : [];
+      if (fromFile.length) return fromFile;
+      const legacy = loadLegacyThreadIds();
+      if (!legacy.length) return [];
+      return normalizeArchivedSessions(legacy.map(threadId => ({
+        id: `archived-${threadId}`,
+        title: '已归档对话',
+        cwd: '',
+        threadId,
+        updated: Date.now(),
+        archivedAt: Date.now(),
+      })));
+    },
+    saveArchivedSessions(sessions) {
+      return persistArchivedSessions(sessions);
     },
     loadSettings() {
       return normalizeSettings(settingsFile ? readJson(settingsFile, {}) : {});

@@ -3,6 +3,7 @@ import { Composer } from './components/Composer';
 import { AppDialog } from './components/AppDialog';
 import { Sidebar } from './components/Sidebar';
 import { SettingsPage } from './components/SettingsPage';
+import { ArchivePage } from './components/ArchivePage';
 import { Timeline } from './components/Timeline';
 import { TitleBar } from './components/TitleBar';
 import { ContextMenu, type ContextMenuItem } from './components/ContextMenu';
@@ -120,9 +121,11 @@ export function App() {
           onSessionContextMenu={openSessionMenu}
           onSelect={session => {
             controller.closeSettings();
+            controller.closeArchive();
             controller.setActive(session);
           }}
           onSettings={controller.openSettings}
+          onOpenArchive={controller.openArchive}
           onToggleGroup={controller.toggleGroup}
         />
         {controller.settingsOpen ? (
@@ -138,6 +141,14 @@ export function App() {
             onHistoryRefreshIntervalSecondsChange={controller.setHistoryRefreshIntervalSeconds}
             onThemeChange={controller.setTheme}
             onSave={controller.saveCodexPath}
+          />
+        ) : controller.archiveOpen ? (
+          <ArchivePage
+            sessions={controller.archivedSessions}
+            onClose={controller.closeArchive}
+            onRefresh={controller.refreshArchivedSessions}
+            onRemove={controller.removeArchivedSession}
+            onRestore={controller.restoreArchivedSession}
           />
         ) : (
           <main>
@@ -157,7 +168,15 @@ export function App() {
                 </button>
               </div>
             </header>
-            <Timeline active={controller.active} running={controller.running} onAnswer={controller.answerUserInput} onPlanChoice={controller.choosePlanAction} onSelectedTextContextMenu={openCopyMenu} />
+            <Timeline
+              active={controller.active}
+              running={controller.running}
+              onAnswer={controller.answerUserInput}
+              onOpenPath={controller.openPath}
+              onOpenInVsCode={controller.openInVsCode}
+              onPlanChoice={controller.choosePlanAction}
+              onSelectedTextContextMenu={openCopyMenu}
+            />
             <Composer
               activeSessionId={controller.active?.id}
               session={controller.active}
@@ -176,6 +195,7 @@ export function App() {
               onInputContextMenu={openInputMenu}
               onChooseFiles={controller.chooseFiles}
               onAddFiles={controller.addFiles}
+              listMentionFiles={controller.listMentionFiles}
               onRemoveAttachment={controller.removeAttachment}
               onSend={controller.send}
               onCompact={controller.compact}
@@ -196,3 +216,4 @@ export function App() {
     </div>
   );
 }
+

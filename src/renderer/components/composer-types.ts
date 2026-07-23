@@ -19,6 +19,7 @@ export type ComposerProps = {
   onInputContextMenu(event: MouseEvent, selectedText: string, insertText: (text: string) => void): void;
   onChooseFiles(): void;
   onAddFiles(paths: string[]): void;
+  listMentionFiles?(cwd: string, query: string): Promise<string[]>;
   onRemoveAttachment(id: string): void;
   onSend(message?: string): void;
   onCompact(): void;

@@ -1,5 +1,16 @@
-const { removeArchivedSessions } = require('./codex-archive.cjs');
+const fs = require('fs');
+const path = require('path');
+const { shell } = require('electron');
+const {
+  findArchivedSession,
+  normalizeArchivedSessions,
+  removeArchivedSessionEntry,
+  removeArchivedSessions,
+  upsertArchivedSession,
+} = require('./codex-archive.cjs');
 const { loadCodexHistory, mergeSessions } = require('./codex-history.cjs');
+const { openPathInVsCode, openPathWithDefaultApp, resolveSessionFilePath } = require('./open-path.cjs');
+const { filterProjectFiles, listProjectFiles } = require('./project-files.cjs');
 
 function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation, getWindow, ipcMain, store }) {
   ipcMain.handle('window:minimize', () => getWindow()?.minimize());
@@ -45,11 +56,46 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
   ipcMain.handle('sessions:archive', (_, session) => {
     if (!session?.id) return { ok: false, error: '无效的会话。' };
     store.saveSessions(removeArchivedSessions(store.loadSessions(), session));
-    if (session.threadId) {
-      const archivedThreads = store.loadArchivedThreads();
-      archivedThreads.add(session.threadId);
-      store.saveArchivedThreads(archivedThreads);
+    store.saveArchivedSessions(upsertArchivedSession(store.loadArchivedSessions(), session));
+    return { ok: true };
+  });
+  ipcMain.handle('sessions:archived-list', () => store.loadArchivedSessions());
+  ipcMain.handle('sessions:restore', (_, target) => {
+    const archived = findArchivedSession(store.loadArchivedSessions(), target);
+    if (!archived) return { ok: false, error: '未找到归档会话。' };
+
+    let restored = archived;
+    if ((!Array.isArray(restored.timeline) || !restored.timeline.length) && restored.threadId) {
+      const fromHistory = loadCodexHistory(codexHome).find(session => session.threadId === restored.threadId);
+      if (fromHistory) {
+        restored = {
+          ...fromHistory,
+          id: archived.id.startsWith('archived-') ? fromHistory.id : archived.id,
+          title: archived.title && archived.title !== '已归档对话' ? archived.title : fromHistory.title,
+          cwd: archived.cwd || fromHistory.cwd,
+          model: archived.model || fromHistory.model,
+          reasoningEffort: archived.reasoningEffort || fromHistory.reasoningEffort,
+          collaborationMode: archived.collaborationMode || fromHistory.collaborationMode,
+          updated: Math.max(archived.updated || 0, fromHistory.updated || 0, Date.now()),
+        };
+      }
     }
+
+    if (!restored.cwd && !restored.threadId) {
+      return { ok: false, error: '该归档会话缺少可恢复的内容。' };
+    }
+
+    const { archivedAt, ...session } = restored;
+    const all = store.loadSessions().filter(item => item.id !== session.id && (!session.threadId || item.threadId !== session.threadId));
+    all.unshift(session);
+    store.saveSessions(all);
+    store.saveArchivedSessions(removeArchivedSessionEntry(store.loadArchivedSessions(), archived));
+    return { ok: true, session };
+  });
+  ipcMain.handle('sessions:archived-remove', (_, target) => {
+    const archived = findArchivedSession(store.loadArchivedSessions(), target);
+    if (!archived) return { ok: false, error: '未找到归档会话。' };
+    store.saveArchivedSessions(removeArchivedSessionEntry(store.loadArchivedSessions(), archived));
     return { ok: true };
   });
   ipcMain.handle('projects:delete', (_, cwd, sessions) => {
@@ -58,13 +104,13 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
       return { ok: false, error: '无效的项目会话。' };
     }
     let storedSessions = store.loadSessions();
-    const archivedThreads = store.loadArchivedThreads();
+    let archivedSessions = store.loadArchivedSessions();
     for (const session of sessions) {
       storedSessions = removeArchivedSessions(storedSessions, session);
-      if (session.threadId) archivedThreads.add(session.threadId);
+      archivedSessions = upsertArchivedSession(archivedSessions, session);
     }
     store.saveSessions(storedSessions);
-    store.saveArchivedThreads(archivedThreads);
+    store.saveArchivedSessions(archivedSessions);
     const settings = store.loadSettings();
     store.saveSettings({ projectPaths: (settings.projectPaths || []).filter(projectPath => projectPath !== cwd) });
     return { ok: true };
@@ -90,6 +136,19 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
     });
     return result.canceled ? null : result.filePaths[0];
   });
+  ipcMain.handle('files:list-project', (_, cwd) => {
+    if (typeof cwd !== 'string' || !cwd) return [];
+    return listProjectFiles(cwd, { fs, path });
+  });
+  ipcMain.handle('files:open', async (_, cwd, filePath) => {
+    const absolute = resolveSessionFilePath(cwd, filePath);
+    return openPathWithDefaultApp(absolute);
+  });
+  ipcMain.handle('files:open-vscode', async (_, cwd, filePath) => {
+    const absolute = resolveSessionFilePath(cwd, filePath);
+    return openPathInVsCode(absolute);
+  });
+  ipcMain.handle('files:filter', (_, files, query) => filterProjectFiles(files, query));
   ipcMain.handle('cli:start', (_, options) => codexProcess.start(options));
   ipcMain.handle('cli:stop', (_, sessionId) => codexProcess.stop(sessionId));
   ipcMain.handle('cli:compact', (_, sessionId, threadId) => codexProcess.compact(sessionId, threadId));

@@ -35,11 +35,22 @@ export function Composer(props: ComposerProps) {
   };
   const activeEffort = resolveReasoningEffort(props.session?.reasoningEffort, selectedModel) || '';
   const status = props.compacting ? '正在压缩上下文...' : props.waiting ? '等待你的选择' : props.running ? '思考中...' : '准备就绪';
+  const applyMention = (relativePath: string) => {
+    const cwd = props.session?.cwd;
+    if (!cwd) return;
+    const separator = cwd.includes('\\') ? '\\' : '/';
+    const base = cwd.replace(/[\\/]+$/, '');
+    const absolutePath = `${base}${separator}${relativePath.split('/').join(separator)}`;
+    props.onAddFiles([absolutePath]);
+    props.onInputChange(props.input.replace(/(^|\s)@[^\s@]*$/, (_match, prefix) => prefix || ''));
+  };
   const { commandIndex, commandMenuOpen, filteredCommands, runCommand: executeCommand, setCommandIndex, setSkillPaletteOpen, skillPaletteOpen } = useComposerCommands({
     ...props,
     disabled,
     selectedModel,
     setOpenSelector,
+    listMentionFiles: props.listMentionFiles,
+    onMentionSelect: applyMention,
   });
   const runCommand = (index: number) => {
     if (executeCommand(index)) window.requestAnimationFrame(() => focusEditorAt('end'));
@@ -459,3 +470,5 @@ export function Composer(props: ComposerProps) {
     </footer>
   );
 }
+
+

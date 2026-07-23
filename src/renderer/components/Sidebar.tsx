@@ -1,5 +1,5 @@
 import { type KeyboardEvent, type MouseEvent, type PointerEvent, useState } from 'react';
-import { ChevronDown, ChevronRight, FolderPlus, LoaderCircle, Plus, RefreshCw, Settings, Terminal } from 'lucide-react';
+import { Archive, ChevronDown, ChevronRight, FolderPlus, LoaderCircle, Plus, RefreshCw, Settings, Terminal } from 'lucide-react';
 import { projectName } from '../session-model';
 import type { Session, SessionGroup } from '../types';
 
@@ -16,6 +16,7 @@ type SidebarProps = {
   onSessionContextMenu(event: MouseEvent, session: Session, startRenaming: () => void): void;
   onSelect(session: Session): void;
   onSettings(): void;
+  onOpenArchive(): void;
   onToggleGroup(cwd: string): void;
 };
 
@@ -65,6 +66,9 @@ export function Sidebar(props: SidebarProps) {
           </button>
           <button className="icon" onClick={props.onRefresh} title="刷新 Codex 历史记录">
             <RefreshCw size={18} />
+          </button>
+          <button className="icon" onClick={props.onOpenArchive} title="查看归档会话">
+            <Archive size={18} />
           </button>
         </div>
         <div className="sessions">
@@ -144,3 +148,5 @@ export function Sidebar(props: SidebarProps) {
     </div>
   );
 }
+
+

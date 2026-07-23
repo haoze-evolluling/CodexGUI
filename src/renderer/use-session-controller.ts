@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { freshSession, groupSessions, normalizeSession, timelineOf } from './session-model';
+import { freshSession, groupSessions, normalizeSession, shouldKeepLiveTimeline, timelineOf } from './session-model';
 import type { AppSettings, CodexAttachment, CodexInstallation, CodexModel, CodexSkill, CollaborationMode, FontSize, PermissionMode, PlanDecisionActivity, SaveCodexPathResult, Session, ThemeMode, UserInputActivity } from './types';
 import type { AppDialogState } from './components/AppDialog';
 import { addUniqueAttachments } from './attachment-utils';
@@ -26,12 +26,20 @@ export function useSessionController() {
   const [dialog, setDialog] = useState<AppDialogState>();
   const [settings, setSettings] = useState<AppSettings>({ permissionMode: 'default', fontSize: 'small', theme: initialTheme, historyRefreshIntervalSeconds: 10 });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archivedSessions, setArchivedSessions] = useState<Session[]>([]);
+  const projectFilesCache = useRef<Map<string, string[]>>(new Map());
   const [installation, setInstallation] = useState<CodexInstallation>();
   const settingsRef = useRef(settings);
+  const runningSessionsRef = useRef(runningSessions);
 
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  useEffect(() => {
+    runningSessionsRef.current = runningSessions;
+  }, [runningSessions]);
 
   const rememberProjects = (projectPaths: string[]) => {
     const current = settingsRef.current;
@@ -51,6 +59,7 @@ export function useSessionController() {
 
   const openSettings = () => {
     setDialog(undefined);
+    setArchiveOpen(false);
     setSettingsOpen(true);
     window.codex.getCodexInstallation().then(setInstallation).catch(() => undefined);
   };
@@ -73,8 +82,92 @@ export function useSessionController() {
     if (!items) return;
     const normalized = items.map(normalizeSession);
     rememberProjects(normalized.map(item => item.cwd));
-    setSessions(normalized);
-    setActive(current => normalized.find(item => item.id === current?.id) || normalized[0]);
+    setSessions(current => {
+      const liveById = new Map(current.map(session => [session.id, session]));
+      const liveByThread = new Map(
+        current
+          .filter(session => session.threadId)
+          .map(session => [session.threadId as string, session]),
+      );
+      const matchedLiveIds = new Set<string>();
+      const merged = normalized.map(session => {
+        const live = liveById.get(session.id)
+          || (session.threadId ? liveByThread.get(session.threadId) : undefined);
+        if (!live) return session;
+        matchedLiveIds.add(live.id);
+        const liveTimeline = timelineOf(live);
+        const nextTimeline = timelineOf(session);
+        const keepLiveTimeline = shouldKeepLiveTimeline(liveTimeline, nextTimeline, {
+          running: runningSessionsRef.current.has(live.id),
+          liveUpdated: live.updated,
+          incomingUpdated: session.updated,
+        });
+        if (!keepLiveTimeline) {
+          return {
+            ...session,
+            id: live.id,
+            title: live.title || session.title,
+            model: live.model || session.model,
+            reasoningEffort: live.reasoningEffort || session.reasoningEffort,
+            collaborationMode: live.collaborationMode || session.collaborationMode,
+          };
+        }
+        return {
+          ...session,
+          id: live.id,
+          title: live.title || session.title,
+          model: live.model || session.model,
+          reasoningEffort: live.reasoningEffort || session.reasoningEffort,
+          collaborationMode: live.collaborationMode || session.collaborationMode,
+          threadStatus: live.threadStatus || session.threadStatus,
+          timeline: liveTimeline,
+          messages: undefined,
+          tokenUsage: session.tokenUsage || live.tokenUsage,
+          updated: Math.max(live.updated || 0, session.updated || 0),
+        };
+      });
+      const liveOnly = current.filter(session =>
+        !matchedLiveIds.has(session.id)
+        && (runningSessionsRef.current.has(session.id) || !session.threadId),
+      );
+      return [...liveOnly, ...merged];
+    });
+    setActive(current => {
+      if (!current) return normalized[0];
+      const fromHistory = normalized.find(item => item.id === current.id)
+        || (current.threadId ? normalized.find(item => item.threadId === current.threadId) : undefined);
+      if (!fromHistory) return current;
+      const liveTimeline = timelineOf(current);
+      const historyTimeline = timelineOf(fromHistory);
+      const keepLiveTimeline = shouldKeepLiveTimeline(liveTimeline, historyTimeline, {
+        running: runningSessionsRef.current.has(current.id),
+        liveUpdated: current.updated,
+        incomingUpdated: fromHistory.updated,
+      });
+      if (!keepLiveTimeline) {
+        return {
+          ...fromHistory,
+          id: current.id,
+          title: current.title || fromHistory.title,
+          model: current.model || fromHistory.model,
+          reasoningEffort: current.reasoningEffort || fromHistory.reasoningEffort,
+          collaborationMode: current.collaborationMode || fromHistory.collaborationMode,
+        };
+      }
+      return {
+        ...fromHistory,
+        id: current.id,
+        title: current.title || fromHistory.title,
+        model: current.model || fromHistory.model,
+        reasoningEffort: current.reasoningEffort || fromHistory.reasoningEffort,
+        collaborationMode: current.collaborationMode || fromHistory.collaborationMode,
+        threadStatus: current.threadStatus || fromHistory.threadStatus,
+        timeline: liveTimeline,
+        messages: undefined,
+        tokenUsage: fromHistory.tokenUsage || current.tokenUsage,
+        updated: Math.max(current.updated || 0, fromHistory.updated || 0),
+      };
+    });
   };
 
   useSessionEvents({
@@ -96,7 +189,21 @@ export function useSessionController() {
     if (!active) return;
     setSessions(items => [active, ...items.filter(item => item.id !== active.id)]);
     window.codex.saveSession(active);
+    window.codex.rememberSessionTitle(active.id, active.title).catch(() => undefined);
   }, [active]);
+
+  useEffect(() => {
+    const unsubscribe = window.codex.onFocusSession(value => {
+      setArchiveOpen(false);
+      setSettingsOpen(false);
+      setSessions(items => {
+        const match = items.find(item => item.id === value.sessionId);
+        if (match) setActive(match);
+        return items;
+      });
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     const cwd = active?.cwd;
@@ -417,6 +524,99 @@ export function useSessionController() {
     setSessions(remaining);
     setActive(current => current && ids.has(current.id) ? remaining[0] : current);
   };
+  
+  const openArchive = async () => {
+    setDialog(undefined);
+    setSettingsOpen(false);
+    setArchiveOpen(true);
+    try {
+      setArchivedSessions(await window.codex.listArchivedSessions());
+    } catch {
+      setArchivedSessions([]);
+    }
+  };
+
+  const refreshArchivedSessions = async () => {
+    try {
+      setArchivedSessions(await window.codex.listArchivedSessions());
+    } catch {
+      setArchivedSessions([]);
+    }
+  };
+
+  const restoreArchivedSession = async (target: Session) => {
+    const result = await window.codex.restoreArchivedSession(target);
+    if (!result.ok) {
+      setDialog({ title: '恢复失败', description: result.error || '未知错误', onConfirm: () => setDialog(undefined) });
+      return;
+    }
+    const restored = normalizeSession(result.session);
+    setArchivedSessions(current => current.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId)));
+    setSessions(current => [restored, ...current.filter(session => session.id !== restored.id && (!restored.threadId || session.threadId !== restored.threadId))]);
+    setActive(restored);
+    setArchiveOpen(false);
+    setSettingsOpen(false);
+  };
+
+  const removeArchivedSession = async (target: Session) => {
+    setDialog({
+      title: '彻底移除归档',
+      description: `确定从归档中移除“${target.title}”吗？此操作不会删除 Codex 原始历史文件。`,
+      confirmLabel: '移除',
+      cancelLabel: '取消',
+      danger: true,
+      onConfirm: async () => {
+        setDialog(undefined);
+        const result = await window.codex.removeArchivedSession(target);
+        if (!result.ok) {
+          setDialog({ title: '移除失败', description: result.error || '未知错误', onConfirm: () => setDialog(undefined) });
+          return;
+        }
+        setArchivedSessions(current => current.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId)));
+      },
+    });
+  };
+
+  const openPath = async (filePath: string, cwd = active?.cwd) => {
+    const result = await window.codex.openPath(cwd, filePath);
+    if (!result.ok) {
+      setDialog({ title: '无法打开文件', description: result.error || '未知错误', onConfirm: () => setDialog(undefined) });
+    }
+  };
+
+  const openInVsCode = async (filePath: string, cwd = active?.cwd) => {
+    const result = await window.codex.openInVsCode(cwd, filePath);
+    if (!result.ok) {
+      setDialog({ title: '无法在 VS Code 中打开', description: result.error || '未知错误', onConfirm: () => setDialog(undefined) });
+    }
+  };
+
+  const listMentionFiles = async (cwd: string, query: string) => {
+    if (!cwd) return [] as string[];
+    let files = projectFilesCache.current.get(cwd);
+    if (!files) {
+      files = await window.codex.listProjectFiles(cwd);
+      projectFilesCache.current.set(cwd, files);
+    }
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return files.slice(0, 50);
+    const scored = files
+      .map(file => {
+        const normalized = file.toLowerCase();
+        const name = normalized.split('/').pop() || normalized;
+        let score = -1;
+        if (name === normalizedQuery) score = 300;
+        else if (name.startsWith(normalizedQuery)) score = 200;
+        else if (name.includes(normalizedQuery)) score = 100;
+        else if (normalized.includes(normalizedQuery)) score = 50;
+        return score >= 0 ? { file, score, name } : null;
+      })
+      .filter((item): item is { file: string; score: number; name: string } => !!item)
+      .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name) || left.file.localeCompare(right.file))
+      .slice(0, 50)
+      .map(item => item.file);
+    return scored;
+  };
   const toggleGroup = (cwd: string) => setCollapsedGroups(current => {
     const next = new Set(current); if (next.has(cwd)) next.delete(cwd); else next.add(cwd); return next;
   });
@@ -488,8 +688,8 @@ export function useSessionController() {
   const canRollback = !!active?.threadId && !running && !compacting
     && timelineOf(active).some(item => item.type === 'message' && item.role === 'user');
   return {
-    active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, canRollback, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
-    closeSettings: () => setSettingsOpen(false), installation, openSettings, saveCodexPath, setFontSize, setTheme, settings, settingsOpen,
+    active, addFiles, answerUserInput, archiveOpen, archiveProject, archiveSession, archivedSessions, attachments, canRollback, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
+    closeArchive: () => setArchiveOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, openArchive, openInVsCode, openPath, openSettings, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, setFontSize, setTheme, settings, settingsOpen,
     createInFolder, createProjectSession, groups, input, models, moveProject, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive, setHistoryRefreshIntervalSeconds, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
@@ -500,3 +700,5 @@ export function useSessionController() {
     rollback, toggleGroup, waiting,
   };
 }
+
+

@@ -32,13 +32,24 @@ export function useSessionEvents(options: Options) {
     const refreshInterval = window.setInterval(options.refreshHistory, options.historyRefreshIntervalSeconds * 1_000);
 
     const updateSession = (sessionId: string, update: (session: Session) => Session) => {
-      options.setSessions(items => items.map(session => {
-        if (session.id !== sessionId) return session;
-        const next = update(normalizeSession(session));
-        window.codex.saveSession(next);
-        return next;
-      }));
-      options.setActive(current => current?.id === sessionId ? update(normalizeSession(current)) : current);
+      let nextSession: Session | undefined;
+      options.setActive(current => {
+        if (current?.id !== sessionId) return current;
+        nextSession = update(normalizeSession(current));
+        return nextSession;
+      });
+      options.setSessions(items => {
+        let changed = false;
+        const nextItems = items.map(session => {
+          if (session.id !== sessionId) return session;
+          const next = nextSession || update(normalizeSession(session));
+          nextSession = next;
+          changed = true;
+          return next;
+        });
+        if (nextSession) window.codex.saveSession(nextSession);
+        return changed ? nextItems : items;
+      });
     };
     const appendMessage = (sessionId: string, message: Message) => updateSession(sessionId, session => ({
       ...session,

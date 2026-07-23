@@ -86,3 +86,12 @@
 .theme-light .choice small, .theme-light .plan-decision small { color: #718096; }
 .theme-light .user-input-activity > button, .theme-light .settings-actions .primary, .theme-light .custom-model-apply { color: #fff; background: #1769d1; }
 .theme-light .error pre { color: #c73747; }
+
+.theme-light .archive-item { background: #fff; border-color: #d7e0ec; }
+.theme-light .archive-item-main span { color: #334155; }
+.theme-light .archive-item-main small, .theme-light .archive-item-meta, .theme-light .archive-empty { color: #64748b; }
+.theme-light .archive-item-actions button { color: #334155; background: #eef3f9; border-color: #d0dae8; }
+.theme-light .archive-item-actions button:hover { color: #0f172a; background: #e2eaf5; border-color: #b7c7dc; }
+.theme-light .archive-item-actions button.danger { color: #b42318; background: #fff1f0; border-color: #f0c2bd; }
+.theme-light .file-change-actions button { color: #334155; background: #eef3f9; border-color: #d0dae8; }
+.theme-light .file-change-actions button:hover:not(:disabled) { color: #0f172a; background: #e2eaf5; border-color: #b7c7dc; }

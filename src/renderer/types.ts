@@ -104,6 +104,7 @@ export type Session = {
   collaborationMode?: 'default' | 'plan';
   threadStatus?: ThreadStatus;
   tokenUsage?: ThreadTokenUsage;
+  archivedAt?: number;
 };
 
 export type SessionGroup = {
@@ -113,6 +114,10 @@ export type SessionGroup = {
 };
 
 export type ArchiveResult = { ok: true } | { ok: false; error?: string };
+export type RestoreArchiveResult =
+  | { ok: true; session: Session }
+  | { ok: false; error?: string };
+export type OpenPathResult = { ok: true } | { ok: false; error?: string };
 export type CodexModel = {
   id: string; model: string; displayName: string; description: string; isDefault: boolean;
   defaultReasoningEffort: string;
@@ -135,10 +140,16 @@ export type CodexApi = {
   saveSession(session: Session): Promise<Session[]>;
   archiveSession(session: Session): Promise<ArchiveResult>;
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
+  listArchivedSessions(): Promise<Session[]>;
+  restoreArchivedSession(session: Pick<Session, 'id' | 'threadId'> | Session): Promise<RestoreArchiveResult>;
+  removeArchivedSession(session: Pick<Session, 'id' | 'threadId'> | Session): Promise<ArchiveResult>;
   deleteProject(cwd: string, sessions: Session[]): Promise<ArchiveResult>;
   chooseFolder(): Promise<string | null>;
   chooseFiles(defaultPath?: string): Promise<string[]>;
   chooseCodexExecutable(defaultPath?: string): Promise<string | null>;
+  listProjectFiles(cwd: string): Promise<string[]>;
+  openPath(cwd: string | undefined, filePath: string): Promise<OpenPathResult>;
+  openInVsCode(cwd: string | undefined, filePath: string): Promise<OpenPathResult>;
   getPathForFile(file: File): string;
   start(options: { sessionId: string; cwd: string; prompt: string; attachments: CodexAttachment[]; skill?: Pick<CodexSkill, 'name' | 'path'>; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode; permissionMode: PermissionMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;
@@ -152,7 +163,7 @@ export type CodexApi = {
   onData(callback: (value: { sessionId: string; itemId: string; text: string; full?: boolean }) => void): () => void;
   onActivity(callback: (value: { sessionId: string; activity: Activity }) => void): () => void;
   onThread(callback: (value: { sessionId: string; threadId: string }) => void): () => void;
-  onExit(callback: (value: { sessionId: string; code?: number }) => void): () => void;
+  onExit(callback: (value: { sessionId: string; code?: number; status?: string }) => void): () => void;
   onError(callback: (value: { sessionId: string; error: string }) => void): () => void;
   onCompacted(callback: (value: { sessionId: string }) => void): () => void;
   onStatus(callback: (value: { sessionId: string; status: ThreadStatus }) => void): () => void;
@@ -160,6 +171,8 @@ export type CodexApi = {
   onUserInput(callback: (value: { sessionId: string; request: { itemId: string; questions: UserInputQuestion[] } }) => void): () => void;
   onPlanReady(callback: (value: { sessionId: string; plan: { itemId: string; text: string } }) => void): () => void;
   onSkillsChanged(callback: () => void): () => void;
+  onFocusSession(callback: (value: { sessionId: string }) => void): () => void;
+  rememberSessionTitle(sessionId: string, title: string): Promise<boolean>;
 };
 
 declare global {
