@@ -1,0 +1,22 @@
+.context-menu { position: fixed; z-index: 200; min-width: 132px; padding: 4px; background: #202936; border: 1px solid #4a5a70; border-radius: 7px; box-shadow: 0 14px 32px rgb(0 0 0 / 42%); }
+.context-menu button { width: 100%; padding: 7px 9px; color: #dce5f0; background: transparent; border-radius: 4px; text-align: left; font-size: 13px; }
+.context-menu button:hover, .context-menu button:focus-visible { color: #fff; background: #2b3a4d; outline: none; }
+.context-menu button.danger { color: #ffabab; }
+.context-menu button.danger:hover, .context-menu button.danger:focus-visible { color: #fff; background: #753b46; }
+.context-menu button:disabled { cursor: not-allowed; }
+.clear-confirm-backdrop, .app-dialog-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(6 9 14 / 68%); }
+.app-dialog, .clear-confirm-dialog { width: min(390px, 100%); display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; padding: 18px; color: #e8edf5; background: #1b222d; border: 1px solid #46546a; border-radius: 8px; box-shadow: 0 22px 60px rgb(0 0 0 / 52%); }
+.app-dialog-icon, .clear-confirm-icon { width: 38px; height: 38px; display: grid; place-items: center; color: #8fc0ff; background: #25364b; border-radius: 7px; }
+.app-dialog-icon.danger, .clear-confirm-icon { color: #ff9c9c; background: #3b252b; }
+.app-dialog-copy b, .clear-confirm-copy b { display: block; font-size: 14px; }
+.app-dialog-copy p, .clear-confirm-copy p { margin: 6px 0 0; color: #9ba9ba; font-size: 12px; line-height: 1.55; }
+.app-dialog-details { display: grid; gap: 7px; margin: 10px 0 0; }
+.app-dialog-details > div { min-width: 0; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; font-size: 12px; line-height: 1.45; }
+.app-dialog-details dt { color: #7f8b9d; }
+.app-dialog-details dd { min-width: 0; margin: 0; overflow: hidden; color: #d7e0ec; text-overflow: ellipsis; white-space: nowrap; }
+.app-dialog-actions, .clear-confirm-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; margin-top: 5px; }
+.app-dialog-actions button, .clear-confirm-actions button { padding: 7px 12px; color: #bfc9d7; background: #273342; font-size: 12px; }
+.app-dialog-actions button:hover, .clear-confirm-actions button:hover { color: #fff; background: #334256; }
+.app-dialog-actions .primary { color: #fff; background: #1769d1; }
+.app-dialog-actions .danger, .clear-confirm-actions .danger { color: #fff; background: #a44753; }
+.app-dialog-actions .danger:hover, .clear-confirm-actions .danger:hover { background: #bd5260; }

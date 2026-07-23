@@ -6,6 +6,7 @@ import { addUniqueAttachments } from './attachment-utils';
 import { without } from './session-set-utils';
 import { resolveModel, resolveReasoningEffort } from './model-utils';
 import { useSessionEvents } from './use-session-events';
+import { createSessionStatusDialog } from './session-status-dialog';
 
 export function useSessionController() {
   const initialTheme = document.documentElement.dataset.initialTheme === 'dark' ? 'dark' : 'light';
@@ -467,40 +468,7 @@ export function useSessionController() {
 
   const showStatus = () => {
     if (!active) return;
-    const effortLabels: Record<string, string> = {
-      minimal: '最低', low: '低', medium: '中', high: '高', xhigh: '最高',
-    };
-    const statusLabels: Record<string, string> = {
-      notLoaded: '未加载', idle: '空闲', systemError: '系统错误', active: '运行中',
-    };
-    const flags = active.threadStatus?.activeFlags || [];
-    const status = flags.includes('waitingOnApproval')
-      ? '等待批准'
-      : flags.includes('waitingOnUserInput')
-        ? '等待用户输入'
-        : statusLabels[active.threadStatus?.type || ''] || (runningSessions.has(active.id) ? '运行中' : '空闲');
-    const selectedModel = resolveModel(models, active.model, settings.model);
-    const effort = resolveReasoningEffort(active.reasoningEffort, selectedModel);
-    const tokenUsage = active.tokenUsage;
-    const number = (value: number) => new Intl.NumberFormat('zh-CN').format(value);
-    const context = tokenUsage
-      ? `${number(tokenUsage.last.totalTokens)}${tokenUsage.modelContextWindow ? ` / ${number(tokenUsage.modelContextWindow)}` : ''}`
-      : '尚无用量数据';
-    setDialog({
-      title: '会话状态',
-      details: [
-        { label: '状态', value: status },
-        { label: '线程 ID', value: active.threadId || '尚未创建' },
-        { label: '项目', value: active.cwd || '未选择' },
-        { label: '模型', value: selectedModel?.displayName || active.model || '默认' },
-        { label: '推理强度', value: effortLabels[effort || ''] || effort || '默认' },
-        { label: '协作模式', value: active.collaborationMode === 'plan' ? '计划模式' : '默认模式' },
-        { label: '权限', value: permissionMode === 'yolo' ? 'YOLO 权限' : '默认权限' },
-        { label: '当前上下文', value: context },
-        { label: '累计 token', value: tokenUsage ? number(tokenUsage.total.totalTokens) : '尚无用量数据' },
-      ],
-      onConfirm: () => setDialog(undefined),
-    });
+    setDialog(createSessionStatusDialog({ active, models, preferredModel: settings.model, permissionMode, running: runningSessions.has(active.id), onClose: () => setDialog(undefined) }));
   };
 
   const groups = useMemo(() => groupSessions(sessions, settings.projectPaths), [sessions, settings.projectPaths]);

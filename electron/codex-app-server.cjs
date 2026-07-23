@@ -1,4 +1,5 @@
 const readline = require('readline');
+const { activityFromItem, resolvePermissionSettings } = require('./codex-app-server-support.cjs');
 
 function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
   let child;
@@ -29,26 +30,6 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
   function emitForThread(channel, threadId, value = {}) {
     const sessionId = sessionIdFor(threadId);
     if (sessionId) send(channel, { sessionId, ...value });
-  }
-
-  function activityFromItem(item, status) {
-    if (!item?.id) return null;
-    if (item.type === 'commandExecution') {
-      return {
-        id: item.id, type: 'command', status,
-        command: item.command || '', output: item.aggregatedOutput || '', exitCode: item.exitCode,
-      };
-    }
-    if (item.type === 'fileChange') {
-      return {
-        id: item.id, type: 'file_change', status,
-        files: (item.changes || []).map(change => ({ path: change.path, kind: change.kind || 'update' })),
-      };
-    }
-    if (item.type === 'contextCompaction') {
-      return { id: item.id, type: 'compaction', status };
-    }
-    return null;
   }
 
   async function emitActivity(threadId, activity) {
@@ -187,45 +168,6 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
     return ready || startProcess();
   }
 
-  function sandboxPolicyFromConfig(config) {
-    if (config.sandbox_mode === 'danger-full-access') return { type: 'dangerFullAccess' };
-    if (config.sandbox_mode === 'read-only') return { type: 'readOnly' };
-    const workspace = config.sandbox_workspace_write || {};
-    return {
-      type: 'workspaceWrite',
-      writableRoots: workspace.writable_roots || [],
-      networkAccess: workspace.network_access === true,
-      excludeSlashTmp: workspace.exclude_slash_tmp === true,
-      excludeTmpdirEnvVar: workspace.exclude_tmpdir_env_var === true,
-    };
-  }
-
-  async function resolvePermissionSettings(options) {
-    if (options.permissionMode === 'yolo') {
-      return {
-        approvalPolicy: 'never',
-        sandbox: 'danger-full-access',
-        sandboxPolicy: { type: 'dangerFullAccess' },
-      };
-    }
-    await ensureReady();
-    try {
-      const result = await request('config/read', { cwd: options.cwd, includeLayers: false });
-      const config = result.config || {};
-      return {
-        approvalPolicy: config.approval_policy || 'on-request',
-        sandbox: config.sandbox_mode || 'workspace-write',
-        sandboxPolicy: sandboxPolicyFromConfig(config),
-      };
-    } catch {
-      return {
-        approvalPolicy: 'on-request',
-        sandbox: 'workspace-write',
-        sandboxPolicy: { type: 'workspaceWrite' },
-      };
-    }
-  }
-
   async function ensureThread(options) {
     await ensureReady();
     const loaded = threadsBySession.get(options.sessionId);
@@ -252,7 +194,7 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
     async start(options) {
       if (!options.sessionId || turnsBySession.has(options.sessionId)) return false;
       try {
-        const permissionSettings = await resolvePermissionSettings(options);
+        const permissionSettings = await resolvePermissionSettings({ ensureReady, request }, options);
         const threadId = await ensureThread({ ...options, permissionSettings });
         const input = [];
         if (options.skill?.name && options.skill?.path) {

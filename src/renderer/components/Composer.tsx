@@ -1,9 +1,11 @@
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowUp, Bot, BrainCircuit, Check, ChevronDown, GitBranch, ListTodo, Monitor, Plus, ShieldAlert, ShieldCheck, Square } from 'lucide-react';
 import { AttachmentTokens } from './AttachmentTokens';
 import type { ComposerProps } from './composer-types';
 import { useComposerCommands } from './use-composer-commands';
 import { resolveModel, resolveReasoningEffort } from '../model-utils';
+import { ComposerCommandPalette } from './ComposerCommandPalette';
+import { ComposerContextUsage } from './ComposerContextUsage';
 
 export function Composer(props: ComposerProps) {
   const [openSelector, setOpenSelector] = useState<'model' | 'effort' | 'permission' | null>(null);
@@ -30,21 +32,6 @@ export function Composer(props: ComposerProps) {
   };
   const activeEffort = resolveReasoningEffort(props.session?.reasoningEffort, selectedModel) || '';
   const status = props.compacting ? '正在压缩上下文...' : props.waiting ? '等待你的选择' : props.running ? '思考中...' : '准备就绪';
-  const tokenUsage = props.session?.tokenUsage;
-  const contextTokens = tokenUsage?.last.totalTokens;
-  const contextWindow = tokenUsage?.modelContextWindow;
-  const contextPercent = contextTokens !== undefined && contextWindow && contextWindow > 0
-    ? Math.min(100, Math.round((contextTokens / contextWindow) * 100))
-    : undefined;
-  const contextLevel = contextPercent === undefined ? 'unknown' : contextPercent >= 90 ? 'critical' : contextPercent >= 75 ? 'warning' : 'healthy';
-  const contextSuggestion = contextLevel === 'critical'
-    ? '上下文即将用尽，建议压缩或清除后继续。'
-    : contextLevel === 'warning'
-      ? '上下文占用较高，建议在继续前压缩。'
-      : undefined;
-  const number = (value: number) => value >= 1000
-    ? `${(value / 1000).toFixed(value >= 10000 ? 0 : 1).replace(/\.0$/, '')}k`
-    : value.toLocaleString('zh-CN');
   const { commandIndex, commandMenuOpen, filteredCommands, runCommand: executeCommand, setCommandIndex, setSkillPaletteOpen, skillPaletteOpen } = useComposerCommands({
     ...props,
     disabled,
@@ -175,34 +162,7 @@ export function Composer(props: ComposerProps) {
   return (
     <footer className="composer-shell">
       <div className="composer-frame">
-        {commandMenuOpen && (
-          <div className="command-menu" ref={commandMenuRef} role="listbox" aria-label="命令和 Skills">
-            {filteredCommands.map((command, index) => {
-              const Icon = command.icon;
-              return (
-                <div className="command-menu-entry" key={command.id}>
-                  {(index === 0 || filteredCommands[index - 1].kind !== command.kind) && (
-                    <div className="command-menu-title">{command.kind === 'skill' ? 'Skills' : '命令'}</div>
-                  )}
-                  <button
-                    ref={index === commandIndex ? selectedCommandRef : null}
-                    className={`command-item ${index === commandIndex ? 'selected' : ''}`}
-                    onMouseDown={event => event.preventDefault()}
-                    onMouseEnter={() => setCommandIndex(index)}
-                    onClick={() => runCommand(index)}
-                    disabled={command.disabled}
-                    role="option"
-                    aria-selected={index === commandIndex}
-                  >
-                    <Icon size={17} />
-                    <span><b>{command.name}</b><small>{command.description}</small></span>
-                    <kbd>{command.shortcut}</kbd>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {commandMenuOpen && <ComposerCommandPalette commands={filteredCommands} commandIndex={commandIndex} menuRef={commandMenuRef} selectedCommandRef={selectedCommandRef} onCommandIndexChange={setCommandIndex} onRun={runCommand} />}
         <div
           className={`composer-card ${openSelector ? 'selector-active' : ''}`}
           onDragOver={event => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
@@ -461,37 +421,7 @@ export function Composer(props: ComposerProps) {
         </div>
         <div className="composer-status">
           <span>{status}</span>
-          {contextTokens !== undefined && contextWindow && contextWindow > 0 && (
-            <div ref={contextUsageRef} className={`context-usage ${contextLevel}`} title={`当前上下文 ${contextTokens.toLocaleString('zh-CN')} / ${contextWindow.toLocaleString('zh-CN')} tokens，累计 ${tokenUsage?.total.totalTokens.toLocaleString('zh-CN')} tokens`}>
-              <button
-                type="button"
-                className="context-usage-ring"
-                style={{ '--context-progress': `${contextPercent}%` } as CSSProperties}
-                onClick={() => setContextMenuOpen(current => !current)}
-                aria-label="打开上下文压缩操作"
-                aria-expanded={contextMenuOpen}
-                title="上下文占用"
-              />
-              <span className="context-usage-value">{number(contextTokens)} / {number(contextWindow)}</span>
-              <span className="context-usage-divider" aria-hidden="true" />
-              <span className="context-usage-percent">{contextPercent}%</span>
-              <span className="context-total">累计 {number(tokenUsage.total.totalTokens)}</span>
-              {contextSuggestion && <span className="context-suggestion">{contextSuggestion}</span>}
-              {contextMenuOpen && (
-                <div className="context-usage-menu" role="dialog" aria-label="上下文操作">
-                  <button
-                    onClick={() => {
-                      setContextMenuOpen(false);
-                      props.onCompact();
-                    }}
-                    disabled={disabled || !props.session?.threadId}
-                  >
-                    压缩对话
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          <ComposerContextUsage session={props.session} disabled={disabled} contextMenuOpen={contextMenuOpen} contextUsageRef={contextUsageRef} onContextMenuOpenChange={setContextMenuOpen} onCompact={props.onCompact} />
           <span className="branch-status"><GitBranch size={14} /> 当前工作区</span>
         </div>
       </div>
