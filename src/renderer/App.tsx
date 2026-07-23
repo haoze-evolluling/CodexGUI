@@ -149,6 +149,7 @@ export function App() {
               models={controller.models}
               preferredModel={controller.settings.model}
               skills={controller.skills}
+              selectedSkill={controller.selectedSkill}
               collaborationModes={controller.collaborationModes}
               permissionMode={controller.permissionMode}
               onInputChange={controller.setInput}

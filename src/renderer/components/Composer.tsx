@@ -10,7 +10,7 @@ export function Composer(props: ComposerProps) {
   const selectorsRef = useRef<HTMLDivElement>(null);
   const permissionSelectorRef = useRef<HTMLDivElement>(null);
   const contextUsageRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
   const commandMenuRef = useRef<HTMLDivElement>(null);
   const selectedCommandRef = useRef<HTMLButtonElement>(null);
   const [customModelDraft, setCustomModelDraft] = useState('');
@@ -52,35 +52,96 @@ export function Composer(props: ComposerProps) {
     setOpenSelector,
   });
   const runCommand = (index: number) => {
-    if (executeCommand(index)) window.requestAnimationFrame(() => inputRef.current?.focus());
+    if (executeCommand(index)) window.requestAnimationFrame(() => focusEditorAt('end'));
   };
-  const resizeComposerInput = (textarea?: HTMLTextAreaElement | null) => {
-    if (!textarea) return;
+  const skillPrefix = props.selectedSkill ? `/${props.selectedSkill.name}` : '';
+  const inputBody = skillPrefix && (props.input === skillPrefix || props.input.startsWith(`${skillPrefix} `))
+    ? props.input.slice(skillPrefix.length).replace(/^ /, '')
+    : props.input;
+  const resizeComposerInput = (editor?: HTMLDivElement | null) => {
+    if (!editor) return;
     const maxHeight = 220;
     const minHeight = 72;
-    textarea.style.height = 'auto';
-    const contentHeight = textarea.scrollHeight;
+    editor.style.height = 'auto';
+    const contentHeight = editor.scrollHeight;
     const nextHeight = Math.min(Math.max(contentHeight, minHeight), maxHeight);
-    textarea.style.height = `${nextHeight}px`;
-    textarea.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden';
+    editor.style.height = `${nextHeight}px`;
+    editor.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden';
   };
 
-  const keepCaretVisible = (textarea?: HTMLTextAreaElement | null) => {
-    if (!textarea) return;
-    resizeComposerInput(textarea);
-    // Typing/newlines usually keep the caret at the end; ensure the viewport follows it.
-    if (textarea.selectionEnd >= textarea.value.length - 1) {
-      textarea.scrollTop = textarea.scrollHeight;
-      return;
+  const keepCaretVisible = (editor?: HTMLDivElement | null) => {
+    if (!editor) return;
+    resizeComposerInput(editor);
+    editor.scrollTop = editor.scrollHeight;
+  };
+
+  const focusEditorAt = (position: 'start' | 'end') => {
+    const editor = inputRef.current;
+    if (!editor) return;
+    editor.focus();
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(position === 'start');
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    keepCaretVisible(editor);
+  };
+
+  const readEditorBody = (editor: HTMLDivElement) => {
+    const copy = editor.cloneNode(true) as HTMLDivElement;
+    copy.querySelector('[data-skill-token]')?.remove();
+    return copy.innerText.replace(/\r/g, '');
+  };
+
+  const updateFromEditor = (editor: HTMLDivElement) => {
+    const body = props.selectedSkill ? readEditorBody(editor) : editor.innerText.replace(/\r/g, '');
+    props.onInputChange(skillPrefix ? `${skillPrefix}${body ? ` ${body}` : ''}` : body);
+  };
+
+  const syncEditorContent = (editor: HTMLDivElement) => {
+    const currentBody = props.selectedSkill ? readEditorBody(editor) : editor.innerText.replace(/\r/g, '');
+    const currentValue = skillPrefix ? `${skillPrefix}${currentBody ? ` ${currentBody}` : ''}` : currentBody;
+    if (currentValue === props.input && (!!props.selectedSkill === !!editor.querySelector('[data-skill-token]'))) return;
+
+    editor.replaceChildren();
+    if (props.selectedSkill) {
+      const token = document.createElement('span');
+      token.className = 'skill-token';
+      token.dataset.skillToken = 'true';
+      token.contentEditable = 'false';
+      token.textContent = skillPrefix;
+      editor.append(token);
     }
-    try {
-      // Chromium supports scrollIntoView on the caret via selection.
-      textarea.focus({ preventScroll: true });
-      const length = textarea.selectionEnd;
-      textarea.setSelectionRange(length, length);
-    } catch {
-      // ignore selection failures
-    }
+    if (inputBody) editor.append(document.createTextNode(inputBody));
+  };
+
+  const isCaretAfterSkillToken = (editor: HTMLDivElement) => {
+    if (!skillPrefix) return false;
+    const selection = window.getSelection();
+    if (!selection?.rangeCount || !selection.isCollapsed) return false;
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.endContainer)) return false;
+    const beforeCaret = range.cloneRange();
+    beforeCaret.selectNodeContents(editor);
+    beforeCaret.setEnd(range.endContainer, range.endOffset);
+    return beforeCaret.toString() === skillPrefix;
+  };
+
+  const insertTextAtSelection = (editor: HTMLDivElement, text: string) => {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) return;
+    range.deleteContents();
+    const textNode = document.createTextNode(text);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    updateFromEditor(editor);
+    window.requestAnimationFrame(() => keepCaretVisible(editor));
   };
 
   useEffect(() => {
@@ -106,8 +167,11 @@ export function Composer(props: ComposerProps) {
     }
   }, [commandIndex, commandMenuOpen]);
   useEffect(() => {
+    const editor = inputRef.current;
+    if (!editor) return;
+    syncEditorContent(editor);
     keepCaretVisible(inputRef.current);
-  }, [props.input]);
+  }, [props.input, props.selectedSkill]);
   return (
     <footer className="composer-shell">
       <div className="composer-frame">
@@ -154,49 +218,45 @@ export function Composer(props: ComposerProps) {
         {!!props.attachments.length && (
           <AttachmentTokens attachments={props.attachments} onRemove={props.onRemoveAttachment} />
         )}
-        <textarea
+        <div
           ref={inputRef}
-          className="composer-input"
-          value={props.input}
-          onChange={event => {
+          className={`composer-input ${!inputBody ? 'is-empty' : ''}`}
+          contentEditable={!disabled}
+          suppressContentEditableWarning
+          role="textbox"
+          aria-multiline="true"
+          aria-label="消息输入"
+          data-placeholder="向 Codex 提问，@ 添加文件，/ 调出命令"
+          onInput={event => {
             setSkillPaletteOpen(false);
-            props.onInputChange(event.target.value);
+            updateFromEditor(event.currentTarget);
             setCommandIndex(0);
             window.requestAnimationFrame(() => keepCaretVisible(event.target));
           }}
           onContextMenu={event => {
             event.preventDefault();
-            const textarea = event.currentTarget;
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
+            const editor = event.currentTarget;
             props.onInputContextMenu(event, text => {
-              const nextValue = `${props.input.slice(0, start)}${text}${props.input.slice(end)}`;
-              props.onInputChange(nextValue);
-              window.requestAnimationFrame(() => {
-                textarea.focus();
-                const caret = start + text.length;
-                textarea.setSelectionRange(caret, caret);
-                keepCaretVisible(textarea);
-              });
+              editor.focus();
+              insertTextAtSelection(editor, text);
             });
           }}
           onKeyDown={event => {
-            if (event.key === 'Backspace' && !props.input && event.currentTarget.selectionStart === 0 && props.attachments.length) {
+            const editor = event.currentTarget;
+            if (event.key === 'Backspace' && isCaretAfterSkillToken(editor)) {
+              event.preventDefault();
+              props.onInputChange(inputBody);
+              window.requestAnimationFrame(() => focusEditorAt('start'));
+              return;
+            }
+            if (event.key === 'Backspace' && !props.input && props.attachments.length) {
               event.preventDefault();
               props.onRemoveAttachment(props.attachments[props.attachments.length - 1].id);
               return;
             }
             if (event.key === 'Enter' && event.ctrlKey) {
               event.preventDefault();
-              const textarea = event.currentTarget;
-              const start = textarea.selectionStart;
-              const end = textarea.selectionEnd;
-              const nextValue = `${props.input.slice(0, start)}\n${props.input.slice(end)}`;
-              props.onInputChange(nextValue);
-              window.requestAnimationFrame(() => {
-                textarea.setSelectionRange(start + 1, start + 1);
-                keepCaretVisible(textarea);
-              });
+              insertTextAtSelection(editor, '\n');
               return;
             }
             if (commandMenuOpen) {
@@ -223,7 +283,6 @@ export function Composer(props: ComposerProps) {
               props.onSend();
             }
           }}
-          placeholder="向 Codex 提问，@ 添加文件，/ 调出命令"
         />
         <div className="composer-toolbar">
           <div className="composer-tools" ref={selectorsRef}>

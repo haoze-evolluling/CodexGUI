@@ -21,7 +21,8 @@
 .theme-light .composer-card, .theme-light .settings-section, .theme-light .app-dialog, .theme-light .clear-confirm-dialog { background: #ffffff; border-color: #d9e1eb; box-shadow: 0 8px 24px rgb(28 39 56 / 10%); }
 .theme-light .composer-card:focus-within { border-color: #80aee3; box-shadow: 0 10px 28px rgb(37 99 180 / 14%); }
 .theme-light .composer-input { color: #202c3d; }
-.theme-light .composer-input::placeholder, .theme-light .custom-model-input::placeholder, .theme-light .other-answer::placeholder { color: #8491a3; }
+.theme-light .composer-input.is-empty::after, .theme-light .custom-model-input::placeholder, .theme-light .other-answer::placeholder { color: #8491a3; }
+.theme-light .skill-token { color: #256bb3; }
 .theme-light .attachment-token, .theme-light .selector-trigger, .theme-light .installation-status, .theme-light .install-command, .theme-light .font-size-option, .theme-light .theme-option, .theme-light .activity, .theme-light .user-input-activity, .theme-light .plan-decision { color: #344256; background: #f4f7fa; border-color: #d7e0ea; }
 .theme-light .attachment-tokens.editable .attachment-token:hover, .theme-light .selector-control:hover .selector-trigger:not(:disabled), .theme-light .selector-control.open .selector-trigger, .theme-light .font-size-option:hover, .theme-light .theme-option:hover, .theme-light .activity-heading:hover, .theme-light .choice:hover, .theme-light .choice:focus-within, .theme-light .plan-decision > button:hover { color: #172033; background: #e7eef7; border-color: #a9bdd6; }
 .theme-light .selector-menu, .theme-light .command-menu { background: #ffffff; border-color: #cbd6e3; box-shadow: 0 16px 36px rgb(28 39 56 / 18%); }

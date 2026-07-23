@@ -10,7 +10,7 @@ const skillScopeLabels: Record<CodexSkill['scope'], string> = {
   repo: '项目', user: '用户', admin: '管理员', system: '系统',
 };
 
-type Options = Pick<ComposerProps, 'activeSessionId' | 'collaborationModes' | 'input' | 'models' | 'onChooseFiles' | 'onClearContext' | 'onCompact' | 'onInputChange' | 'onModeChange' | 'onNewConversation' | 'onRollback' | 'onSend' | 'onShowStatus' | 'onSkillSelect' | 'session' | 'skills'> & {
+type Options = Pick<ComposerProps, 'activeSessionId' | 'collaborationModes' | 'input' | 'models' | 'onChooseFiles' | 'onClearContext' | 'onCompact' | 'onInputChange' | 'onModeChange' | 'onNewConversation' | 'onRollback' | 'onSend' | 'onShowStatus' | 'onSkillSelect' | 'selectedSkill' | 'session' | 'skills'> & {
   disabled: boolean;
   selectedModel?: CodexModel;
   setOpenSelector(value: SelectorName): void;
@@ -34,11 +34,14 @@ export function useComposerCommands(options: Options) {
     { kind: 'command' as const, id: 'mention', name: '添加文件', shortcut: '/mention', description: '选择文件并添加到当前提问', icon: AtSign, disabled: options.disabled, run: options.onChooseFiles },
   ], [options]);
   const skillCommands = useMemo(() => options.skills.map(skill => ({
-    kind: 'skill' as const, id: `skill:${skill.path}`, name: skill.interface?.displayName || skill.name, shortcut: `$${skill.name}`,
+    kind: 'skill' as const, id: `skill:${skill.path}`, name: skill.interface?.displayName || skill.name, shortcut: `/${skill.name}`,
     description: `${skillScopeLabels[skill.scope]} · ${skill.interface?.shortDescription || skill.shortDescription || skill.description}`,
     icon: Sparkles, disabled: options.disabled, run: () => options.onSkillSelect(skill),
   })), [options]);
   const commandQuery = options.input.startsWith('/') ? options.input.slice(1).trim().toLowerCase() : '';
+  const selectedSkillPrefix = options.selectedSkill ? `/${options.selectedSkill.name}` : '';
+  const selectedSkillActive = !!selectedSkillPrefix
+    && (options.input === selectedSkillPrefix || options.input.startsWith(`${selectedSkillPrefix} `));
   const filteredCommands = skillPaletteOpen
     ? skillCommands
     : options.input.startsWith('/')
@@ -54,5 +57,5 @@ export function useComposerCommands(options: Options) {
     return true;
   };
 
-  return { commandIndex, commandMenuOpen: filteredCommands.length > 0, filteredCommands, runCommand, setCommandIndex, setSkillPaletteOpen, skillPaletteOpen };
+  return { commandIndex, commandMenuOpen: !selectedSkillActive && filteredCommands.length > 0, filteredCommands, runCommand, setCommandIndex, setSkillPaletteOpen, skillPaletteOpen };
 }

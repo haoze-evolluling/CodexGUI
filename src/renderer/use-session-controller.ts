@@ -131,7 +131,7 @@ export function useSessionController() {
   const send = async (message = input) => {
     if ((!message.trim() && !attachments.length) || !active || runningSessions.has(active.id)) return;
     const text = message.trim();
-    const skillPrefix = selectedSkill ? `$${selectedSkill.name}` : '';
+    const skillPrefix = selectedSkill ? `/${selectedSkill.name}` : '';
     const prompt = message === input && selectedSkill && (text === skillPrefix || text.startsWith(`${skillPrefix} `))
       ? text.slice(skillPrefix.length).trimStart()
       : text;
@@ -452,11 +452,11 @@ export function useSessionController() {
   };
   const updateInput = (value: string) => {
     setInput(value);
-    setSelectedSkill(current => current && (value === `$${current.name}` || value.startsWith(`$${current.name} `)) ? current : undefined);
+    setSelectedSkill(current => current && (value === `/${current.name}` || value.startsWith(`/${current.name} `)) ? current : undefined);
   };
   const selectSkill = (skill: CodexSkill) => {
     setSelectedSkill(skill);
-    setInput(`$${skill.name} `);
+    setInput(`/${skill.name}`);
   };
 
   const showStatus = () => {
@@ -506,7 +506,7 @@ export function useSessionController() {
   return {
     active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, canRollback, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
     closeSettings: () => setSettingsOpen(false), installation, openSettings, saveCodexPath, setFontSize, setTheme, settings, settingsOpen,
-    createInFolder, createProjectSession, groups, input, models, moveProject, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, showStatus, skills,
+    createInFolder, createProjectSession, groups, input, models, moveProject, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectedSkill, selectSkill, send, setActive, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
     setReasoningEffort: (effort: string) => {

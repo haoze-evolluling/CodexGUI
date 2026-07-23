@@ -12,6 +12,7 @@ export type ComposerProps = {
   models: CodexModel[];
   preferredModel?: string;
   skills: CodexSkill[];
+  selectedSkill?: CodexSkill;
   collaborationModes: CollaborationMode[];
   permissionMode: PermissionMode;
   onInputChange(value: string): void;
