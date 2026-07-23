@@ -22,15 +22,29 @@ export function App() {
 
   const openProjectMenu = (event: MouseEvent, cwd: string, sessions: Session[]) => {
     event.preventDefault();
+    const projectIndex = controller.groups.findIndex(group => group.cwd === cwd);
+    const lastProjectIndex = controller.groups.length - 1;
     setContextMenu({
       x: event.clientX,
       y: event.clientY,
-      items: [{
-        label: '删除项目',
-        danger: true,
-        disabled: sessions.some(session => controller.runningSessions.has(session.id)),
-        onSelect: () => controller.deleteProject(cwd, sessions),
-      }],
+      items: [
+        {
+          label: '上移',
+          disabled: projectIndex <= 0,
+          onSelect: () => controller.moveProject(cwd, 'up'),
+        },
+        {
+          label: '下移',
+          disabled: projectIndex < 0 || projectIndex === lastProjectIndex,
+          onSelect: () => controller.moveProject(cwd, 'down'),
+        },
+        {
+          label: '删除项目',
+          danger: true,
+          disabled: sessions.some(session => controller.runningSessions.has(session.id)),
+          onSelect: () => controller.deleteProject(cwd, sessions),
+        },
+      ],
     });
   };
 

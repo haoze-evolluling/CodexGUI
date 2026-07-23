@@ -283,6 +283,23 @@ export function useSessionController() {
     });
   };
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
+  const moveProject = (cwd: string, direction: 'up' | 'down') => {
+    const projectPaths = groupSessions(sessions, settingsRef.current.projectPaths)
+      .map(group => group.cwd)
+      .filter(Boolean);
+    const currentIndex = projectPaths.indexOf(cwd);
+    const targetIndex = currentIndex + (direction === 'up' ? -1 : 1);
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= projectPaths.length) return;
+
+    [projectPaths[currentIndex], projectPaths[targetIndex]] = [projectPaths[targetIndex], projectPaths[currentIndex]];
+    const nextSettings = { ...settingsRef.current, projectPaths };
+    settingsRef.current = nextSettings;
+    setSettings(nextSettings);
+    window.codex.saveSettings({ projectPaths }).then(saved => {
+      settingsRef.current = saved;
+      setSettings(saved);
+    }).catch(() => undefined);
+  };
   const addFiles = (filePaths: string[]) => {
     if (!filePaths.length) return;
     setAttachments(current => addUniqueAttachments(current, filePaths));
@@ -489,7 +506,7 @@ export function useSessionController() {
   return {
     active, addFiles, answerUserInput, archiveProject, archiveSession, attachments, canRollback, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
     closeSettings: () => setSettingsOpen(false), installation, openSettings, saveCodexPath, setFontSize, setTheme, settings, settingsOpen,
-    createInFolder, createProjectSession, groups, input, models, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, showStatus, skills,
+    createInFolder, createProjectSession, groups, input, models, moveProject, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), running, runningSessions, selectSkill, send, setActive, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
     setReasoningEffort: (effort: string) => {
