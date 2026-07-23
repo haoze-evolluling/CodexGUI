@@ -173,7 +173,21 @@
 .permission-control .selector-menu { bottom: calc(100% + 6px); }
 .composer-status > span:first-child { overflow: hidden; text-overflow: ellipsis; }
 .branch-status { color: #697689; }
-.compact-activity { display: flex; align-items: center; gap: 8px; color: #9bacbf; font-size: 13px; }
+.context-usage { position: relative; min-width: 0; display: flex; align-items: center; gap: 6px; color: #99afc8; }
+.context-usage-ring { width: 18px; height: 18px; flex: 0 0 18px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; color: #9dccff; background: conic-gradient(currentColor var(--context-progress), #344153 0); }
+.context-usage-ring::before { content: ''; grid-area: 1 / 1; width: 14px; height: 14px; border-radius: 50%; background: #11151c; }
+.context-usage-ring:hover:not(:disabled), .context-usage-ring:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; transform: none; }
+.context-usage-percent { color: inherit; font-variant-numeric: tabular-nums; }
+.context-usage-divider { width: 1px; height: 13px; flex: 0 0 1px; background: currentColor; opacity: .42; }
+.context-usage-value, .context-total { overflow: hidden; text-overflow: ellipsis; }
+.context-total { color: #76879c; }
+.context-usage.warning { color: #efc06e; }
+.context-usage.critical { color: #ff9c9c; }
+.context-suggestion { color: inherit; }
+.context-usage-menu { position: absolute; z-index: 30; left: 9px; bottom: calc(100% + 8px); transform: translateX(-50%); padding: 5px; background: #202936; border: 1px solid #4a5a70; border-radius: 6px; box-shadow: 0 12px 28px rgb(0 0 0 / 36%); }
+.context-usage-menu button { min-width: 88px; padding: 6px 8px; color: #dce7f4; background: transparent; border-radius: 4px; font-size: 12px; text-align: left; }
+.context-usage-menu button:hover:not(:disabled) { color: #fff; background: #2d3c50; }
+.compact-activity { display: flex; align-items: center; gap: 8px; padding: 9px 11px; color: #9bacbf; font-size: 13px; }
 .user-input-activity { width: min(720px, 100%); padding: 16px; background: #171d26; border: 1px solid #3d4959; border-radius: 8px; box-shadow: 0 10px 28px rgb(0 0 0 / 24%); }
 .user-input-activity fieldset { min-width: 0; margin: 0 0 18px; padding: 0; border: 0; }
 .user-input-activity fieldset:last-of-type { margin-bottom: 14px; }
@@ -209,6 +223,9 @@
   .composer-meta { align-items: flex-start; }
   .composer-context, .composer-status { gap: 8px; }
   .branch-status { display: none !important; }
+  .composer-status { flex-wrap: wrap; justify-content: flex-end; }
+  .context-suggestion { display: none !important; }
+  .context-total { display: none !important; }
 }
 
 

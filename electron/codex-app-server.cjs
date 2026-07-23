@@ -83,7 +83,14 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
         if (sessionId) completedPlans.set(sessionId, { itemId: params.item.id, text: params.item.text });
       }
       const activity = activityFromItem(params.item, status);
-      if (activity) emitActivity(threadId, activity);
+      if (activity) {
+        emitActivity(threadId, activity);
+        // App-server versions do not consistently emit thread/compacted. A completed
+        // compaction item is the authoritative completion signal in that case.
+        if (activity.type === 'compaction' && status === 'completed') {
+          emitForThread('cli:compacted', threadId);
+        }
+      }
       return;
     }
     if (message.method === 'turn/started') {

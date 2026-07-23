@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { ArrowUp, Bot, BrainCircuit, Check, ChevronDown, GitBranch, ListTodo, Monitor, Plus, ShieldAlert, ShieldCheck, Square } from 'lucide-react';
 import { AttachmentTokens } from './AttachmentTokens';
 import type { ComposerProps } from './composer-types';
@@ -9,10 +9,12 @@ export function Composer(props: ComposerProps) {
   const [openSelector, setOpenSelector] = useState<'model' | 'effort' | 'permission' | null>(null);
   const selectorsRef = useRef<HTMLDivElement>(null);
   const permissionSelectorRef = useRef<HTMLDivElement>(null);
+  const contextUsageRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const commandMenuRef = useRef<HTMLDivElement>(null);
   const selectedCommandRef = useRef<HTMLButtonElement>(null);
   const [customModelDraft, setCustomModelDraft] = useState('');
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const requestedModel = props.session?.model || props.preferredModel || '';
   const selectedModel = resolveModel(props.models, props.session?.model, props.preferredModel);
   const disabled = !props.activeSessionId || props.running || props.compacting;
@@ -28,6 +30,21 @@ export function Composer(props: ComposerProps) {
   };
   const activeEffort = resolveReasoningEffort(props.session?.reasoningEffort, selectedModel) || '';
   const status = props.compacting ? '正在压缩上下文...' : props.waiting ? '等待你的选择' : props.running ? '思考中...' : '准备就绪';
+  const tokenUsage = props.session?.tokenUsage;
+  const contextTokens = tokenUsage?.last.totalTokens;
+  const contextWindow = tokenUsage?.modelContextWindow;
+  const contextPercent = contextTokens !== undefined && contextWindow && contextWindow > 0
+    ? Math.min(100, Math.round((contextTokens / contextWindow) * 100))
+    : undefined;
+  const contextLevel = contextPercent === undefined ? 'unknown' : contextPercent >= 90 ? 'critical' : contextPercent >= 75 ? 'warning' : 'healthy';
+  const contextSuggestion = contextLevel === 'critical'
+    ? '上下文即将用尽，建议压缩或清除后继续。'
+    : contextLevel === 'warning'
+      ? '上下文占用较高，建议在继续前压缩。'
+      : undefined;
+  const number = (value: number) => value >= 1000
+    ? `${(value / 1000).toFixed(value >= 10000 ? 0 : 1).replace(/\.0$/, '')}k`
+    : value.toLocaleString('zh-CN');
   const { commandIndex, commandMenuOpen, filteredCommands, runCommand: executeCommand, setCommandIndex, setSkillPaletteOpen, skillPaletteOpen } = useComposerCommands({
     ...props,
     disabled,
@@ -70,6 +87,7 @@ export function Composer(props: ComposerProps) {
     const closeSelector = (event: MouseEvent) => {
       const target = event.target as Node;
       if (!selectorsRef.current?.contains(target) && !permissionSelectorRef.current?.contains(target)) setOpenSelector(null);
+      if (!contextUsageRef.current?.contains(target)) setContextMenuOpen(false);
     };
     window.addEventListener('mousedown', closeSelector);
     return () => window.removeEventListener('mousedown', closeSelector);
@@ -384,6 +402,37 @@ export function Composer(props: ComposerProps) {
         </div>
         <div className="composer-status">
           <span>{status}</span>
+          {contextTokens !== undefined && contextWindow && contextWindow > 0 && (
+            <div ref={contextUsageRef} className={`context-usage ${contextLevel}`} title={`当前上下文 ${contextTokens.toLocaleString('zh-CN')} / ${contextWindow.toLocaleString('zh-CN')} tokens，累计 ${tokenUsage?.total.totalTokens.toLocaleString('zh-CN')} tokens`}>
+              <button
+                type="button"
+                className="context-usage-ring"
+                style={{ '--context-progress': `${contextPercent}%` } as CSSProperties}
+                onClick={() => setContextMenuOpen(current => !current)}
+                aria-label="打开上下文压缩操作"
+                aria-expanded={contextMenuOpen}
+                title="上下文占用"
+              />
+              <span className="context-usage-value">{number(contextTokens)} / {number(contextWindow)}</span>
+              <span className="context-usage-divider" aria-hidden="true" />
+              <span className="context-usage-percent">{contextPercent}%</span>
+              <span className="context-total">累计 {number(tokenUsage.total.totalTokens)}</span>
+              {contextSuggestion && <span className="context-suggestion">{contextSuggestion}</span>}
+              {contextMenuOpen && (
+                <div className="context-usage-menu" role="dialog" aria-label="上下文操作">
+                  <button
+                    onClick={() => {
+                      setContextMenuOpen(false);
+                      props.onCompact();
+                    }}
+                    disabled={disabled || !props.session?.threadId}
+                  >
+                    压缩对话
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <span className="branch-status"><GitBranch size={14} /> 当前工作区</span>
         </div>
       </div>

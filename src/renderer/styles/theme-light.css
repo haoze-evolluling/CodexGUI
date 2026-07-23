@@ -37,6 +37,14 @@
 .theme-light .send-button { color: #ffffff; background: #1769d1; }
 .theme-light .send-button:hover:not(:disabled), .theme-light .settings-actions .primary:hover, .theme-light .custom-model-apply:hover:not(:disabled) { background: #0f5dbd; }
 .theme-light .send-button.stop, .theme-light .send-button.stop:hover:not(:disabled) { color: #fff; background: #b42335; }
+.theme-light .context-usage { color: #4778ae; }
+.theme-light .context-usage-ring::before { background: #f7f9fc; }
+.theme-light .context-usage.warning { color: #a46a10; }
+.theme-light .context-usage.critical { color: #b42335; }
+.theme-light .context-total { color: #6c7a8d; }
+.theme-light .context-usage-menu { background: #ffffff; border-color: #cbd6e3; box-shadow: 0 12px 28px rgb(28 39 56 / 18%); }
+.theme-light .context-usage-menu button { color: #38516d; }
+.theme-light .context-usage-menu button:hover:not(:disabled) { color: #172033; background: #e8f0fa; }
 .theme-light .settings-section-title > svg { color: #2474c7; }
 .theme-light .font-size-option.selected, .theme-light .theme-option.selected { color: #174f8d; background: #e8f2ff; border-color: #5d9fe5; box-shadow: 0 0 0 1px rgb(93 159 229 / 26%); }
 .theme-light .font-size-option small, .theme-light .theme-option small, .theme-light .install-command span { color: #69778a; }

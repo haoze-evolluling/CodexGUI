@@ -54,13 +54,18 @@ export function useSessionEvents(options: Options) {
         } else timeline.push({ id, type: 'message', role: 'assistant', text: value.text });
         return { ...session, timeline, updated: Date.now() };
       })),
-      window.codex.onActivity(value => updateSession(value.sessionId, session => {
-        const timeline = [...timelineOf(session)];
-        const index = timeline.findIndex(item => item.id === value.activity.id);
-        if (index >= 0) timeline[index] = { ...timeline[index], ...value.activity } as typeof value.activity;
-        else timeline.push(value.activity);
-        return { ...session, timeline, updated: Date.now() };
-      })),
+      window.codex.onActivity(value => {
+        if (value.activity.type === 'compaction' && value.activity.status === 'completed') {
+          options.setCompactingSessions(current => without(current, value.sessionId));
+        }
+        updateSession(value.sessionId, session => {
+          const timeline = [...timelineOf(session)];
+          const index = timeline.findIndex(item => item.id === value.activity.id);
+          if (index >= 0) timeline[index] = { ...timeline[index], ...value.activity } as typeof value.activity;
+          else timeline.push(value.activity);
+          return { ...session, timeline, updated: Date.now() };
+        });
+      }),
       window.codex.onThread(value => updateSession(value.sessionId, session => ({ ...session, threadId: value.threadId }))),
       window.codex.onExit(value => options.setRunningSessions(current => without(current, value.sessionId))),
       window.codex.onError(value => {
