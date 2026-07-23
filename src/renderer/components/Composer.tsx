@@ -17,9 +17,12 @@ export function Composer(props: ComposerProps) {
   const selectedCommandRef = useRef<HTMLButtonElement>(null);
   const [customModelDraft, setCustomModelDraft] = useState('');
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [stopButtonVisible, setStopButtonVisible] = useState(props.running);
+  const [stopButtonExiting, setStopButtonExiting] = useState(false);
   const requestedModel = props.session?.model || props.preferredModel || '';
   const selectedModel = resolveModel(props.models, props.session?.model, props.preferredModel);
-  const disabled = !props.activeSessionId || props.running || props.compacting;
+  const inputDisabled = !props.activeSessionId || props.compacting;
+  const disabled = inputDisabled || props.running;
   const effortLabels: Record<string, string> = {
     minimal: '最低', low: '低', medium: '中', high: '高', xhigh: '最高',
   };
@@ -159,6 +162,20 @@ export function Composer(props: ComposerProps) {
     syncEditorContent(editor);
     keepCaretVisible(inputRef.current);
   }, [props.input, props.selectedSkill]);
+  useEffect(() => {
+    if (props.running) {
+      setStopButtonVisible(true);
+      setStopButtonExiting(false);
+      return;
+    }
+    if (!stopButtonVisible) return;
+    setStopButtonExiting(true);
+    const timeout = window.setTimeout(() => {
+      setStopButtonVisible(false);
+      setStopButtonExiting(false);
+    }, 180);
+    return () => window.clearTimeout(timeout);
+  }, [props.running, stopButtonVisible]);
   return (
     <footer className="composer-shell">
       <div className="composer-frame">
@@ -181,7 +198,7 @@ export function Composer(props: ComposerProps) {
         <div
           ref={inputRef}
           className={`composer-input ${!inputBody ? 'is-empty' : ''}`}
-          contentEditable={!disabled}
+          contentEditable={!inputDisabled}
           suppressContentEditableWarning
           role="textbox"
           aria-multiline="true"
@@ -196,10 +213,23 @@ export function Composer(props: ComposerProps) {
           onContextMenu={event => {
             event.preventDefault();
             const editor = event.currentTarget;
-            props.onInputContextMenu(event, text => {
+            const selection = window.getSelection();
+            const text = selection?.rangeCount && editor.contains(selection.getRangeAt(0).commonAncestorContainer)
+              ? selection.toString()
+              : '';
+            props.onInputContextMenu(event, text, pastedText => {
               editor.focus();
-              insertTextAtSelection(editor, text);
+              insertTextAtSelection(editor, pastedText);
             });
+          }}
+          onCopy={event => {
+            const selection = window.getSelection();
+            const text = selection?.rangeCount && event.currentTarget.contains(selection.getRangeAt(0).commonAncestorContainer)
+              ? selection.toString()
+              : '';
+            if (!text) return;
+            event.preventDefault();
+            event.clipboardData.setData('text/plain', text);
           }}
           onKeyDown={event => {
             const editor = event.currentTarget;
@@ -240,6 +270,10 @@ export function Composer(props: ComposerProps) {
             }
             if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey) {
               event.preventDefault();
+              if (props.running) {
+                insertTextAtSelection(editor, '\n');
+                return;
+              }
               props.onSend();
             }
           }}
@@ -368,11 +402,8 @@ export function Composer(props: ComposerProps) {
             </button>
           </div>
           <div className="composer-actions">
-            {props.running ? (
-              <button className="send-button stop" onClick={() => props.activeSessionId && window.codex.stop(props.activeSessionId)} title="停止" aria-label="停止"><Square size={15} /></button>
-            ) : (
-              <button className="send-button" onClick={() => props.onSend()} disabled={!props.activeSessionId || props.compacting || (!props.input.trim() && !props.attachments.length)} title="发送" aria-label="发送"><ArrowUp size={19} /></button>
-            )}
+            {stopButtonVisible && <button className={`stop-button ${stopButtonExiting ? 'exiting' : ''}`} onClick={() => props.activeSessionId && window.codex.stop(props.activeSessionId)} title="停止执行" aria-label="停止执行"><Square size={14} /><span>stop</span></button>}
+            <button className="send-button" onClick={() => props.onSend()} disabled={inputDisabled || props.running || (!props.input.trim() && !props.attachments.length)} title="发送" aria-label="发送"><ArrowUp size={19} /></button>
           </div>
         </div>
         </div>

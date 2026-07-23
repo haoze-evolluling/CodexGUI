@@ -16,7 +16,7 @@ export type ComposerProps = {
   collaborationModes: CollaborationMode[];
   permissionMode: PermissionMode;
   onInputChange(value: string): void;
-  onInputContextMenu(event: MouseEvent, insertText: (text: string) => void): void;
+  onInputContextMenu(event: MouseEvent, selectedText: string, insertText: (text: string) => void): void;
   onChooseFiles(): void;
   onAddFiles(paths: string[]): void;
   onRemoveAttachment(id: string): void;

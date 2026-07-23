@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 
 export type ContextMenuItem = {
   label: string;
+  icon: ReactNode;
   danger?: boolean;
   disabled?: boolean;
   onSelect(): void;
@@ -52,7 +53,8 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
             item.onSelect();
           }}
         >
-          {item.label}
+          <span className="context-menu-icon" aria-hidden="true">{item.icon}</span>
+          <span>{item.label}</span>
         </button>
       ))}
     </div>

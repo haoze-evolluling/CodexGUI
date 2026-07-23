@@ -16,14 +16,14 @@ aside::-webkit-scrollbar { display: none; }
 .group-toggle:hover, .group-toggle:focus-visible { background: #222b38; }
 .group-toggle span { flex: 1; font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .group-toggle small { color: #8490a0; font-size: 11px; }
-.group-new, .group-archive { padding: 6px; }
+.group-new { padding: 6px; }
 .group-path { display: block; padding: 0 8px 5px; color: #8490a0; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .group-sessions { display: grid; gap: 2px; }
 .session-row { display: flex; align-items: center; min-width: 0; }
 .group-sessions .session-select { flex: 1; background: transparent; text-align: left; padding: 8px 4px 8px 26px; min-width: 0; font-size: 14px; }
 .session-row.selected .session-select, .session-row:hover .session-select { background: #273342; }
 .session-running { flex: 0 0 auto; margin: 0 4px; color: #72b3ff; animation: session-running-spin 900ms linear infinite; }
-.group-sessions .session-archive { padding: 6px; margin-right: 2px; flex: 0 0 auto; }
+.session-title-input { flex: 1; min-width: 0; margin-left: 22px; padding: 5px 6px; color: #e8edf5; background: #202a37; border: 1px solid #72b3ff; border-radius: 4px; font: inherit; }
 .group-sessions span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty-sessions { margin: 12px 8px; color: #8490a0; font-size: 12px; line-height: 1.5; }
 .sidebar-footer { flex: 0 0 auto; margin-top: 12px; padding: 10px 4px 0; border-top: 1px solid #29313d; }

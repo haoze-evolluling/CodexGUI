@@ -1,4 +1,4 @@
-import { Archive, Undo2 } from 'lucide-react';
+import { Archive, ArrowDown, ArrowUp, ClipboardPaste, Copy, Pencil, Trash2, Undo2 } from 'lucide-react';
 import { Composer } from './components/Composer';
 import { AppDialog } from './components/AppDialog';
 import { Sidebar } from './components/Sidebar';
@@ -30,19 +30,45 @@ export function App() {
       items: [
         {
           label: '上移',
+          icon: <ArrowUp size={16} />,
           disabled: projectIndex <= 0,
           onSelect: () => controller.moveProject(cwd, 'up'),
         },
         {
           label: '下移',
+          icon: <ArrowDown size={16} />,
           disabled: projectIndex < 0 || projectIndex === lastProjectIndex,
           onSelect: () => controller.moveProject(cwd, 'down'),
         },
         {
+          label: '归档项目',
+          icon: <Archive size={16} />,
+          disabled: sessions.some(session => controller.runningSessions.has(session.id)),
+          onSelect: () => controller.archiveProject(cwd, sessions),
+        },
+        {
           label: '删除项目',
+          icon: <Trash2 size={16} />,
           danger: true,
           disabled: sessions.some(session => controller.runningSessions.has(session.id)),
           onSelect: () => controller.deleteProject(cwd, sessions),
+        },
+      ],
+    });
+  };
+
+  const openSessionMenu = (event: MouseEvent, session: Session, startRenaming: () => void) => {
+    event.preventDefault();
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      items: [
+        { label: '重命名', icon: <Pencil size={16} />, onSelect: startRenaming },
+        {
+          label: '归档对话',
+          icon: <Archive size={16} />,
+          disabled: controller.runningSessions.has(session.id),
+          onSelect: () => controller.archiveSession(session),
         },
       ],
     });
@@ -52,18 +78,18 @@ export function App() {
     setContextMenu({
       x: event.clientX,
       y: event.clientY,
-      items: [{ label: '复制', onSelect: () => navigator.clipboard.writeText(text).catch(() => undefined) }],
+      items: [{ label: '复制', icon: <Copy size={16} />, onSelect: () => navigator.clipboard.writeText(text).catch(() => undefined) }],
     });
   };
 
-  const openPasteMenu = (event: MouseEvent, insertText: (text: string) => void) => {
+  const openInputMenu = (event: MouseEvent, selectedText: string, insertText: (text: string) => void) => {
     setContextMenu({
       x: event.clientX,
       y: event.clientY,
-      items: [{
-        label: '粘贴',
-        onSelect: () => navigator.clipboard.readText().then(insertText).catch(() => undefined),
-      }],
+      items: [
+        ...(selectedText ? [{ label: '复制', icon: <Copy size={16} />, onSelect: () => navigator.clipboard.writeText(selectedText).catch(() => undefined) }] : []),
+        { label: '粘贴', icon: <ClipboardPaste size={16} />, onSelect: () => navigator.clipboard.readText().then(insertText).catch(() => undefined) },
+      ],
     });
   };
 
@@ -86,12 +112,12 @@ export function App() {
           collapsedGroups={controller.collapsedGroups}
           groups={controller.groups}
           runningSessions={controller.runningSessions}
-          onArchiveProject={controller.archiveProject}
-          onArchiveSession={controller.archiveSession}
           onCreateInFolder={controller.createInFolder}
           onCreateProject={controller.createProjectSession}
           onProjectContextMenu={openProjectMenu}
           onRefresh={controller.refreshHistory}
+          onRenameSession={controller.renameSession}
+          onSessionContextMenu={openSessionMenu}
           onSelect={session => {
             controller.closeSettings();
             controller.setActive(session);
@@ -129,14 +155,6 @@ export function App() {
                 >
                   <Undo2 size={18} />
                 </button>
-                <button
-                  className="icon"
-                  onClick={() => controller.archiveSession()}
-                  title={controller.running ? '正在执行，无法归档' : '归档对话'}
-                  disabled={!controller.active || controller.running}
-                >
-                  <Archive size={18} />
-                </button>
               </div>
             </header>
             <Timeline active={controller.active} running={controller.running} onAnswer={controller.answerUserInput} onPlanChoice={controller.choosePlanAction} onSelectedTextContextMenu={openCopyMenu} />
@@ -155,7 +173,7 @@ export function App() {
               collaborationModes={controller.collaborationModes}
               permissionMode={controller.permissionMode}
               onInputChange={controller.setInput}
-              onInputContextMenu={openPasteMenu}
+              onInputContextMenu={openInputMenu}
               onChooseFiles={controller.chooseFiles}
               onAddFiles={controller.addFiles}
               onRemoveAttachment={controller.removeAttachment}

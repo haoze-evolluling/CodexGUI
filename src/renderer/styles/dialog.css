@@ -1,8 +1,10 @@
-.context-menu { position: fixed; z-index: 200; min-width: 132px; padding: 4px; background: #202936; border: 1px solid #4a5a70; border-radius: 7px; box-shadow: 0 14px 32px rgb(0 0 0 / 42%); }
-.context-menu button { width: 100%; padding: 7px 9px; color: #dce5f0; background: transparent; border-radius: 4px; text-align: left; font-size: 13px; }
-.context-menu button:hover, .context-menu button:focus-visible { color: #fff; background: #2b3a4d; outline: none; }
+.context-menu { position: fixed; z-index: 200; min-width: 132px; overflow: hidden; padding: 0; background: #202936; border: 1px solid #4a5a70; border-radius: 7px; box-shadow: 0 14px 32px rgb(0 0 0 / 42%); }
+.context-menu button { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: #dce5f0; background: transparent; border-radius: 0; text-align: left; font-size: 13px; }
+.context-menu button + button { border-top: 1px solid #4a5a70; }
+.context-menu-icon { width: 16px; height: 16px; display: grid; flex: 0 0 16px; place-items: center; }
+.context-menu button:hover, .context-menu button:focus-visible { color: #fff; background: transparent; box-shadow: inset 3px 0 #68a8ff; outline: none; }
 .context-menu button.danger { color: #ffabab; }
-.context-menu button.danger:hover, .context-menu button.danger:focus-visible { color: #fff; background: #753b46; }
+.context-menu button.danger:hover, .context-menu button.danger:focus-visible { color: #fff; background: transparent; box-shadow: inset 3px 0 #ff7884; }
 .context-menu button:disabled { cursor: not-allowed; }
 .clear-confirm-backdrop, .app-dialog-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(6 9 14 / 68%); }
 .app-dialog, .clear-confirm-dialog { width: min(390px, 100%); display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; padding: 18px; color: #e8edf5; background: #1b222d; border: 1px solid #46546a; border-radius: 8px; box-shadow: 0 22px 60px rgb(0 0 0 / 52%); }
