@@ -29,9 +29,11 @@
     "wait-on": "latest"
   },
   "build": {
+    "compression": "maximum",
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "!electron/**/*.test.cjs",
       "package.json"
     ],
     "win": {
