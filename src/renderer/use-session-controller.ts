@@ -295,6 +295,9 @@ export function useSessionController() {
         model: current.model || rolledBack.model,
         reasoningEffort: current.reasoningEffort || rolledBack.reasoningEffort,
         collaborationMode: current.collaborationMode || rolledBack.collaborationMode,
+        // thread/rollback returns the rebuilt thread but no token-usage snapshot.
+        // Retain the latest notification until app-server publishes the next one.
+        tokenUsage: rolledBack.tokenUsage || current.tokenUsage,
       } : current);
     } catch (error) {
       setDialog({
