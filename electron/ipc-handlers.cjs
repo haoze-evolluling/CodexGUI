@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const { shell } = require('electron');
-const { loadCodexHistory } = require('./codex-history.cjs');
 const { openPathInVsCode, openPathWithDefaultApp, resolveSessionFilePath } = require('./open-path.cjs');
 const { filterProjectFiles, listProjectFiles } = require('./project-files.cjs');
 
@@ -15,13 +14,10 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
     return window.isMaximized();
   });
   ipcMain.handle('window:close', () => getWindow()?.close());
-  const history = () => {
-    return loadCodexHistory(codexHome);
-  };
-  const archivedHistory = () => loadCodexHistory(codexHome, 'archived_sessions');
+  const history = () => codexProcess.listThreads(false, true);
 
-  ipcMain.handle('sessions:list', history);
-  ipcMain.handle('sessions:history', history);
+  ipcMain.handle('sessions:list', () => history());
+  ipcMain.handle('sessions:history', () => history());
   ipcMain.handle('settings:get', () => store.loadSettings());
   ipcMain.handle('settings:save', (_, settings) => store.saveSettings(settings));
   ipcMain.handle('codex:installation', () => getInstallation());
@@ -47,12 +43,13 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
       return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
-  ipcMain.handle('sessions:archived-list', archivedHistory);
+  ipcMain.handle('sessions:archived-list', () => codexProcess.listThreads(true));
   ipcMain.handle('sessions:restore', async (_, target) => {
     if (!target?.threadId) return { ok: false, error: '无效的归档对话。' };
     try {
       if (!await codexProcess.restore(target.threadId)) return { ok: false, error: '无法恢复该对话。' };
-      const session = history().find(item => item.threadId === target.threadId);
+      const session = (await history()).find(item => item.threadId === target.threadId)
+        || (await codexProcess.listThreads(false)).find(item => item.threadId === target.threadId);
       return session ? { ok: true, session } : { ok: false, error: 'Codex 尚未返回已恢复的对话。' };
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : String(error) };
@@ -67,9 +64,19 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
     }
   });
   ipcMain.handle('sessions:archived-clear', async () => {
-    const archived = archivedHistory();
-    const results = await Promise.all(archived.map(session => codexProcess.remove(session.threadId).catch(() => false)));
-    return results.every(Boolean) ? { ok: true } : { ok: false, error: '部分归档对话未能删除。' };
+    try {
+      const archived = await codexProcess.listThreads(true);
+      const results = await Promise.all(archived.map(async session => ({
+        threadId: session.threadId,
+        ok: await codexProcess.remove(session.threadId).catch(() => false),
+      })));
+      const succeededThreadIds = results.filter(result => result.ok).map(result => result.threadId);
+      return results.every(result => result.ok)
+        ? { ok: true, succeededThreadIds }
+        : { ok: false, error: '部分归档对话未能删除。', succeededThreadIds };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
   });
   ipcMain.handle('projects:delete', async (_, cwd, sessions) => {
     if (typeof cwd !== 'string' || !cwd) return { ok: false, error: '无效的项目。' };
@@ -77,15 +84,20 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
       return { ok: false, error: '无效的项目会话。' };
     }
     if (sessions.some(session => !session.threadId)) return { ok: false, error: '项目中存在尚未创建 Codex 线程的对话。' };
+    let succeededThreadIds = [];
     try {
-      const results = await Promise.all(sessions.map(session => codexProcess.remove(session.threadId)));
-      if (!results.every(Boolean)) return { ok: false, error: '部分对话未能删除。' };
+      const results = await Promise.all(sessions.map(async session => ({
+        threadId: session.threadId,
+        ok: await codexProcess.remove(session.threadId).catch(() => false),
+      })));
+      succeededThreadIds = results.filter(result => result.ok).map(result => result.threadId);
+      if (!results.every(result => result.ok)) return { ok: false, error: '部分对话未能删除。', succeededThreadIds };
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
     const settings = store.loadSettings();
     store.saveSettings({ projectPaths: (settings.projectPaths || []).filter(projectPath => projectPath !== cwd) });
-    return { ok: true };
+    return { ok: true, succeededThreadIds };
   });
   ipcMain.handle('dialog:folder', async () => {
     const result = await dialog.showOpenDialog(getWindow(), { properties: ['openDirectory'] });

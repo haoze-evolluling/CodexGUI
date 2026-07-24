@@ -286,8 +286,16 @@ export function useSessionController() {
     const threadId = active.threadId;
     const target = active;
     try {
-      if (!await window.codex.rollback(target.id, threadId)) throw new Error('无法撤销最近一轮对话。');
-      await refreshHistory();
+      const rolledBack = await window.codex.rollback(target.id, threadId);
+      if (!rolledBack) throw new Error('无法撤销最近一轮对话。');
+      setActive(current => current?.id === target.id ? {
+        ...rolledBack,
+        id: current.id,
+        title: current.title || rolledBack.title,
+        model: current.model || rolledBack.model,
+        reasoningEffort: current.reasoningEffort || rolledBack.reasoningEffort,
+        collaborationMode: current.collaborationMode || rolledBack.collaborationMode,
+      } : current);
     } catch (error) {
       setDialog({
         title: '撤销失败',
@@ -471,6 +479,11 @@ export function useSessionController() {
           return;
         }
         if (!result.ok) {
+          const succeededThreadIds = new Set(result.succeededThreadIds || []);
+          if (succeededThreadIds.size) {
+            setSessions(current => current.filter(session => !session.threadId || !succeededThreadIds.has(session.threadId)));
+            setActive(current => current?.threadId && succeededThreadIds.has(current.threadId) ? undefined : current);
+          }
           setDialog({ title: '删除失败', description: result.error || '未知错误', onConfirm: () => setDialog(undefined) });
           return;
         }
@@ -491,6 +504,11 @@ export function useSessionController() {
   };
   const performArchiveProject = async (projectSessions: Session[]) => {
     const archived = await window.codex.archiveProject(projectSessions);
+    const succeededThreadIds = new Set(archived.succeededThreadIds || []);
+    if (succeededThreadIds.size) {
+      setSessions(current => current.filter(session => !session.threadId || !succeededThreadIds.has(session.threadId)));
+      setActive(current => current?.threadId && succeededThreadIds.has(current.threadId) ? undefined : current);
+    }
     if (!archived.ok) {
       setDialog({ title: '归档失败', description: archived.error || '未知错误', onConfirm: () => setDialog(undefined) });
       return;
@@ -565,6 +583,8 @@ export function useSessionController() {
         setDialog(undefined);
         const result = await window.codex.clearArchivedSessions();
         if (!result.ok) {
+          const succeededThreadIds = new Set(result.succeededThreadIds || []);
+          setArchivedSessions(current => current.filter(session => !session.threadId || !succeededThreadIds.has(session.threadId)));
           setDialog({ title: '清除失败', description: result.error || '未知错误', onConfirm: () => setDialog(undefined) });
           return;
         }

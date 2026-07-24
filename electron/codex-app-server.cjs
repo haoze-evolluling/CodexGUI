@@ -190,6 +190,32 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
     return threadId;
   }
 
+  const updatedAt = value => Number.isFinite(value) ? value * 1_000 : Date.parse(value || '') || Date.now();
+
+  const timelineFromTurns = turns => (turns || []).flatMap(turn => (turn.items || []).flatMap(item => {
+    if (item.type === 'userMessage') {
+      const text = (item.content || [])
+        .filter(part => part?.type === 'text' && typeof part.text === 'string')
+        .map(part => part.text)
+        .join('\n');
+      return text ? [{ id: item.id, type: 'message', role: 'user', text }] : [];
+    }
+    if (item.type === 'agentMessage' && typeof item.text === 'string') {
+      return [{ id: item.id, type: 'message', role: 'assistant', text: item.text }];
+    }
+    const activity = activityFromItem(item, item.status || 'completed');
+    return activity ? [activity] : [];
+  }));
+
+  const sessionFromThread = thread => ({
+    id: `codex-${thread.id}`,
+    threadId: thread.id,
+    cwd: typeof thread.cwd === 'string' ? thread.cwd : '',
+    title: thread.name || thread.preview || '未命名对话',
+    timeline: timelineFromTurns(thread.turns),
+    updated: updatedAt(thread.updatedAt || thread.updated_at),
+  });
+
   return {
     async start(options) {
       if (!options.sessionId || turnsBySession.has(options.sessionId)) return false;
@@ -259,8 +285,8 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
         await request('thread/resume', { threadId: known });
         threadsBySession.set(sessionId, { threadId: known, cwd: process.cwd() });
       }
-      await request('thread/rollback', { threadId: known, numTurns: 1 });
-      return true;
+      const result = await request('thread/rollback', { threadId: known, numTurns: 1 });
+      return sessionFromThread(result.thread);
     },
     async archive(threadId) {
       await ensureReady();
@@ -279,6 +305,22 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, send, spawn }) {
       if (!threadId) return false;
       await request('thread/delete', { threadId });
       return true;
+    },
+    async listThreads(archived, includeTurns = false) {
+      await ensureReady();
+      const threads = [];
+      let cursor = null;
+      do {
+        const result = await request('thread/list', { archived, cursor, limit: 100 });
+        threads.push(...(result.data || []));
+        cursor = result.nextCursor;
+      } while (cursor);
+      const sessions = threads.filter(thread => thread?.id);
+      if (!includeTurns) return sessions.map(sessionFromThread);
+      return Promise.all(sessions.map(async thread => {
+        const result = await request('thread/read', { threadId: thread.id, includeTurns: true });
+        return sessionFromThread(result.thread);
+      }));
     },
     resetSession(sessionId) {
       if (!sessionId) return false;

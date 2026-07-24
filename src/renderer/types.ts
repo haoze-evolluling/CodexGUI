@@ -113,7 +113,7 @@ export type SessionGroup = {
   updated: number;
 };
 
-export type ArchiveResult = { ok: true } | { ok: false; error?: string };
+export type ArchiveResult = { ok: true; succeededThreadIds?: string[] } | { ok: false; error?: string; succeededThreadIds?: string[] };
 export type RestoreArchiveResult =
   | { ok: true; session: Session }
   | { ok: false; error?: string };
@@ -154,7 +154,7 @@ export type CodexApi = {
   start(options: { sessionId: string; cwd: string; prompt: string; attachments: CodexAttachment[]; skill?: Pick<CodexSkill, 'name' | 'path'>; threadId?: string; model?: string; reasoningEffort?: string; collaborationMode?: CollaborationMode; permissionMode: PermissionMode }): Promise<boolean>;
   stop(sessionId: string): Promise<boolean>;
   compact(sessionId: string, threadId?: string): Promise<boolean>;
-  rollback(sessionId: string, threadId: string): Promise<boolean>;
+  rollback(sessionId: string, threadId: string): Promise<Session | false>;
   resetSession(sessionId: string): Promise<boolean>;
   listModels(): Promise<CodexModel[]>;
   listCollaborationModes(): Promise<CollaborationMode[]>;

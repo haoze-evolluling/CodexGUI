@@ -22,11 +22,13 @@ contextBridge.exposeInMainWorld('codex', {
   removeArchivedSession: session => ipcRenderer.invoke('sessions:archived-remove', session),
   clearArchivedSessions: () => ipcRenderer.invoke('sessions:archived-clear'),
   archiveProject: async sessions => {
+    const succeededThreadIds = [];
     for (const session of sessions) {
       const result = await ipcRenderer.invoke('sessions:archive', session);
-      if (!result?.ok) return result;
+      if (!result?.ok) return { ...result, succeededThreadIds };
+      if (session.threadId) succeededThreadIds.push(session.threadId);
     }
-    return { ok: true };
+    return { ok: true, succeededThreadIds };
   },
   deleteProject: (cwd, sessions) => ipcRenderer.invoke('projects:delete', cwd, sessions),
   chooseFolder: () => ipcRenderer.invoke('dialog:folder'),
