@@ -24,7 +24,7 @@ export function useSessionController() {
   const [selectedSkill, setSelectedSkill] = useState<CodexSkill>();
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>('default');
   const [dialog, setDialog] = useState<AppDialogState>();
-  const [settings, setSettings] = useState<AppSettings>({ permissionMode: 'default', fontSize: 'small', theme: initialTheme, historyRefreshIntervalSeconds: 10 });
+  const [settings, setSettings] = useState<AppSettings>({ permissionMode: 'default', fontSize: 'small', theme: initialTheme });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivedSessions, setArchivedSessions] = useState<Session[]>([]);
@@ -171,7 +171,6 @@ export function useSessionController() {
   };
 
   useSessionEvents({
-    historyRefreshIntervalSeconds: settings.historyRefreshIntervalSeconds,
     refreshHistory,
     showMissingCodex,
     setActive,
@@ -692,10 +691,6 @@ export function useSessionController() {
     setSelectedSkill(current => current && (value === `/${current.name}` || value.startsWith(`/${current.name} `)) ? current : undefined);
   };
 
-  const setHistoryRefreshIntervalSeconds = (historyRefreshIntervalSeconds: number) => {
-    setSettings(current => ({ ...current, historyRefreshIntervalSeconds }));
-    window.codex.saveSettings({ historyRefreshIntervalSeconds }).then(setSettings).catch(() => undefined);
-  };
   const selectSkill = (skill: CodexSkill) => {
     setSelectedSkill(skill);
     setInput(`/${skill.name}`);
@@ -715,7 +710,7 @@ export function useSessionController() {
   return {
     active, addFiles, answerUserInput, archiveOpen, archiveProject, archiveSession, archivedSessions, attachments, canRollback, chooseFiles, choosePlanAction, clearContext, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
     clearArchivedSessions, closeArchive: () => setArchiveOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, openArchive, openInVsCode, openPath, openSettings, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, setFontSize, setTheme, settings, settingsOpen,
-    createInFolder, createProjectSession, groups, input, models, moveProject, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive, setHistoryRefreshIntervalSeconds, showStatus, skills,
+    createInFolder, createProjectSession, groups, input, models, moveProject, refreshHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive, showStatus, skills,
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
     setReasoningEffort: (effort: string) => {

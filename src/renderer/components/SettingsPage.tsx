@@ -1,4 +1,4 @@
-import { CheckCircle2, Clipboard, FolderOpen, Monitor, Moon, RotateCcw, Settings, Sun, Timer, TriangleAlert, X } from 'lucide-react';
+import { CheckCircle2, Clipboard, FolderOpen, Monitor, Moon, RotateCcw, Settings, Sun, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { CodexInstallation, FontSize, SaveCodexPathResult, ThemeMode } from '../types';
 
@@ -19,12 +19,10 @@ type SettingsPageProps = {
   codexPath?: string;
   fontSize: FontSize;
   theme: ThemeMode;
-  historyRefreshIntervalSeconds: number;
   installation?: CodexInstallation;
   savingDisabled: boolean;
   onClose(): void;
   onFontSizeChange(size: FontSize): void;
-  onHistoryRefreshIntervalSecondsChange(seconds: number): void;
   onThemeChange(theme: ThemeMode): void;
   onSave(path: string): Promise<SaveCodexPathResult>;
 };
@@ -34,16 +32,8 @@ export function SettingsPage(props: SettingsPageProps) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [historyRefreshInterval, setHistoryRefreshInterval] = useState(String(props.historyRefreshIntervalSeconds));
 
   useEffect(() => setPath(props.codexPath || ''), [props.codexPath]);
-  useEffect(() => setHistoryRefreshInterval(String(props.historyRefreshIntervalSeconds)), [props.historyRefreshIntervalSeconds]);
-
-  const saveHistoryRefreshInterval = () => {
-    const seconds = Math.min(3600, Math.max(5, Math.round(Number(historyRefreshInterval)) || 10));
-    setHistoryRefreshInterval(String(seconds));
-    if (seconds !== props.historyRefreshIntervalSeconds) props.onHistoryRefreshIntervalSecondsChange(seconds);
-  };
 
   const chooseExecutable = async () => {
     const selected = await window.codex.chooseCodexExecutable(path || props.installation?.path);
@@ -109,29 +99,6 @@ export function SettingsPage(props: SettingsPageProps) {
               </button>;
             })}
           </div>
-        </section>
-
-        <section className="settings-section">
-          <div className="settings-section-title">
-            <Timer size={18} />
-            <div>
-              <b>对话自动刷新</b>
-              <p className="settings-hint">定期同步 Codex 对话历史。默认每 10 秒刷新一次。</p>
-            </div>
-          </div>
-          <label className="settings-field-label" htmlFor="history-refresh-interval">刷新间隔（秒）</label>
-          <input
-            id="history-refresh-interval"
-            className="settings-number-input"
-            type="number"
-            min="5"
-            max="3600"
-            step="1"
-            value={historyRefreshInterval}
-            onChange={event => setHistoryRefreshInterval(event.target.value)}
-            onBlur={saveHistoryRefreshInterval}
-            onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }}
-          />
         </section>
 
         <section className="settings-section">

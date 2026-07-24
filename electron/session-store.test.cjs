@@ -40,21 +40,21 @@ test('persists Codex path and merges partial setting updates', () => {
   try {
     store.saveSettings({ codexPath: 'C:\\Tools\\codex.exe', model: 'gpt-5' });
     assert.deepEqual(store.saveSettings({ permissionMode: 'yolo' }), {
-      permissionMode: 'yolo', fontSize: 'small', theme: 'light', historyRefreshIntervalSeconds: 10, codexPath: 'C:\\Tools\\codex.exe', model: 'gpt-5',
+      permissionMode: 'yolo', fontSize: 'small', theme: 'light', codexPath: 'C:\\Tools\\codex.exe', model: 'gpt-5',
     });
     assert.deepEqual(store.saveSettings({ fontSize: 'large' }), {
-      permissionMode: 'yolo', fontSize: 'large', theme: 'light', historyRefreshIntervalSeconds: 10, codexPath: 'C:\\Tools\\codex.exe', model: 'gpt-5',
+      permissionMode: 'yolo', fontSize: 'large', theme: 'light', codexPath: 'C:\\Tools\\codex.exe', model: 'gpt-5',
     });
     assert.deepEqual(store.saveSettings({ theme: 'system' }), {
-      permissionMode: 'yolo', fontSize: 'large', theme: 'system', historyRefreshIntervalSeconds: 10, codexPath: 'C:\\Tools\\codex.exe', model: 'gpt-5',
+      permissionMode: 'yolo', fontSize: 'large', theme: 'system', codexPath: 'C:\\Tools\\codex.exe', model: 'gpt-5',
     });
-    assert.deepEqual(store.saveSettings({ codexPath: '' }), { permissionMode: 'yolo', fontSize: 'large', theme: 'system', historyRefreshIntervalSeconds: 10, model: 'gpt-5' });
+    assert.deepEqual(store.saveSettings({ codexPath: '' }), { permissionMode: 'yolo', fontSize: 'large', theme: 'system', model: 'gpt-5' });
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });
 
-test('uses a ten-second default and normalizes the history refresh interval', () => {
+test('does not persist the removed history refresh interval', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-gui-refresh-settings-'));
   const store = createSessionStore(
     path.join(directory, 'sessions.json'),
@@ -62,10 +62,8 @@ test('uses a ten-second default and normalizes the history refresh interval', ()
     path.join(directory, 'settings.json'),
   );
   try {
-    assert.equal(store.loadSettings().historyRefreshIntervalSeconds, 10);
-    assert.equal(store.saveSettings({ historyRefreshIntervalSeconds: 2 }).historyRefreshIntervalSeconds, 5);
-    assert.equal(store.saveSettings({ historyRefreshIntervalSeconds: 27.6 }).historyRefreshIntervalSeconds, 28);
-    assert.equal(store.saveSettings({ historyRefreshIntervalSeconds: 7200 }).historyRefreshIntervalSeconds, 3600);
+    assert.equal('historyRefreshIntervalSeconds' in store.loadSettings(), false);
+    assert.equal('historyRefreshIntervalSeconds' in store.saveSettings({ historyRefreshIntervalSeconds: 2 }), false);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }

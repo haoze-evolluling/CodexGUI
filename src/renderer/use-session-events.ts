@@ -5,7 +5,6 @@ import { without } from './session-set-utils';
 import type { AppSettings, CodexInstallation, CodexModel, CollaborationMode, Message, PermissionMode, Session } from './types';
 
 type Options = {
-  historyRefreshIntervalSeconds: number;
   refreshHistory(): Promise<void>;
   showMissingCodex(installation: CodexInstallation): void;
   setActive: Dispatch<SetStateAction<Session | undefined>>;
@@ -29,8 +28,6 @@ export function useSessionEvents(options: Options) {
       options.setPermissionMode(value.permissionMode);
     }).catch(() => options.setPermissionMode('default'));
     window.codex.getCodexInstallation().then(options.showMissingCodex).catch(() => undefined);
-    const refreshInterval = window.setInterval(options.refreshHistory, options.historyRefreshIntervalSeconds * 1_000);
-
     const updateSession = (sessionId: string, update: (session: Session) => Session) => {
       let nextSession: Session | undefined;
       options.setActive(current => {
@@ -78,7 +75,12 @@ export function useSessionEvents(options: Options) {
         });
       }),
       window.codex.onThread(value => updateSession(value.sessionId, session => ({ ...session, threadId: value.threadId }))),
-      window.codex.onExit(value => options.setRunningSessions(current => without(current, value.sessionId))),
+      window.codex.onExit(value => {
+        options.setRunningSessions(current => without(current, value.sessionId));
+        // A completed turn is the app-server's authoritative signal that its thread
+        // snapshot is ready to be read again.
+        void options.refreshHistory();
+      }),
       window.codex.onError(value => {
         options.setRunningSessions(current => without(current, value.sessionId));
         options.setCompactingSessions(current => without(current, value.sessionId));
@@ -107,8 +109,7 @@ export function useSessionEvents(options: Options) {
       })),
     ];
     return () => {
-      window.clearInterval(refreshInterval);
       unsubscribe.forEach(removeListener => removeListener());
     };
-  }, [options.historyRefreshIntervalSeconds]);
+  }, []);
 }
