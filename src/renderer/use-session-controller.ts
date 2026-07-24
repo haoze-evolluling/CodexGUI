@@ -443,6 +443,12 @@ export function useSessionController() {
     await performArchiveSession(target);
   };
   const performArchiveSession = async (target: Session) => {
+    if (!target.threadId) {
+      const remaining = sessions.filter(session => session.id !== target.id);
+      setSessions(remaining);
+      setActive(current => current?.id === target.id ? remaining[0] : current);
+      return;
+    }
     const archived = await window.codex.archiveSession(target);
     if (!archived.ok) {
       setDialog({ title: '归档失败', description: archived.error || '未知错误', onConfirm: () => setDialog(undefined) });
