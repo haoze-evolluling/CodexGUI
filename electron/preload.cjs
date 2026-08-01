@@ -1,0 +1,68 @@
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
+
+function subscribe(channel, callback) {
+  const listener = (_, value) => callback(value);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
+contextBridge.exposeInMainWorld('codex', {
+  minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
+  toggleMaximizeWindow: () => ipcRenderer.invoke('window:toggle-maximize'),
+  closeWindow: () => ipcRenderer.invoke('window:close'),
+  listSessions: () => ipcRenderer.invoke('sessions:list'),
+  loadHistory: () => ipcRenderer.invoke('sessions:history'),
+  loadSession: threadId => ipcRenderer.invoke('sessions:read', threadId),
+  loadSessionTitles: () => ipcRenderer.invoke('sessions:titles-list'),
+  saveSessionTitle: (threadId, title) => ipcRenderer.invoke('sessions:title-save', threadId, title),
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  saveSettings: settings => ipcRenderer.invoke('settings:save', settings),
+  getCodexInstallation: () => ipcRenderer.invoke('codex:installation'),
+  saveCodexPath: codexPath => ipcRenderer.invoke('codex:path-save', codexPath),
+  archiveSession: session => ipcRenderer.invoke('sessions:archive', session),
+  listArchivedSessions: () => ipcRenderer.invoke('sessions:archived-list'),
+  restoreArchivedSession: session => ipcRenderer.invoke('sessions:restore', session),
+  removeArchivedSession: session => ipcRenderer.invoke('sessions:archived-remove', session),
+  clearArchivedSessions: () => ipcRenderer.invoke('sessions:archived-clear'),
+  archiveProject: async sessions => {
+    const succeededThreadIds = [];
+    for (const session of sessions) {
+      const result = await ipcRenderer.invoke('sessions:archive', session);
+      if (!result?.ok) return { ...result, succeededThreadIds };
+      if (session.threadId) succeededThreadIds.push(session.threadId);
+    }
+    return { ok: true, succeededThreadIds };
+  },
+  deleteProject: (cwd, sessions) => ipcRenderer.invoke('projects:delete', cwd, sessions),
+  chooseFolder: () => ipcRenderer.invoke('dialog:folder'),
+  chooseFiles: defaultPath => ipcRenderer.invoke('dialog:files', defaultPath),
+  chooseCodexExecutable: defaultPath => ipcRenderer.invoke('dialog:codex-executable', defaultPath),
+  listProjectFiles: cwd => ipcRenderer.invoke('files:list-project', cwd),
+  openPath: (cwd, filePath) => ipcRenderer.invoke('files:open', cwd, filePath),
+  openInVsCode: (cwd, filePath) => ipcRenderer.invoke('files:open-vscode', cwd, filePath),
+  openProjectDirectory: cwd => ipcRenderer.invoke('files:open-project-directory', cwd),
+  openTerminal: cwd => ipcRenderer.invoke('files:open-terminal', cwd),
+  loadDiff: (cwd, file) => ipcRenderer.invoke('files:diff', cwd, file),
+  getPathForFile: file => webUtils.getPathForFile(file),
+  start: options => ipcRenderer.invoke('cli:start', options),
+  stop: sessionId => ipcRenderer.invoke('cli:stop', sessionId),
+  compact: (sessionId, threadId) => ipcRenderer.invoke('cli:compact', sessionId, threadId),
+  rollback: (sessionId, threadId) => ipcRenderer.invoke('cli:rollback', sessionId, threadId),
+  listModels: () => ipcRenderer.invoke('cli:models'),
+  listCollaborationModes: () => ipcRenderer.invoke('cli:collaboration-modes'),
+  listSkills: (cwd, forceReload = false) => ipcRenderer.invoke('cli:skills', cwd, forceReload),
+  answerUserInput: (itemId, answers) => ipcRenderer.invoke('cli:answer-user-input', itemId, answers),
+  onData: callback => subscribe('cli:data', callback),
+  onActivity: callback => subscribe('cli:activity', callback),
+  onThread: callback => subscribe('cli:thread', callback),
+  onExit: callback => subscribe('cli:exit', callback),
+  onError: callback => subscribe('cli:error', callback),
+  onCompacted: callback => subscribe('cli:compacted', callback),
+  onStatus: callback => subscribe('cli:status', callback),
+  onTokenUsage: callback => subscribe('cli:token-usage', callback),
+  onTokenUsagePending: callback => subscribe('cli:token-usage-pending', callback),
+  onUserInput: callback => subscribe('cli:user-input', callback),
+  onPlanReady: callback => subscribe('cli:plan-ready', callback),
+  onSkillsChanged: callback => subscribe('cli:skills-changed', callback),
+  onFocusSession: callback => subscribe('sessions:focus', callback),
+});

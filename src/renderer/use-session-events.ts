@@ -1,0 +1,177 @@
+import { useEffect } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
+import { normalizeSession, timelineOf } from './session-model';
+import { without } from './session-set-utils';
+import type { AppSettings, CodexInstallation, CodexModel, CollaborationMode, PermissionMode, Session, ThreadTokenUsage } from './types';
+
+type Options = {
+  refreshHistory(): Promise<void>;
+  refreshHistoryWithTransition(): Promise<void>;
+  showMissingCodex(installation: CodexInstallation): void;
+  setActive: Dispatch<SetStateAction<Session | undefined>>;
+  setCollaborationModes: Dispatch<SetStateAction<CollaborationMode[]>>;
+  setCompactingSessions: Dispatch<SetStateAction<Set<string>>>;
+  setModels: Dispatch<SetStateAction<CodexModel[]>>;
+  setPermissionMode: Dispatch<SetStateAction<PermissionMode>>;
+  setRunningSessions: Dispatch<SetStateAction<Set<string>>>;
+  setSessions: Dispatch<SetStateAction<Session[]>>;
+  setSettings: Dispatch<SetStateAction<AppSettings>>;
+  setWaitingSessions: Dispatch<SetStateAction<Set<string>>>;
+};
+
+export function useSessionEvents(options: Options) {
+  useEffect(() => {
+    options.refreshHistory();
+    window.codex.listModels().then(options.setModels).catch(() => options.setModels([]));
+    window.codex.listCollaborationModes().then(options.setCollaborationModes).catch(() => options.setCollaborationModes([]));
+    window.codex.getSettings().then(value => {
+      options.setSettings(value);
+      options.setPermissionMode(value.permissionMode);
+    }).catch(() => options.setPermissionMode('default'));
+    window.codex.getCodexInstallation().then(options.showMissingCodex).catch(() => undefined);
+    const updateSession = (sessionId: string, update: (session: Session) => Session) => {
+      let nextSession: Session | undefined;
+      options.setActive(current => {
+        if (current?.id !== sessionId) return current;
+        nextSession = update(normalizeSession(current));
+        return nextSession;
+      });
+      options.setSessions(items => {
+        let changed = false;
+        const nextItems = items.map(session => {
+          if (session.id !== sessionId) return session;
+          const next = nextSession || update(normalizeSession(session));
+          nextSession = next;
+          changed = true;
+          return next;
+        });
+        return changed ? nextItems : items;
+      });
+    };
+    const validTokenUsage = (value: unknown): value is ThreadTokenUsage => {
+      if (!value || typeof value !== 'object') return false;
+      const usage = value as ThreadTokenUsage;
+      const validBreakdown = (breakdown: ThreadTokenUsage['last']) =>
+        [breakdown?.cachedInputTokens, breakdown?.inputTokens, breakdown?.outputTokens, breakdown?.reasoningOutputTokens, breakdown?.totalTokens]
+          .every(Number.isFinite);
+      return validBreakdown(usage.last) && validBreakdown(usage.total)
+        && (usage.modelContextWindow === undefined || usage.modelContextWindow === null || Number.isFinite(usage.modelContextWindow))
+        && (usage.reportedAt === undefined || Number.isFinite(usage.reportedAt));
+    };
+    const pendingData = new Map<string, { sessionId: string; itemId: string; text: string; full?: boolean }>();
+    let dataFrame = 0;
+    const flushData = () => {
+      dataFrame = 0;
+      const grouped = new Map<string, { itemId: string; text: string; full?: boolean }[]>();
+      for (const value of pendingData.values()) {
+        const entries = grouped.get(value.sessionId) || [];
+        entries.push({ itemId: value.itemId, text: value.text, full: value.full });
+        grouped.set(value.sessionId, entries);
+      }
+      pendingData.clear();
+      for (const [sessionId, values] of grouped) {
+        updateSession(sessionId, session => {
+          const timeline = [...timelineOf(session)];
+          for (const value of values) {
+            const id = `agent-${value.itemId}`;
+            const index = timeline.findIndex(item => item.id === id);
+            if (index >= 0 && timeline[index].type === 'message') {
+              timeline[index] = { ...timeline[index], text: value.full ? value.text : timeline[index].text + value.text };
+            } else timeline.push({ id, type: 'message', role: 'assistant', text: value.text });
+          }
+          return { ...session, timeline, updated: Date.now() };
+        });
+      }
+    };
+    const queueData = (value: { sessionId: string; itemId: string; text: string; full?: boolean }) => {
+      const key = `${value.sessionId}\u0000${value.itemId}`;
+      const current = pendingData.get(key);
+      pendingData.set(key, {
+        ...value,
+        text: value.full ? value.text : `${current?.text || ''}${value.text}`,
+      });
+      if (!dataFrame) dataFrame = window.requestAnimationFrame(flushData);
+    };
+    const unsubscribe = [
+      window.codex.onData(queueData),
+      window.codex.onActivity(value => {
+        if (value.activity.type === 'compaction' && value.activity.status === 'completed') {
+          options.setCompactingSessions(current => without(current, value.sessionId));
+        }
+        updateSession(value.sessionId, session => {
+          const timeline = [...timelineOf(session)];
+          const index = timeline.findIndex(item => item.id === value.activity.id);
+          if (index >= 0) timeline[index] = { ...timeline[index], ...value.activity } as typeof value.activity;
+          else timeline.push(value.activity);
+          return { ...session, timeline, ...(value.activity.type === 'compaction' && value.activity.status === 'completed' ? { tokenUsagePending: true } : {}), updated: Date.now() };
+        });
+      }),
+      window.codex.onThread(value => updateSession(value.sessionId, session => ({ ...session, threadId: value.threadId }))),
+      window.codex.onExit(value => {
+        options.setRunningSessions(current => without(current, value.sessionId));
+        if (value.status === 'interrupted') {
+          updateSession(value.sessionId, session => ({
+            ...session,
+            timeline: timelineOf(session).map(item => item.type === 'user_input' && item.status === 'pending'
+              ? { ...item, status: 'cancelled' as const }
+              : item),
+          }));
+        }
+        // An interrupted turn can be reported before thread/read has incorporated
+        // its command items. Keep the live Codex event stream visible instead of
+        // replacing it with that transiently incomplete snapshot.
+        // A plan action is derived from the completed turn and is intentionally
+        // not present in thread/list metadata. Keep its live transcript intact.
+        if (value.status !== 'interrupted' && !value.hasPlan && !value.hadError) void options.refreshHistoryWithTransition();
+      }),
+      window.codex.onError(value => {
+        options.setRunningSessions(current => without(current, value.sessionId));
+        options.setCompactingSessions(current => without(current, value.sessionId));
+        updateSession(value.sessionId, session => ({
+          ...session,
+          timeline: [...timelineOf(session).map(item => item.type === 'user_input' && item.status === 'pending'
+            ? { ...item, status: 'cancelled' as const }
+            : item), { id: crypto.randomUUID(), type: 'message', role: 'error', text: value.error }],
+          updated: Date.now(),
+        }));
+      }),
+      window.codex.onCompacted(value => {
+        options.setCompactingSessions(current => without(current, value.sessionId));
+        updateSession(value.sessionId, session => ({ ...session, tokenUsagePending: true }));
+      }),
+      window.codex.onStatus(value => {
+        updateSession(value.sessionId, session => ({ ...session, threadStatus: value.status }));
+        if (value.status.type === 'idle' || value.status.type === 'systemError') {
+          options.setCompactingSessions(current => without(current, value.sessionId));
+        }
+        options.setWaitingSessions(current => {
+          const next = new Set(current);
+          if (value.status.type === 'active' && value.status.activeFlags?.includes('waitingOnUserInput')) next.add(value.sessionId);
+          else next.delete(value.sessionId);
+          return next;
+        });
+      }),
+      window.codex.onTokenUsage(value => {
+        if (!validTokenUsage(value.tokenUsage)) return;
+        updateSession(value.sessionId, session => ({ ...session, tokenUsage: value.tokenUsage, tokenUsagePending: false }));
+      }),
+      window.codex.onTokenUsagePending(value => {
+        updateSession(value.sessionId, session => ({ ...session, tokenUsagePending: true }));
+      }),
+      window.codex.onUserInput(value => updateSession(value.sessionId, session => ({
+        ...session,
+        timeline: [...timelineOf(session), { id: value.request.itemId, type: 'user_input', status: 'pending', questions: value.request.questions }],
+        updated: Date.now(),
+      }))),
+      window.codex.onPlanReady(value => updateSession(value.sessionId, session => {
+        const id = `plan-decision-${value.plan.itemId}`;
+        if (timelineOf(session).some(item => item.id === id)) return session;
+        return { ...session, timeline: [...timelineOf(session), { id, type: 'plan_decision', status: 'pending', plan: value.plan.text }], updated: Date.now() };
+      })),
+    ];
+    return () => {
+      if (dataFrame) window.cancelAnimationFrame(dataFrame);
+      unsubscribe.forEach(removeListener => removeListener());
+    };
+  }, []);
+}

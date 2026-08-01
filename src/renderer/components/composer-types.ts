@@ -1,0 +1,37 @@
+import type { MouseEvent } from 'react';
+import type { CodexAttachment, CodexModel, CodexSkill, CollaborationMode, PermissionMode, Session } from '../types';
+
+export type ComposerProps = {
+  activeSessionId?: string;
+  input: string;
+  attachments: CodexAttachment[];
+  running: boolean;
+  stopping: boolean;
+  compacting: boolean;
+  rollingBack: boolean;
+  waiting: boolean;
+  session?: Session;
+  models: CodexModel[];
+  preferredModel?: string;
+  skills: CodexSkill[];
+  selectedSkill?: CodexSkill;
+  collaborationModes: CollaborationMode[];
+  permissionMode: PermissionMode;
+  onInputChange(value: string): void;
+  onInputContextMenu(event: MouseEvent, selectedText: string, insertText: (text: string) => void): void;
+  onChooseFiles(): void;
+  onAddFiles(paths: string[]): void;
+  listMentionFiles?(cwd: string, query: string): Promise<string[]>;
+  onRemoveAttachment(id: string): void;
+  onSend(message?: string): void;
+  onStop(): void;
+  onCompact(): void;
+  onRollback(): void;
+  onNewConversation(): void;
+  onShowStatus(): void;
+  onSkillSelect(skill: CodexSkill): void;
+  onModelChange(value: string): void;
+  onReasoningEffortChange(value: string): void;
+  onModeChange(value: 'default' | 'plan'): void;
+  onPermissionModeChange(value: PermissionMode): void;
+};

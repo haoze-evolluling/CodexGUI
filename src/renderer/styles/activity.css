@@ -1,0 +1,38 @@
+.activity { width: min(900px, 100%); min-height: 37px; border: 1px solid #334051; border-radius: 7px; background: #151b24; overflow: hidden; }
+.activity[open] { height: auto; min-height: 160px; }
+.activity[open] > :not(summary) { display: block; }
+.activity-heading { width: 100%; min-height: 35px; display: flex; align-items: center; gap: 8px; padding: 9px 11px; cursor: pointer; list-style: none; text-align: left; }
+.activity-heading::-webkit-details-marker { display: none; }
+.activity-heading:hover { background: #1d2633; }
+.activity-chevron { transition: transform 100ms ease-out; }
+.activity[open] .activity-chevron { transform: rotate(90deg); }
+.activity-heading span { font-size: 13px; font-weight: 600; }
+.activity-heading small { margin-left: auto; color: #94a4b8; font-size: 11px; }
+.activity.running .activity-heading small { color: #77b5ff; }
+.activity-summary { display: block; padding: 0 12px 10px; color: #b8c8db; font: inherit; font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.activity-output { max-height: 340px; overflow: auto; overscroll-behavior: contain; margin: 0; border-top: 1px solid #334051; padding: 12px; background: #10151d; color: #d7e0eb; font: inherit; font-size: 12px; font-weight: 400; line-height: 1.55; white-space: pre; scrollbar-color: #4a586a #10151d; scrollbar-width: thin; }
+.activity-output::-webkit-scrollbar { width: 7px; height: 7px; }
+.activity-output::-webkit-scrollbar-track { background: #10151d; }
+.activity-output::-webkit-scrollbar-thumb { background: #4a586a; border-radius: 7px; }
+.activity-output::-webkit-scrollbar-thumb:hover { background: #66778d; }
+.file-list { border-top: 1px solid #334051; }
+.file-change { padding: 10px 12px; border-bottom: 1px solid #29313d; }
+.file-change:last-child { border-bottom: 0; }
+.file-change-header > div:first-child, .file-change > div:not(.file-change-header):not(.file-change-actions) { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+.file-change b { color: #80c99b; font-size: 11px; flex: 0 0 auto; }
+.file-change code { font: inherit; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.file-change p { margin: 8px 0 0; color: #8490a0; font-size: 12px; }
+.file-change .activity-output { margin: 9px -12px -10px; }
+.file-diff span { display: block; }
+.file-diff .diff-addition { color: #9ee5b0; background: #173d2a; }
+.file-diff .diff-deletion { color: #ffabb4; background: #4a2029; }
+.file-activity .activity-heading svg:nth-child(2) { color: #80c99b; }
+.command-activity.completed .activity-heading svg:nth-child(2) { color: #75b6ff; }
+
+.file-change-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.file-change-header > div:first-child { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+.file-change-actions { display: inline-flex; gap: 6px; flex: 0 0 auto; }
+.file-change-actions button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; color: #b7c4d5; background: #223041; border: 1px solid #3a4a5f; border-radius: 7px; font-size: 11px; }
+.file-change-actions button:hover:not(:disabled) { color: #f2f7ff; background: #2b3c51; border-color: #567094; }
+.file-change-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+
