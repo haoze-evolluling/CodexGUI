@@ -22,16 +22,16 @@ function isCommandOutput(item) {
 function activityFromItem(item, status, toolOutput) {
   if (!item) return null;
   const id = item.callId || item.call_id || item.id;
-  if (!id) return null;
   if (isCommandCall(item)) {
     const output = item.aggregatedOutput ?? item.aggregated_output ?? item.output ?? toolOutput;
     const command = commandFromItem(item);
     return {
-      id, type: 'command', status: item.status || status,
+      id: id || `command-${Math.random()}`, type: 'command', status: item.status || status,
       command, commandType: commandTypeFromCommand(command), output: textFromToolOutput(output),
       ...(item.exitCode !== undefined || item.exit_code !== undefined ? { exitCode: item.exitCode ?? item.exit_code } : {}),
     };
   }
+  if (!id) return null;
   if (item.type === 'fileChange') {
     return {
       id: item.id, type: 'file_change', status,
