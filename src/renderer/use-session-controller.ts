@@ -56,7 +56,6 @@ export function useSessionController() {
     setSettings(current => ({
       ...current,
       ...(providerState.model ? { model: providerState.model } : {}),
-      ...(providerState.reasoningEffort ? { reasoningEffort: providerState.reasoningEffort } : {}),
     }));
   }, [providerState]);
 
@@ -399,10 +398,10 @@ export function useSessionController() {
     } : current);
     markSessionRunning(active.id);
     const preferredModel = providerState?.model || settings.model;
-    const preferredEffort = providerState?.reasoningEffort || settings.reasoningEffort;
+    const preferredEffort = settings.reasoningEffort || providerState?.reasoningEffort;
     const selectedModel = resolveModel(models, active.model, preferredModel);
     const effectiveModel = active.model || preferredModel || selectedModel?.model;
-    const effectiveEffort = resolveReasoningEffort(active.reasoningEffort || preferredEffort, selectedModel);
+    const effectiveEffort = resolveReasoningEffort(preferredEffort, selectedModel);
     let started = false;
     try {
       started = await window.codex.start({
@@ -613,10 +612,10 @@ export function useSessionController() {
     setActive(nextSession);
     markSessionRunning(nextSession.id);
     const preferredModel = providerState?.model || settings.model;
-    const preferredEffort = providerState?.reasoningEffort || settings.reasoningEffort;
+    const preferredEffort = settings.reasoningEffort || providerState?.reasoningEffort;
     const selectedModel = resolveModel(models, active.model, preferredModel);
     const model = active.model || preferredModel || selectedModel?.model;
-    const reasoningEffort = resolveReasoningEffort(active.reasoningEffort || preferredEffort, selectedModel);
+    const reasoningEffort = resolveReasoningEffort(preferredEffort, selectedModel);
     try {
       const started = await window.codex.start({
         sessionId: nextSession.id,
@@ -651,7 +650,7 @@ export function useSessionController() {
     setActive({
       ...freshSession(cwd),
       ...(providerState?.model || settings.model ? { model: providerState?.model || settings.model } : {}),
-      ...(providerState?.reasoningEffort || settings.reasoningEffort ? { reasoningEffort: providerState?.reasoningEffort || settings.reasoningEffort } : {}),
+      ...(settings.reasoningEffort || providerState?.reasoningEffort ? { reasoningEffort: settings.reasoningEffort || providerState?.reasoningEffort } : {}),
     });
   };
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
@@ -947,9 +946,8 @@ export function useSessionController() {
   });
   const setModel = (model: string) => {
     const selected = resolveModel(models, model);
-    const currentEffort = active?.reasoningEffort || settingsRef.current.reasoningEffort;
-    const supported = selected?.supportedReasoningEfforts.some(option => option.reasoningEffort === currentEffort);
-    const reasoningEffort = supported ? currentEffort : selected?.defaultReasoningEffort;
+    const currentEffort = settingsRef.current.reasoningEffort || providerState?.reasoningEffort || active?.reasoningEffort;
+    const reasoningEffort = resolveReasoningEffort(currentEffort, selected);
     setActive(current => current ? {
       ...current,
       model,
@@ -1042,7 +1040,15 @@ export function useSessionController() {
 
   const showStatus = () => {
     if (!active) return;
-    setDialog(createSessionStatusDialog({ session: active, models, preferredModel: providerState?.model || settings.model, permissionMode, running: runningSessions.has(active.id), onClose: () => setDialog(undefined) }));
+    setDialog(createSessionStatusDialog({
+      session: active,
+      models,
+      preferredModel: providerState?.model || settings.model,
+      preferredReasoningEffort: settings.reasoningEffort || providerState?.reasoningEffort,
+      permissionMode,
+      running: runningSessions.has(active.id),
+      onClose: () => setDialog(undefined),
+    }));
   };
 
   const groups = useMemo(() => groupSessions(sessions, settings.projectPaths), [sessions, settings.projectPaths]);
@@ -1059,8 +1065,14 @@ export function useSessionController() {
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
     setReasoningEffort: (effort: string) => {
+      const nextSettings = { ...settingsRef.current, reasoningEffort: effort };
+      settingsRef.current = nextSettings;
+      setSettings(nextSettings);
       setActive(current => current ? { ...current, reasoningEffort: effort } : current);
-      window.codex.saveSettings({ reasoningEffort: effort }).then(setSettings).catch(() => undefined);
+      window.codex.saveSettings({ reasoningEffort: effort }).then(saved => {
+        settingsRef.current = saved;
+        setSettings(saved);
+      }).catch(() => undefined);
     },
     rollback, rollingBack, toggleGroup, waiting,
   };

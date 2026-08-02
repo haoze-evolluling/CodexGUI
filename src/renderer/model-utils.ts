@@ -36,8 +36,12 @@ export function resolveModel(
 }
 
 export function resolveReasoningEffort(
-  sessionEffort: string | undefined,
+  preferredEffort: string | undefined,
   selectedModel: CodexModel | undefined,
 ): string | undefined {
-  return sessionEffort || selectedModel?.defaultReasoningEffort;
+  const supported = selectedModel?.supportedReasoningEfforts || [];
+  if (preferredEffort && (!selectedModel || !supported.length || supported.some(option => option.reasoningEffort === preferredEffort))) {
+    return preferredEffort;
+  }
+  return selectedModel?.defaultReasoningEffort;
 }

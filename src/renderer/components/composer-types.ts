@@ -13,6 +13,7 @@ export type ComposerProps = {
   session?: Session;
   models: CodexModel[];
   preferredModel?: string;
+  preferredReasoningEffort?: string;
   skills: CodexSkill[];
   selectedSkill?: CodexSkill;
   collaborationModes: CollaborationMode[];

@@ -134,6 +134,25 @@ test('maps conversation commands to their Codex app-server methods', async () =>
   assert.deepEqual(turn.params.sandboxPolicy, { type: 'dangerFullAccess' });
 });
 
+test('uses the selected reasoning effort for the turn and collaboration settings', async () => {
+  const { requests, server } = createServerHarness();
+
+  assert.equal(await server.start({
+    sessionId: 'session-1',
+    cwd: 'C:\\repo',
+    prompt: 'Hello',
+    attachments: [],
+    model: 'gpt-5',
+    reasoningEffort: 'high',
+    collaborationMode: { mode: 'default', model: 'gpt-5', reasoning_effort: 'medium' },
+    permissionMode: 'yolo',
+  }), true);
+
+  const turn = requests.find(request => request.method === 'turn/start');
+  assert.equal(turn.params.effort, 'high');
+  assert.equal(turn.params.collaborationMode.settings.reasoning_effort, 'high');
+});
+
 test('restarts the app-server and waits for initialization', async () => {
   const { requests, server } = createServerHarness();
 

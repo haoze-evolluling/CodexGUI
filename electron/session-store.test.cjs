@@ -54,6 +54,18 @@ test('persists Codex path and merges partial setting updates', () => {
   }
 });
 
+test('restores the saved reasoning effort after reopening the store', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-gui-reasoning-settings-'));
+  const settingsFile = path.join(directory, 'settings.json');
+  const createStore = () => createSessionStore(undefined, undefined, settingsFile);
+  try {
+    assert.equal(createStore().saveSettings({ reasoningEffort: 'high' }).reasoningEffort, 'high');
+    assert.equal(createStore().loadSettings().reasoningEffort, 'high');
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test('does not persist the removed history refresh interval', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-gui-refresh-settings-'));
   const store = createSessionStore(

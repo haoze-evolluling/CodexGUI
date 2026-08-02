@@ -33,7 +33,7 @@ export function Composer(props: ComposerProps) {
     high: '深入推理，适合复杂任务',
     xhigh: '最大推理深度，耗时更长',
   };
-  const activeEffort = resolveReasoningEffort(props.session?.reasoningEffort, selectedModel) || '';
+  const activeEffort = resolveReasoningEffort(props.preferredReasoningEffort, selectedModel) || '';
   const status = props.compacting ? '正在压缩上下文...' : props.waiting ? '等待你的选择' : props.running ? '思考中...' : '准备就绪';
   const applyMention = (relativePath: string) => {
     const cwd = props.session?.cwd;

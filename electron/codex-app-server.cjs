@@ -341,7 +341,7 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, saveTokenUsage, sen
             mode: options.collaborationMode.mode,
             settings: {
               model: options.collaborationMode.model || options.model,
-              reasoning_effort: options.collaborationMode.reasoning_effort || options.reasoningEffort || null,
+              reasoning_effort: options.reasoningEffort || options.collaborationMode.reasoning_effort || null,
               developer_instructions: null,
             },
           };

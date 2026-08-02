@@ -6,12 +6,13 @@ type CreateSessionStatusDialogOptions = {
   session: Session;
   models: CodexModel[];
   preferredModel?: string;
+  preferredReasoningEffort?: string;
   permissionMode: PermissionMode;
   running: boolean;
   onClose(): void;
 };
 
-export function createSessionStatusDialog({ session, models, preferredModel, permissionMode, running, onClose }: CreateSessionStatusDialogOptions): AppDialogState {
+export function createSessionStatusDialog({ session, models, preferredModel, preferredReasoningEffort, permissionMode, running, onClose }: CreateSessionStatusDialogOptions): AppDialogState {
   const effortLabels: Record<string, string> = { minimal: '最低', low: '低', medium: '中', high: '高', xhigh: '最高' };
   const statusLabels: Record<string, string> = { notLoaded: '未加载', idle: '空闲', systemError: '系统错误', active: '运行中' };
   const flags = session.threadStatus?.activeFlags || [];
@@ -19,7 +20,7 @@ export function createSessionStatusDialog({ session, models, preferredModel, per
     : flags.includes('waitingOnUserInput') ? '等待用户输入'
       : statusLabels[session.threadStatus?.type || ''] || (running ? '运行中' : '空闲');
   const selectedModel = resolveModel(models, session.model, preferredModel);
-  const effort = resolveReasoningEffort(session.reasoningEffort, selectedModel);
+  const effort = resolveReasoningEffort(preferredReasoningEffort, selectedModel);
   const tokenUsage = session.tokenUsage;
   const number = (value: number) => new Intl.NumberFormat('zh-CN').format(value);
   const hasTokenUsage = !!tokenUsage && Number.isFinite(tokenUsage.last.totalTokens) && Number.isFinite(tokenUsage.total.totalTokens);

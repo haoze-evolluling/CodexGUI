@@ -223,6 +223,7 @@ export function App() {
               rollingBack={controller.rollingBack}
               models={controller.models}
               preferredModel={controller.providerState?.model || controller.settings.model}
+              preferredReasoningEffort={controller.settings.reasoningEffort || controller.providerState?.reasoningEffort}
               skills={controller.skills}
               selectedSkill={controller.selectedSkill}
               collaborationModes={controller.collaborationModes}
