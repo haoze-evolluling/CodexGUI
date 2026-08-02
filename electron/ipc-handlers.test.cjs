@@ -111,7 +111,7 @@ test('supplements App Server sessions with command activities from the Codex tra
     const result = await handlers.get('sessions:read')(undefined, 'thread-1');
     assert.deepEqual(result.timeline, [
       { id: 'user-1', type: 'message', role: 'user', text: '检查项目' },
-      { id: 'call-1', type: 'command', status: 'completed', command: 'rg TODO', output: 'src/app.ts: TODO', exitCode: undefined },
+      { id: 'call-1', type: 'command', status: 'completed', command: 'rg TODO', commandType: '其他 · 搜索', output: 'src/app.ts: TODO', exitCode: undefined },
       { id: 'assistant-1', type: 'message', role: 'assistant', text: '已完成' },
     ]);
   } finally {

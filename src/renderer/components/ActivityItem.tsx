@@ -103,7 +103,8 @@ export const ActivityItem = memo(function ActivityItem({
           <ChevronRight className="activity-chevron" size={15} />
           <Terminal size={15} />
           <span>运行命令</span>
-          <small>{result}</small>
+          <small className="activity-command-type">{activity.commandType || '其他 · 工具调用'}</small>
+          <small className="activity-status">{result}</small>
         </summary>
         <code className="activity-summary">{activity.command}</code>
         <pre className="activity-output">{activity.output || '没有可显示的输出。'}</pre>

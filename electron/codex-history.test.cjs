@@ -85,10 +85,10 @@ test('removes commands and messages from turns marked as rolled back in the Code
   try {
     assert.deepEqual(parseSessionFile(filePath).timeline, [
       { id: 'message-0', type: 'message', role: 'user', text: 'A' },
-      { id: 'call-a', type: 'command', status: 'completed', command: 'rg A', output: '', exitCode: undefined },
+      { id: 'call-a', type: 'command', status: 'completed', command: 'rg A', commandType: '其他 · 搜索', output: '', exitCode: undefined },
       { id: 'message-2', type: 'message', role: 'assistant', text: 'A done' },
       { id: 'message-3', type: 'message', role: 'user', text: 'C' },
-      { id: 'call-c', type: 'command', status: 'completed', command: 'rg C', output: '', exitCode: undefined },
+      { id: 'call-c', type: 'command', status: 'completed', command: 'rg C', commandType: '其他 · 搜索', output: '', exitCode: undefined },
     ]);
   } finally { fs.unlinkSync(filePath); }
 });
@@ -113,10 +113,10 @@ test('merges all JSONL fragments for the same thread in record-time order', asyn
   try {
     assert.deepEqual((await loadCodexSession(root, 'thread-fragments')).timeline, [
       { id: 'message-0', type: 'message', role: 'user', text: 'A' },
-      { id: 'call-a', type: 'command', status: 'completed', command: 'rg A', output: '', exitCode: undefined },
+      { id: 'call-a', type: 'command', status: 'completed', command: 'rg A', commandType: '其他 · 搜索', output: '', exitCode: undefined },
       { id: 'message-2', type: 'message', role: 'assistant', text: 'A done' },
       { id: 'message-3', type: 'message', role: 'user', text: 'B' },
-      { id: 'call-b', type: 'command', status: 'completed', command: 'rg B', output: '', exitCode: undefined },
+      { id: 'call-b', type: 'command', status: 'completed', command: 'rg B', commandType: '其他 · 搜索', output: '', exitCode: undefined },
     ]);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
@@ -133,7 +133,7 @@ test('reads native function_call records as command activities with their output
   try {
     assert.deepEqual(parseSessionFile(filePath).timeline, [
       { id: 'message-0', type: 'message', role: 'user', text: '跑一下命令' },
-      { id: 'call-1', type: 'command', status: 'completed', command: 'Get-ChildItem', output: 'Exit code: 0\nOutput: ok' },
+      { id: 'call-1', type: 'command', status: 'completed', command: 'Get-ChildItem', commandType: 'PowerShell · 工具调用', output: 'Exit code: 0\nOutput: ok' },
       { id: 'message-2', type: 'message', role: 'assistant', text: '完成' },
     ]);
   } finally { fs.unlinkSync(filePath); }
@@ -150,7 +150,23 @@ test('reads called records and camel-case tool outputs as command activities', (
   try {
     assert.deepEqual(parseSessionFile(filePath).timeline, [
       { id: 'message-0', type: 'message', role: 'user', text: '查看状态' },
-      { id: 'called-1', type: 'command', status: 'completed', command: 'git status', output: 'clean' },
+      { id: 'called-1', type: 'command', status: 'completed', command: 'git status', commandType: 'Git · 查询状态', output: 'clean' },
+    ]);
+  } finally { fs.unlinkSync(filePath); }
+});
+
+test('extracts and classifies the inner command from custom_tool_call history', () => {
+  const filePath = path.join(os.tmpdir(), 'codex-history-custom-tool-' + Date.now() + '.jsonl');
+  fs.writeFileSync(filePath, [
+    JSON.stringify({ type: 'session_meta', payload: { session_id: 'thread-custom', cwd: 'C:\\project' } }),
+    JSON.stringify({ type: 'response_item', payload: {
+      id: 'custom-1', call_id: 'call-custom', type: 'custom_tool_call', name: 'shell_command',
+      input: 'const result = await tools.shell_command({ command: "git status" });',
+    } }),
+  ].join('\n'));
+  try {
+    assert.deepEqual(parseSessionFile(filePath).timeline, [
+      { id: 'call-custom', type: 'command', status: 'completed', command: 'git status', commandType: 'Git · 查询状态', output: '' },
     ]);
   } finally { fs.unlinkSync(filePath); }
 });

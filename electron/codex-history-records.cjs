@@ -1,3 +1,5 @@
+const { commandFromItem, commandTypeFromCommand } = require('./codex-command.cjs');
+
 function textFromContent(content) {
   if (!Array.isArray(content)) return '';
   return content
@@ -39,66 +41,30 @@ function patchFiles(input) {
   return files;
 }
 
-function parsedArguments(payload) {
-  const args = payload?.arguments;
-  if (typeof args === 'string') {
-    try { return JSON.parse(args); } catch { return null; }
-  }
-  return args && typeof args === 'object' ? args : null;
-}
-
-function parsedArgumentValue(value) {
-  if (typeof value === 'string') {
-    try { return JSON.parse(value); } catch { return null; }
-  }
-  return value && typeof value === 'object' ? value : null;
-}
-
-function commandFromFunctionCall(payload) {
-  const name = payload?.name || '工具调用';
-  const parsed = parsedArguments(payload);
-  if (parsed && (typeof parsed.command === 'string' || Array.isArray(parsed.command))) {
-    const command = Array.isArray(parsed.command) ? parsed.command.join(' ') : parsed.command.trim();
-    if (command) return command;
-  }
-  if (parsed && typeof parsed.cmd === 'string' && parsed.cmd.trim()) return parsed.cmd;
-  if (typeof payload.arguments === 'string' && payload.arguments.trim()) return payload.arguments;
-  if (parsed && typeof parsed.input === 'string' && parsed.input.trim()) return parsed.input;
-  return name;
-}
-
 function normalizedRecordType(type) {
   return String(type || '').replace(/([a-z])([A-Z])/g, '$1_$2').replace(/-/g, '_').toLowerCase();
-}
-
-function commandFromCallRecord(payload) {
-  const args = parsedArgumentValue(payload.arguments ?? payload.args);
-  const direct = payload.command ?? payload.cmd;
-  if (direct !== undefined) return Array.isArray(direct) ? direct.join(' ') : String(direct);
-  if (args?.command !== undefined) return Array.isArray(args.command) ? args.command.join(' ') : String(args.command);
-  if (args?.cmd !== undefined) return String(args.cmd);
-  if (typeof payload.input === 'string') {
-    const input = parsedArgumentValue(payload.input);
-    if (input?.command !== undefined) return Array.isArray(input.command) ? input.command.join(' ') : String(input.command);
-    if (input?.cmd !== undefined) return String(input.cmd);
-    return payload.input;
-  }
-  if (payload.arguments !== undefined) return typeof payload.arguments === 'string' ? payload.arguments : JSON.stringify(payload.arguments);
-  return payload.name || payload.tool_name || '工具调用';
 }
 
 function activityFromRecord(record) {
   const payload = record?.payload;
   if (!payload) return null;
   if (record.type === 'response_item' && payload.type === 'command_execution') {
-    return { id: payload.id || `command-${payload.call_id || Math.random()}`, type: 'command', status: payload.status || 'completed', command: Array.isArray(payload.command) ? payload.command.join(' ') : payload.command || '', output: payload.aggregated_output || '', exitCode: payload.exit_code };
+    const command = commandFromItem(payload);
+    return { id: payload.id || `command-${payload.call_id || Math.random()}`, type: 'command', status: payload.status || 'completed', command, commandType: commandTypeFromCommand(command), output: payload.aggregated_output || '', exitCode: payload.exit_code };
   }
   if (record.type === 'response_item' && ['command_call', 'tool_call', 'called', 'function_call', 'custom_tool_call'].includes(normalizedRecordType(payload.type))) {
     const output = payload.aggregated_output ?? payload.aggregatedOutput ?? payload.output;
-    const files = patchFiles(payload.input || parsedArguments(payload)?.input);
+    let parsedArguments;
+    if (typeof payload.arguments === 'string') {
+      try { parsedArguments = JSON.parse(payload.arguments); } catch { parsedArguments = null; }
+    } else {
+      parsedArguments = payload.arguments;
+    }
+    const files = patchFiles(payload.input || parsedArguments?.input);
+    const command = commandFromItem(payload);
     return {
       id: payload.call_id || payload.callId || payload.id || ('command-' + Math.random()),
-      type: 'command', status: payload.status || 'completed', command: commandFromCallRecord(payload),
+      type: 'command', status: payload.status || 'completed', command, commandType: commandTypeFromCommand(command),
       output: Array.isArray(output) ? output.map(part => part?.text || '').join('\n') : String(output || ''),
       ...(payload.exit_code !== undefined || payload.exitCode !== undefined ? { exitCode: payload.exit_code ?? payload.exitCode } : {}),
       ...(files.length ? { files } : {}),

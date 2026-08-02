@@ -58,6 +58,7 @@ export type CommandActivity = {
   type: 'command';
   status: string;
   command: string;
+  commandType: string;
   output: string;
   exitCode?: number;
 };

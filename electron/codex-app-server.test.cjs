@@ -159,14 +159,32 @@ test('waits for turn completion when interrupt reports no active turn', async ()
 
 test('maps functionCall, toolCall, and called items to command activities', () => {
   assert.deepEqual(activityFromItem({ id: 'function-1', type: 'functionCall', name: 'shell_command', arguments: '{"command":"Get-ChildItem"}' }, 'completed'), {
-    id: 'function-1', type: 'command', status: 'completed', command: 'Get-ChildItem', output: '',
+    id: 'function-1', type: 'command', status: 'completed', command: 'Get-ChildItem', commandType: 'PowerShell · 工具调用', output: '',
   });
   assert.deepEqual(activityFromItem({ id: 'tool-1', type: 'tool_call', toolName: 'shell_command', input: { command: ['rg', 'TODO'] } }, 'completed', [{ text: 'ok' }]), {
-    id: 'tool-1', type: 'command', status: 'completed', command: 'rg TODO', output: 'ok',
+    id: 'tool-1', type: 'command', status: 'completed', command: 'rg TODO', commandType: '其他 · 搜索', output: 'ok',
   });
   assert.deepEqual(activityFromItem({ id: 'called-1', type: 'called', cmd: 'git status' }, 'running'), {
-    id: 'called-1', type: 'command', status: 'running', command: 'git status', output: '',
+    id: 'called-1', type: 'command', status: 'running', command: 'git status', commandType: 'Git · 查询状态', output: '',
   });
+});
+
+test('extracts the inner command from custom tool call scripts', () => {
+  const input = 'const result = await tools.shell_command({ command: "Get-Content \\\"package.json\\\"" });';
+  const activity = activityFromItem({ id: 'custom-1', type: 'customToolCall', name: 'shell_command', input }, 'completed');
+  assert.equal(activity.command, 'Get-Content "package.json"');
+  assert.equal(activity.commandType, 'PowerShell · 读取');
+});
+
+test('classifies common command executors and operations', () => {
+  const classify = command => activityFromItem({ id: command, type: 'functionCall', name: 'shell_command', command }, 'completed').commandType;
+  assert.equal(classify('Get-Content package.json'), 'PowerShell · 读取');
+  assert.equal(classify('powershell -Command "Get-Content package.json"'), 'PowerShell · 读取');
+  assert.equal(classify('rg TODO src'), '其他 · 搜索');
+  assert.equal(classify('Set-Content output.txt value'), 'PowerShell · 写入');
+  assert.equal(classify('Remove-Item output.txt'), 'PowerShell · 删除');
+  assert.equal(classify('cmd /c type package.json'), 'CMD · 读取');
+  assert.equal(classify('node scripts/check.js'), '其他 · 工具调用');
 });
 
 test('maps token usage returned with a thread snapshot', async () => {
@@ -419,7 +437,7 @@ test('keeps file diffs when a completed thread is read for history refresh', asy
   const [session] = await server.listThreads(false, true);
 
   assert.deepEqual(session.timeline[0], {
-    id: 'call-1', type: 'command', status: 'completed', command: 'rg TODO', output: 'src/app.ts: TODO',
+    id: 'call-1', type: 'command', status: 'completed', command: 'rg TODO', commandType: '其他 · 搜索', output: 'src/app.ts: TODO',
   });
   assert.equal(session.timeline[1].type, 'file_change');
   assert.match(session.timeline[1].files[0].diff, /\+new/);

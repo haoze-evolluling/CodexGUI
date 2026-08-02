@@ -1,3 +1,5 @@
+const { commandFromItem, commandTypeFromCommand } = require('./codex-command.cjs');
+
 function textFromToolOutput(output) {
   if (typeof output === 'string') return output;
   if (Array.isArray(output)) return output.map(part => part?.text || '').filter(Boolean).join('\n');
@@ -7,42 +9,6 @@ function textFromToolOutput(output) {
 
 function normalizedType(item) {
   return String(item?.type || '').replace(/[-_]/g, '').toLowerCase();
-}
-
-function textFromValue(value) {
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return value.map(textFromValue).filter(Boolean).join(' ');
-  if (value && typeof value === 'object') {
-    if (typeof value.text === 'string') return value.text;
-    if (value.command !== undefined) return textFromValue(value.command);
-    if (typeof value.cmd === 'string') return value.cmd;
-    if (typeof value.input === 'string') return value.input;
-    try { return JSON.stringify(value); } catch { return ''; }
-  }
-  return '';
-}
-
-function parsedValue(value) {
-  if (typeof value === 'string') {
-    try { return JSON.parse(value); } catch { return null; }
-  }
-  return value && typeof value === 'object' ? value : null;
-}
-
-function commandFromItem(item) {
-  const args = parsedValue(item.arguments ?? item.args);
-  const direct = item.command ?? item.cmd;
-  if (direct !== undefined) return textFromValue(direct);
-  if (args?.command !== undefined) return textFromValue(args.command);
-  if (args?.cmd !== undefined) return textFromValue(args.cmd);
-  if (item.input !== undefined) {
-    const input = parsedValue(item.input);
-    if (input?.command !== undefined) return textFromValue(input.command);
-    if (input?.cmd !== undefined) return textFromValue(input.cmd);
-    return textFromValue(item.input);
-  }
-  if (item.arguments !== undefined) return textFromValue(item.arguments);
-  return item.name || item.toolName || '工具调用';
 }
 
 function isCommandCall(item) {
@@ -59,9 +25,10 @@ function activityFromItem(item, status, toolOutput) {
   if (!id) return null;
   if (isCommandCall(item)) {
     const output = item.aggregatedOutput ?? item.aggregated_output ?? item.output ?? toolOutput;
+    const command = commandFromItem(item);
     return {
       id, type: 'command', status: item.status || status,
-      command: commandFromItem(item), output: textFromToolOutput(output),
+      command, commandType: commandTypeFromCommand(command), output: textFromToolOutput(output),
       ...(item.exitCode !== undefined || item.exit_code !== undefined ? { exitCode: item.exitCode ?? item.exit_code } : {}),
     };
   }
