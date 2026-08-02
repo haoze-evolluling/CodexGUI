@@ -90,6 +90,7 @@
 .theme-light .clear-confirm-backdrop, .theme-light .app-dialog-backdrop { background: rgb(32 43 59 / 30%); }
 .theme-light .activity { border-color: #d4dee9; background: #ffffff; }
 .theme-light .activity-heading small, .theme-light .activity-summary, .theme-light .file-change p { color: #65758a; }
+.theme-light .activity-heading small.activity-command-type, .theme-light .activity-heading small.activity-status { color: inherit; }
 .theme-light .file-list, .theme-light .file-change { border-color: #e0e6ee; }
 .theme-light .file-diff .diff-addition { color: #176d3b; background: #e8f7ed; }
 .theme-light .file-diff .diff-deletion { color: #b42335; background: #ffebee; }
