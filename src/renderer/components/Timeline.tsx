@@ -37,6 +37,7 @@ const MessageItem = memo(function MessageItem({ item }: { item: Extract<import('
 
 export function Timeline({
   active,
+  refreshing,
   running,
   onAnswer,
   onOpenPath,
@@ -46,6 +47,7 @@ export function Timeline({
   onSelectedTextContextMenu,
 }: {
   active?: Session;
+  refreshing?: boolean;
   running: boolean;
   onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void;
   onOpenPath?(path: string): void;
@@ -82,7 +84,7 @@ export function Timeline({
   return (
     <div className="timeline-panel">
       <section
-        className="messages"
+        className={`messages ${refreshing ? 'messages-refreshing' : ''}`}
         ref={messagesRef}
         onScroll={event => {
           const messages = event.currentTarget;

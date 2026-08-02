@@ -28,7 +28,7 @@ export function App() {
     contentTransitioningRef.current = true;
     setContentTransitioning(true);
     try {
-      await new Promise<void>(resolve => window.setTimeout(resolve, 160));
+      await new Promise<void>(resolve => window.setTimeout(resolve, 50));
       await action();
       await new Promise<void>(resolve => window.requestAnimationFrame(() => resolve()));
     } finally {
@@ -150,7 +150,7 @@ export function App() {
             onToggleGroup={controller.toggleGroup}
           />
         )}
-        <div className={`content-page ${contentTransitioning || controller.refreshingHistory ? 'content-transitioning' : ''}`} aria-busy={contentTransitioning || controller.refreshingHistory}>
+        <div className={`content-page ${contentTransitioning ? 'content-transitioning' : ''}`} aria-busy={contentTransitioning}>
           {controller.settingsOpen ? (
             <SettingsPage
               codexPath={controller.settings.codexPath}
@@ -172,7 +172,7 @@ export function App() {
               sessions={controller.archivedSessions}
               onClose={() => void transitionContent(controller.closeArchive)}
               onClear={controller.clearArchivedSessions}
-              onRefresh={() => void transitionContent(controller.refreshArchivedSessions)}
+              onRefresh={() => void controller.refreshArchivedSessions()}
               onRemove={controller.removeArchivedSession}
               onRestore={session => void transitionContent(() => controller.restoreArchivedSession(session))}
             />
@@ -202,6 +202,7 @@ export function App() {
             </header>
             <Timeline
               active={controller.active}
+              refreshing={controller.refreshingHistory}
               running={controller.running}
               onAnswer={controller.answerUserInput}
               onOpenPath={controller.openPath}

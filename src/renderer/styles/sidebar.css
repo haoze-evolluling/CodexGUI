@@ -9,6 +9,7 @@ aside::-webkit-scrollbar { display: none; }
 .sidebar-actions { display: flex; gap: 6px; padding: 0 4px; }
 .history-error { margin: 10px 8px 0; color: #ff9b9b; font-size: 11px; line-height: 1.4; }
 .sidebar-actions .icon { flex: 1; background: #273342; display: grid; place-items: center; }
+.sidebar-actions .refreshing { animation: refresh-spin 900ms linear infinite; }
 .sessions { flex: 1; min-height: 0; margin-top: 18px; display: grid; align-content: start; gap: 12px; overflow: auto; scrollbar-width: none; }
 .sessions::-webkit-scrollbar { display: none; }
 .session-group { min-width: 0; }
@@ -31,3 +32,4 @@ aside::-webkit-scrollbar { display: none; }
 .sidebar-footer button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 9px 10px; color: #b7c2d0; background: transparent; text-align: left; }
 .sidebar-footer button:hover { color: #fff; background: #273342; }
 @keyframes session-running-spin { to { transform: rotate(360deg); } }
+@keyframes refresh-spin { to { transform: rotate(360deg); } }

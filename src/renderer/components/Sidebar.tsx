@@ -72,7 +72,7 @@ export function Sidebar(props: SidebarProps) {
             <FolderPlus size={18} />
           </button>
           <button className="icon" onClick={props.onRefresh} title="刷新 Codex 历史记录" disabled={props.refreshing}>
-            <RefreshCw size={18} />
+            <RefreshCw className={props.refreshing ? 'refreshing' : undefined} size={18} />
           </button>
           <button className="icon" onClick={props.onOpenArchive} title="查看归档会话">
             <Archive size={18} />

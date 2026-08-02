@@ -264,12 +264,12 @@ export function useSessionController() {
     setHistoryRevision(current => current + 1);
   };
 
-  const refreshHistoryWithTransition = async () => {
+  const refreshHistoryWithStatus = async () => {
     if (refreshingHistoryRef.current) return;
     refreshingHistoryRef.current = true;
     setRefreshingHistory(true);
     try {
-      await new Promise<void>(resolve => window.setTimeout(resolve, 160));
+      await new Promise<void>(resolve => window.setTimeout(resolve, 50));
       await refreshHistory();
     } finally {
       refreshingHistoryRef.current = false;
@@ -279,7 +279,7 @@ export function useSessionController() {
 
   useSessionEvents({
     refreshHistory,
-    refreshHistoryWithTransition,
+    refreshHistoryWithStatus,
     showMissingCodex,
     setActive,
     setCollaborationModes,
@@ -1034,7 +1034,7 @@ export function useSessionController() {
   return {
     active, addFiles, answerUserInput, archiveOpen, archiveProject, archiveSession, archivedSessions, attachments, canRollback, chooseFiles, choosePlanAction, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
     clearArchivedSessions, closeArchive: () => setArchiveOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, loadDiff, loadProviders, openArchive, openInVsCode, openPath, openProjectDirectory, openSettings, openTerminal, providerState, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, saveProvider, activateProvider, deleteProvider, setFontSize, setTheme, settings, settingsOpen,
-    createInFolder, createProjectSession, groups, historyError, input, models, moveProject, refreshHistory: refreshHistoryWithTransition, refreshingHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive: selectSession, showStatus, skills, stop, stopping: !!active && stoppingSessions.has(active.id),
+    createInFolder, createProjectSession, groups, historyError, input, models, moveProject, refreshHistory: refreshHistoryWithStatus, refreshingHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive: selectSession, showStatus, skills, stop, stopping: !!active && stoppingSessions.has(active.id),
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
     setReasoningEffort: (effort: string) => {

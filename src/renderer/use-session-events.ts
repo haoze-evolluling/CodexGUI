@@ -6,7 +6,7 @@ import type { AppSettings, CodexInstallation, CodexModel, CodexProviderState, Co
 
 type Options = {
   refreshHistory(): Promise<void>;
-  refreshHistoryWithTransition(): Promise<void>;
+  refreshHistoryWithStatus(): Promise<void>;
   showMissingCodex(installation: CodexInstallation): void;
   setActive: Dispatch<SetStateAction<Session | undefined>>;
   setCollaborationModes: Dispatch<SetStateAction<CollaborationMode[]>>;
@@ -124,7 +124,7 @@ export function useSessionEvents(options: Options) {
         // replacing it with that transiently incomplete snapshot.
         // A plan action is derived from the completed turn and is intentionally
         // not present in thread/list metadata. Keep its live transcript intact.
-        if (value.status !== 'interrupted' && !value.hasPlan && !value.hadError) void options.refreshHistoryWithTransition();
+        if (value.status !== 'interrupted' && !value.hasPlan && !value.hadError) void options.refreshHistoryWithStatus();
       }),
       window.codex.onError(value => {
         options.setRunningSessions(current => without(current, value.sessionId));
