@@ -1,4 +1,5 @@
 const { tokenUsageFromThread } = require('./codex-token-usage.cjs');
+const { isCommandOutput } = require('./codex-app-server-support.cjs');
 
 function createThreadSessionMapper({ activityFromItem, attachDiffs }) {
   const updatedAt = value => Number.isFinite(value) ? value * 1_000 : Date.parse(value || '') || Date.now();
@@ -12,8 +13,8 @@ function createThreadSessionMapper({ activityFromItem, attachDiffs }) {
   async function timelineFromTurns(turns, cwd) {
     const timeline = (turns || []).flatMap(turn => {
       const toolOutputs = new Map((turn.items || [])
-        .filter(item => item?.type === 'customToolCallOutput' && item.callId)
-        .map(item => [item.callId, item.output]));
+        .filter(item => isCommandOutput(item) && (item.callId || item.call_id))
+        .map(item => [item.callId || item.call_id, item.output ?? item.aggregatedOutput ?? item.aggregated_output]));
       return (turn.items || []).flatMap(item => {
         if (item.type === 'userMessage') {
           const text = (item.content || [])
@@ -36,8 +37,8 @@ function createThreadSessionMapper({ activityFromItem, attachDiffs }) {
             { id: `plan-decision-${item.id}`, type: 'plan_decision', status: 'pending', plan: item.text },
           ];
         }
-        if (item.type === 'customToolCallOutput') return [];
-        const activity = activityFromItem(item, item.status || 'completed', toolOutputs.get(item.callId));
+        if (isCommandOutput(item)) return [];
+        const activity = activityFromItem(item, item.status || 'completed', toolOutputs.get(item.callId || item.call_id));
         return activity ? [activity] : [];
       });
     });

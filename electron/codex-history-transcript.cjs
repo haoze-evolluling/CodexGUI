@@ -46,8 +46,8 @@ function parseSessionLines(lines) {
           if (activity.files?.length) timeline.push({ id: `file-change-${activity.id}`, type: 'file_change', status: activity.status, files: activity.files });
         }
       }
-      if (record.type === 'response_item' && (payload?.type === 'custom_tool_call_output' || payload?.type === 'function_call_output')) {
-        const command = commands.get(payload.call_id);
+      if (record.type === 'response_item' && ['custom_tool_call_output', 'function_call_output', 'tool_call_output', 'called_output'].includes(String(payload?.type || '').replace(/([a-z])([A-Z])/g, '$1_$2').replace(/-/g, '_').toLowerCase())) {
+        const command = commands.get(payload.call_id || payload.callId);
         if (command) command.output = Array.isArray(payload.output) ? payload.output.map(part => part.text || '').join('\n') : String(payload.output || '');
       }
     } catch {

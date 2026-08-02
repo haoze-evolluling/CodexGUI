@@ -3,6 +3,7 @@ const { EventEmitter } = require('node:events');
 const { PassThrough } = require('node:stream');
 const test = require('node:test');
 const { createCodexAppServer } = require('./codex-app-server.cjs');
+const { activityFromItem } = require('./codex-app-server-support.cjs');
 const { inputFromOptions } = require('./codex-app-server-input.cjs');
 const { createThreadSessionMapper } = require('./codex-app-server-sessions.cjs');
 const { normalizeTokenUsage } = require('./codex-token-usage.cjs');
@@ -154,6 +155,18 @@ test('waits for turn completion when interrupt reports no active turn', async ()
     { channel: 'cli:token-usage-pending', value: { sessionId: 'session-1' } },
     { channel: 'cli:exit', value: { sessionId: 'session-1', status: 'interrupted', hasPlan: false, hadError: false } },
   ]);
+});
+
+test('maps functionCall, toolCall, and called items to command activities', () => {
+  assert.deepEqual(activityFromItem({ id: 'function-1', type: 'functionCall', name: 'shell_command', arguments: '{"command":"Get-ChildItem"}' }, 'completed'), {
+    id: 'function-1', type: 'command', status: 'completed', command: 'Get-ChildItem', output: '',
+  });
+  assert.deepEqual(activityFromItem({ id: 'tool-1', type: 'tool_call', toolName: 'shell_command', input: { command: ['rg', 'TODO'] } }, 'completed', [{ text: 'ok' }]), {
+    id: 'tool-1', type: 'command', status: 'completed', command: 'rg TODO', output: 'ok',
+  });
+  assert.deepEqual(activityFromItem({ id: 'called-1', type: 'called', cmd: 'git status' }, 'running'), {
+    id: 'called-1', type: 'command', status: 'running', command: 'git status', output: '',
+  });
 });
 
 test('maps token usage returned with a thread snapshot', async () => {

@@ -136,8 +136,8 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, saveTokenUsage, sen
       queueDelta(threadId, params);
       return;
     }
-    if (message.method === 'item/started' || message.method === 'item/completed') {
-      const status = message.method === 'item/started' ? 'running' : 'completed';
+    if (message.method === 'item/started' || message.method === 'item/completed' || message.method === 'item/called') {
+      const status = message.method === 'item/started' || message.method === 'item/called' ? 'running' : 'completed';
       if (status === 'completed' && (params.item?.type === 'agentMessage' || params.item?.type === 'plan') && typeof params.item.text === 'string') {
         flushDeltas(sessionIdFor(threadId));
         emitForThread('cli:data', threadId, { itemId: params.item.id, text: params.item.text, full: true });

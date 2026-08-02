@@ -139,6 +139,22 @@ test('reads native function_call records as command activities with their output
   } finally { fs.unlinkSync(filePath); }
 });
 
+test('reads called records and camel-case tool outputs as command activities', () => {
+  const filePath = path.join(os.tmpdir(), 'codex-history-called-' + Date.now() + '.jsonl');
+  fs.writeFileSync(filePath, [
+    JSON.stringify({ type: 'session_meta', payload: { session_id: 'thread-called', cwd: 'C:\\project' } }),
+    JSON.stringify({ type: 'event_msg', payload: { type: 'user_message', message: '查看状态' } }),
+    JSON.stringify({ type: 'response_item', payload: { id: 'called-1', type: 'called', name: 'shell_command', arguments: '{"cmd":"git status"}' } }),
+    JSON.stringify({ type: 'response_item', payload: { id: 'output-1', callId: 'called-1', type: 'calledOutput', output: [{ text: 'clean' }] } }),
+  ].join('\n'));
+  try {
+    assert.deepEqual(parseSessionFile(filePath).timeline, [
+      { id: 'message-0', type: 'message', role: 'user', text: '查看状态' },
+      { id: 'called-1', type: 'command', status: 'completed', command: 'git status', output: 'clean' },
+    ]);
+  } finally { fs.unlinkSync(filePath); }
+});
+
 test('supplements a thread/read response with function_call commands', () => {
   const session = {
     id: 'codex-thread-fn', threadId: 'thread-fn',

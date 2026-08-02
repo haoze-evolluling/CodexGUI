@@ -5,18 +5,64 @@ function textFromToolOutput(output) {
   return '';
 }
 
-function activityFromItem(item, status, toolOutput) {
-  if (!item?.id) return null;
-  if (item.type === 'commandExecution') {
-    return {
-      id: item.id, type: 'command', status,
-      command: item.command || '', output: item.aggregatedOutput || '', exitCode: item.exitCode,
-    };
+function normalizedType(item) {
+  return String(item?.type || '').replace(/[-_]/g, '').toLowerCase();
+}
+
+function textFromValue(value) {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map(textFromValue).filter(Boolean).join(' ');
+  if (value && typeof value === 'object') {
+    if (typeof value.text === 'string') return value.text;
+    if (value.command !== undefined) return textFromValue(value.command);
+    if (typeof value.cmd === 'string') return value.cmd;
+    if (typeof value.input === 'string') return value.input;
+    try { return JSON.stringify(value); } catch { return ''; }
   }
-  if (item.type === 'customToolCall') {
+  return '';
+}
+
+function parsedValue(value) {
+  if (typeof value === 'string') {
+    try { return JSON.parse(value); } catch { return null; }
+  }
+  return value && typeof value === 'object' ? value : null;
+}
+
+function commandFromItem(item) {
+  const args = parsedValue(item.arguments ?? item.args);
+  const direct = item.command ?? item.cmd;
+  if (direct !== undefined) return textFromValue(direct);
+  if (args?.command !== undefined) return textFromValue(args.command);
+  if (args?.cmd !== undefined) return textFromValue(args.cmd);
+  if (item.input !== undefined) {
+    const input = parsedValue(item.input);
+    if (input?.command !== undefined) return textFromValue(input.command);
+    if (input?.cmd !== undefined) return textFromValue(input.cmd);
+    return textFromValue(item.input);
+  }
+  if (item.arguments !== undefined) return textFromValue(item.arguments);
+  return item.name || item.toolName || '工具调用';
+}
+
+function isCommandCall(item) {
+  return ['commandexecution', 'commandcall', 'customtoolcall', 'functioncall', 'toolcall', 'called'].includes(normalizedType(item));
+}
+
+function isCommandOutput(item) {
+  return ['customtoolcalloutput', 'functioncalloutput', 'toolcalloutput', 'calledoutput'].includes(normalizedType(item));
+}
+
+function activityFromItem(item, status, toolOutput) {
+  if (!item) return null;
+  const id = item.callId || item.call_id || item.id;
+  if (!id) return null;
+  if (isCommandCall(item)) {
+    const output = item.aggregatedOutput ?? item.aggregated_output ?? item.output ?? toolOutput;
     return {
-      id: item.callId || item.id, type: 'command', status,
-      command: item.input || item.name || '工具调用', output: textFromToolOutput(toolOutput),
+      id, type: 'command', status: item.status || status,
+      command: commandFromItem(item), output: textFromToolOutput(output),
+      ...(item.exitCode !== undefined || item.exit_code !== undefined ? { exitCode: item.exitCode ?? item.exit_code } : {}),
     };
   }
   if (item.type === 'fileChange') {
@@ -68,4 +114,4 @@ async function resolvePermissionSettings({ ensureReady, request }, options) {
   }
 }
 
-module.exports = { activityFromItem, resolvePermissionSettings };
+module.exports = { activityFromItem, isCommandOutput, resolvePermissionSettings };

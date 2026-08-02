@@ -47,6 +47,13 @@ function parsedArguments(payload) {
   return args && typeof args === 'object' ? args : null;
 }
 
+function parsedArgumentValue(value) {
+  if (typeof value === 'string') {
+    try { return JSON.parse(value); } catch { return null; }
+  }
+  return value && typeof value === 'object' ? value : null;
+}
+
 function commandFromFunctionCall(payload) {
   const name = payload?.name || '工具调用';
   const parsed = parsedArguments(payload);
@@ -60,29 +67,45 @@ function commandFromFunctionCall(payload) {
   return name;
 }
 
+function normalizedRecordType(type) {
+  return String(type || '').replace(/([a-z])([A-Z])/g, '$1_$2').replace(/-/g, '_').toLowerCase();
+}
+
+function commandFromCallRecord(payload) {
+  const args = parsedArgumentValue(payload.arguments ?? payload.args);
+  const direct = payload.command ?? payload.cmd;
+  if (direct !== undefined) return Array.isArray(direct) ? direct.join(' ') : String(direct);
+  if (args?.command !== undefined) return Array.isArray(args.command) ? args.command.join(' ') : String(args.command);
+  if (args?.cmd !== undefined) return String(args.cmd);
+  if (typeof payload.input === 'string') {
+    const input = parsedArgumentValue(payload.input);
+    if (input?.command !== undefined) return Array.isArray(input.command) ? input.command.join(' ') : String(input.command);
+    if (input?.cmd !== undefined) return String(input.cmd);
+    return payload.input;
+  }
+  if (payload.arguments !== undefined) return typeof payload.arguments === 'string' ? payload.arguments : JSON.stringify(payload.arguments);
+  return payload.name || payload.tool_name || '工具调用';
+}
+
 function activityFromRecord(record) {
   const payload = record?.payload;
   if (!payload) return null;
   if (record.type === 'response_item' && payload.type === 'command_execution') {
     return { id: payload.id || `command-${payload.call_id || Math.random()}`, type: 'command', status: payload.status || 'completed', command: Array.isArray(payload.command) ? payload.command.join(' ') : payload.command || '', output: payload.aggregated_output || '', exitCode: payload.exit_code };
   }
-  if (record.type === 'response_item' && payload.type === 'file_change' && Array.isArray(payload.changes)) {
-    return { id: payload.id || `file-change-${Math.random()}`, type: 'file_change', status: payload.status || 'completed', files: payload.changes.filter(change => change && typeof change.path === 'string').map(change => ({ path: change.path, kind: change.kind || 'update' })) };
-  }
-  if (record.type === 'response_item' && payload.type === 'function_call') {
-    const files = patchFiles(parsedArguments(payload)?.input);
+  if (record.type === 'response_item' && ['command_call', 'tool_call', 'called', 'function_call', 'custom_tool_call'].includes(normalizedRecordType(payload.type))) {
+    const output = payload.aggregated_output ?? payload.aggregatedOutput ?? payload.output;
+    const files = patchFiles(payload.input || parsedArguments(payload)?.input);
     return {
-      id: payload.call_id || payload.id || `tool-${Math.random()}`,
-      type: 'command',
-      status: payload.status || 'completed',
-      command: commandFromFunctionCall(payload),
-      output: payload.aggregated_output || '',
+      id: payload.call_id || payload.callId || payload.id || ('command-' + Math.random()),
+      type: 'command', status: payload.status || 'completed', command: commandFromCallRecord(payload),
+      output: Array.isArray(output) ? output.map(part => part?.text || '').join('\n') : String(output || ''),
+      ...(payload.exit_code !== undefined || payload.exitCode !== undefined ? { exitCode: payload.exit_code ?? payload.exitCode } : {}),
       ...(files.length ? { files } : {}),
     };
   }
-  if (record.type === 'response_item' && payload.type === 'custom_tool_call') {
-    const files = patchFiles(payload.input);
-    return { id: payload.call_id || payload.id || `tool-${Math.random()}`, type: 'command', status: payload.status || 'completed', command: payload.input || payload.name || '工具调用', output: '', files };
+  if (record.type === 'response_item' && payload.type === 'file_change' && Array.isArray(payload.changes)) {
+    return { id: payload.id || `file-change-${Math.random()}`, type: 'file_change', status: payload.status || 'completed', files: payload.changes.filter(change => change && typeof change.path === 'string').map(change => ({ path: change.path, kind: change.kind || 'update' })) };
   }
   return null;
 }
