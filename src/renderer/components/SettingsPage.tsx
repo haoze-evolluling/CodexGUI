@@ -1,6 +1,6 @@
-import { CheckCircle2, Clipboard, FolderOpen, Monitor, Moon, RotateCcw, Settings, Sun, TriangleAlert, X } from 'lucide-react';
+import { Check, CheckCircle2, Clipboard, Eye, EyeOff, FolderOpen, Monitor, Moon, Plus, RotateCcw, Save, Settings, Sun, Trash2, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { CodexInstallation, FontSize, SaveCodexPathResult, ThemeMode } from '../types';
+import type { CodexInstallation, CodexProviderInput, CodexProviderState, FontSize, ProviderStateResult, SaveCodexPathResult, ThemeMode } from '../types';
 
 const installCommand = 'npm install -g @openai/codex';
 const sourceLabels = { custom: '自定义路径', official: '官方版本', npm: 'NPM 版本' } as const;
@@ -20,11 +20,15 @@ type SettingsPageProps = {
   fontSize: FontSize;
   theme: ThemeMode;
   installation?: CodexInstallation;
+  providerState?: CodexProviderState;
   savingDisabled: boolean;
   onClose(): void;
   onFontSizeChange(size: FontSize): void;
   onThemeChange(theme: ThemeMode): void;
   onSave(path: string): Promise<SaveCodexPathResult>;
+  onProviderSave(provider: CodexProviderInput): Promise<ProviderStateResult>;
+  onProviderActivate(id: string): Promise<ProviderStateResult>;
+  onProviderDelete(id: string): Promise<ProviderStateResult>;
 };
 
 export function SettingsPage(props: SettingsPageProps) {
@@ -32,8 +36,99 @@ export function SettingsPage(props: SettingsPageProps) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [providerId, setProviderId] = useState<string>();
+  const [providerName, setProviderName] = useState('');
+  const [providerBaseUrl, setProviderBaseUrl] = useState('');
+  const [providerApiKey, setProviderApiKey] = useState('');
+  const [providerModel, setProviderModel] = useState('');
+  const [providerEffort, setProviderEffort] = useState('medium');
+  const [providerError, setProviderError] = useState('');
+  const [providerSaving, setProviderSaving] = useState(false);
+  const [providerKeyVisible, setProviderKeyVisible] = useState(false);
 
   useEffect(() => setPath(props.codexPath || ''), [props.codexPath]);
+
+  const resetProviderForm = () => {
+    setProviderId(undefined);
+    setProviderName('');
+    setProviderBaseUrl('');
+    setProviderApiKey('');
+    setProviderModel('');
+    setProviderEffort('medium');
+    setProviderError('');
+    setProviderKeyVisible(false);
+  };
+
+  const editProvider = (id: string, source = props.providerState) => {
+    const provider = source?.providers.find(item => item.id === id);
+    if (!provider) return;
+    setProviderId(provider.id);
+    setProviderName(provider.name);
+    setProviderBaseUrl(provider.baseUrl);
+    setProviderApiKey('');
+    setProviderModel(provider.model);
+    setProviderEffort(provider.reasoningEffort);
+    setProviderError('');
+    setProviderKeyVisible(false);
+  };
+
+  useEffect(() => {
+    const active = props.providerState?.activeId;
+    if (active && !providerId) editProvider(active);
+  }, [props.providerState?.activeId]);
+
+  const saveProvider = async () => {
+    setProviderSaving(true);
+    setProviderError('');
+    try {
+      const result = await props.onProviderSave({
+        ...(providerId ? { id: providerId } : {}),
+        name: providerName,
+        baseUrl: providerBaseUrl,
+        apiKey: providerApiKey,
+        model: providerModel,
+        reasoningEffort: providerEffort,
+      });
+      if (!result.ok) setProviderError(result.error);
+      else if (!providerId) {
+        const saved = result.state.providers.find(item => item.name === providerName.trim());
+        if (saved) setProviderId(saved.id);
+      }
+      setProviderApiKey('');
+    } catch (cause) {
+      setProviderError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setProviderSaving(false);
+    }
+  };
+
+  const activateProvider = async (id: string) => {
+    setProviderSaving(true);
+    setProviderError('');
+    try {
+      const result = await props.onProviderActivate(id);
+      if (!result.ok) setProviderError(result.error);
+      else editProvider(id, result.state);
+    } catch (cause) {
+      setProviderError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setProviderSaving(false);
+    }
+  };
+
+  const deleteProvider = async (id: string) => {
+    setProviderSaving(true);
+    setProviderError('');
+    try {
+      const result = await props.onProviderDelete(id);
+      if (!result.ok) setProviderError(result.error);
+      else if (providerId === id) resetProviderForm();
+    } catch (cause) {
+      setProviderError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setProviderSaving(false);
+    }
+  };
 
   const chooseExecutable = async () => {
     const selected = await window.codex.chooseCodexExecutable(path || props.installation?.path);
@@ -82,6 +177,64 @@ export function SettingsPage(props: SettingsPageProps) {
       </header>
 
       <div className="settings-page-body">
+        <section className="settings-section provider-section">
+          <div className="settings-section-title">
+            <Settings size={18} />
+            <div>
+              <b>自定义提供商</b>
+              <p className="settings-hint">提供商配置由 Codex 直接读取。API Key 只在当前配置中写入 Codex，其他提供商使用系统加密保存。</p>
+            </div>
+          </div>
+
+          <div className="provider-layout">
+            <div className="provider-list" aria-label="已保存的提供商">
+              {props.providerState?.providers.map(provider => {
+                const active = provider.id === props.providerState?.activeId;
+                return <div key={provider.id} className={`provider-item ${active ? 'selected' : ''}`}>
+                  <button type="button" className="provider-item-main" onClick={() => editProvider(provider.id)}>
+                    <span className="provider-item-name">{active && <Check size={15} />}{provider.name}</span>
+                    <small>{provider.model} · {provider.baseUrl}</small>
+                    <small>{provider.hasApiKey ? 'API Key 已配置' : '缺少 API Key'}</small>
+                  </button>
+                  <div className="provider-item-actions">
+                    {!active && <button type="button" className="icon" onClick={() => void activateProvider(provider.id)} title="切换到此提供商" aria-label={`切换到${provider.name}`} disabled={providerSaving || props.savingDisabled}><Check size={16} /></button>}
+                    <button type="button" className="icon" onClick={() => void deleteProvider(provider.id)} title="删除提供商" aria-label={`删除${provider.name}`} disabled={providerSaving || props.savingDisabled || active}><Trash2 size={16} /></button>
+                  </div>
+                </div>;
+              })}
+              {!props.providerState?.providers.length && <p className="provider-empty">尚未保存提供商。</p>}
+              <button type="button" className="provider-new" onClick={resetProviderForm} disabled={providerSaving || props.savingDisabled}><Plus size={15} /> 新建提供商</button>
+            </div>
+
+            <div className="provider-form">
+              <label className="settings-field-label" htmlFor="provider-name">提供商名称</label>
+              <input id="provider-name" value={providerName} onChange={event => setProviderName(event.target.value)} placeholder="例如：我的 API" />
+              <label className="settings-field-label" htmlFor="provider-base-url">请求地址</label>
+              <input id="provider-base-url" value={providerBaseUrl} onChange={event => setProviderBaseUrl(event.target.value)} placeholder="https://api.example.com" spellCheck={false} />
+              <label className="settings-field-label" htmlFor="provider-api-key">API Key</label>
+              <div className="provider-secret-field">
+                <input id="provider-api-key" type={providerKeyVisible ? 'text' : 'password'} value={providerApiKey} onChange={event => setProviderApiKey(event.target.value)} placeholder={providerId && props.providerState?.providers.find(item => item.id === providerId)?.hasApiKey ? '留空以保留当前 Key' : '输入 API Key'} spellCheck={false} />
+                <button type="button" className="icon" onClick={() => setProviderKeyVisible(value => !value)} title={providerKeyVisible ? '隐藏 API Key' : '显示 API Key'} aria-label={providerKeyVisible ? '隐藏 API Key' : '显示 API Key'}><>{providerKeyVisible ? <EyeOff size={16} /> : <Eye size={16} />}</></button>
+              </div>
+              <label className="settings-field-label" htmlFor="provider-model">默认模型</label>
+              <input id="provider-model" value={providerModel} onChange={event => setProviderModel(event.target.value)} placeholder="例如：gpt-5" spellCheck={false} />
+              <label className="settings-field-label" htmlFor="provider-effort">默认推理强度</label>
+              <select id="provider-effort" value={providerEffort} onChange={event => setProviderEffort(event.target.value)}>
+                <option value="minimal">minimal</option>
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+                <option value="xhigh">xhigh</option>
+              </select>
+              {props.savingDisabled && <p className="settings-warning">Codex 正在执行任务，请在任务结束后操作提供商。</p>}
+              {providerError && <p className="settings-error">{providerError}</p>}
+              <div className="settings-actions">
+                <button className="primary" type="button" onClick={() => void saveProvider()} disabled={providerSaving || props.savingDisabled || !providerName.trim() || !providerBaseUrl.trim() || !providerModel.trim()}><Save size={15} /> {providerSaving ? '保存中…' : '保存提供商'}</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="settings-section">
           <div className="settings-section-title">
             <Sun size={18} />

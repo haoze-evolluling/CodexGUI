@@ -28,6 +28,29 @@ export type CodexInstallation =
 export type SaveCodexPathResult =
   | { ok: true; settings: AppSettings; installation: CodexInstallation }
   | { ok: false; error: string };
+export type CodexProvider = {
+  id: string;
+  name: string;
+  baseUrl: string;
+  model: string;
+  reasoningEffort: string;
+  hasApiKey: boolean;
+};
+export type CodexProviderInput = {
+  id?: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  reasoningEffort: string;
+};
+export type CodexProviderState = {
+  activeId: string;
+  model: string;
+  reasoningEffort: string;
+  providers: CodexProvider[];
+};
+export type ProviderStateResult = { ok: true; state: CodexProviderState } | { ok: false; error: string };
 export type ThreadStatus = {
   type: 'notLoaded' | 'idle' | 'systemError' | 'active';
   activeFlags?: ('waitingOnApproval' | 'waitingOnUserInput')[];
@@ -145,6 +168,10 @@ export type CodexApi = {
   saveSettings(settings: Partial<AppSettings>): Promise<AppSettings>;
   getCodexInstallation(): Promise<CodexInstallation>;
   saveCodexPath(codexPath: string): Promise<SaveCodexPathResult>;
+  getProviders(): Promise<CodexProviderState>;
+  saveProvider(provider: CodexProviderInput): Promise<ProviderStateResult>;
+  activateProvider(id: string): Promise<ProviderStateResult>;
+  deleteProvider(id: string): Promise<ProviderStateResult>;
   archiveSession(session: Session): Promise<ArchiveResult>;
   archiveProject(sessions: Session[]): Promise<ArchiveResult>;
   listArchivedSessions(): Promise<Session[]>;

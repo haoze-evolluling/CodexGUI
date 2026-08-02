@@ -50,6 +50,12 @@ function createHarness({ archived = [], cache = {}, codexHome = 'C:\\codex', rea
     getInstallation: () => ({ status: 'ready' }),
     getWindow: () => undefined,
     ipcMain,
+    providerManager: {
+      get: () => ({ activeId: '', model: '', reasoningEffort: '', providers: [] }),
+      save: () => ({ activeId: '', model: '', reasoningEffort: '', providers: [] }),
+      activate: () => ({ activeId: '', model: '', reasoningEffort: '', providers: [] }),
+      remove: () => ({ activeId: '', model: '', reasoningEffort: '', providers: [] }),
+    },
     store,
   });
   return { handlers, savedSettings, store };
@@ -62,7 +68,8 @@ test('registers the established IPC channels in their existing order', () => {
     'sessions:list', 'sessions:history', 'sessions:read', 'sessions:titles-list', 'sessions:title-save',
     'settings:get', 'settings:save', 'codex:installation', 'codex:path-save',
     'sessions:archive', 'sessions:archived-list', 'sessions:restore', 'sessions:archived-remove', 'sessions:archived-clear',
-    'projects:delete', 'dialog:folder', 'dialog:files', 'dialog:codex-executable',
+    'projects:delete', 'providers:get', 'providers:save', 'providers:activate', 'providers:delete',
+    'dialog:folder', 'dialog:files', 'dialog:codex-executable',
     'files:list-project', 'files:open', 'files:open-vscode', 'files:open-project-directory', 'files:open-terminal', 'files:filter', 'files:diff',
     'cli:start', 'cli:stop', 'cli:compact', 'cli:rollback', 'cli:models', 'cli:collaboration-modes', 'cli:skills', 'cli:answer-user-input',
   ]);

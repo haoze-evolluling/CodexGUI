@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { normalizeSession, timelineOf } from './session-model';
 import { without } from './session-set-utils';
-import type { AppSettings, CodexInstallation, CodexModel, CollaborationMode, PermissionMode, Session, ThreadTokenUsage } from './types';
+import type { AppSettings, CodexInstallation, CodexModel, CodexProviderState, CollaborationMode, PermissionMode, Session, ThreadTokenUsage } from './types';
 
 type Options = {
   refreshHistory(): Promise<void>;
@@ -13,6 +13,7 @@ type Options = {
   setCompactingSessions: Dispatch<SetStateAction<Set<string>>>;
   setModels: Dispatch<SetStateAction<CodexModel[]>>;
   setPermissionMode: Dispatch<SetStateAction<PermissionMode>>;
+  setProviderState: Dispatch<SetStateAction<CodexProviderState | undefined>>;
   setRunningSessions: Dispatch<SetStateAction<Set<string>>>;
   setSessions: Dispatch<SetStateAction<Session[]>>;
   setSettings: Dispatch<SetStateAction<AppSettings>>;
@@ -28,6 +29,7 @@ export function useSessionEvents(options: Options) {
       options.setSettings(value);
       options.setPermissionMode(value.permissionMode);
     }).catch(() => options.setPermissionMode('default'));
+    window.codex.getProviders().then(options.setProviderState).catch(() => options.setProviderState(undefined));
     window.codex.getCodexInstallation().then(options.showMissingCodex).catch(() => undefined);
     const updateSession = (sessionId: string, update: (session: Session) => Session) => {
       let nextSession: Session | undefined;

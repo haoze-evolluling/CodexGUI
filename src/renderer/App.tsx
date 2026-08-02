@@ -155,11 +155,15 @@ export function App() {
               fontSize={fontSize}
               theme={theme}
               installation={controller.installation}
+              providerState={controller.providerState}
               savingDisabled={controller.runningSessions.size > 0}
               onClose={() => void transitionContent(controller.closeSettings)}
               onFontSizeChange={controller.setFontSize}
               onThemeChange={controller.setTheme}
               onSave={controller.saveCodexPath}
+              onProviderSave={controller.saveProvider}
+              onProviderActivate={controller.activateProvider}
+              onProviderDelete={controller.deleteProvider}
             />
           ) : controller.archiveOpen ? (
             <ArchivePage
@@ -215,7 +219,7 @@ export function App() {
               compacting={controller.compacting}
               rollingBack={controller.rollingBack}
               models={controller.models}
-              preferredModel={controller.settings.model}
+              preferredModel={controller.providerState?.model || controller.settings.model}
               skills={controller.skills}
               selectedSkill={controller.selectedSkill}
               collaborationModes={controller.collaborationModes}

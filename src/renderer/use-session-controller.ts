@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { freshSession, groupSessions, hasLoadedTimeline, normalizeSession, shouldKeepLiveTimeline, timelineOf, uniqueSessions } from './session-model';
-import type { AppSettings, ArchiveResult, CodexAttachment, CodexInstallation, CodexModel, CodexSkill, CollaborationMode, FontSize, PermissionMode, PlanDecisionActivity, PlanDecisionChoice, SaveCodexPathResult, Session, ThemeMode, UserInputActivity } from './types';
+import type { AppSettings, ArchiveResult, CodexAttachment, CodexInstallation, CodexModel, CodexProviderInput, CodexProviderState, CodexSkill, CollaborationMode, FontSize, PermissionMode, PlanDecisionActivity, PlanDecisionChoice, ProviderStateResult, SaveCodexPathResult, Session, ThemeMode, UserInputActivity } from './types';
 import type { AppDialogState } from './components/AppDialog';
 import { addUniqueAttachments } from './attachment-utils';
 import { without } from './session-set-utils';
@@ -24,6 +24,7 @@ export function useSessionController() {
   const [rollingBackSessions, setRollingBackSessions] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [models, setModels] = useState<CodexModel[]>([]);
+  const [providerState, setProviderState] = useState<CodexProviderState>();
   const [collaborationModes, setCollaborationModes] = useState<CollaborationMode[]>([]);
   const [skills, setSkills] = useState<CodexSkill[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<CodexSkill>();
@@ -47,6 +48,15 @@ export function useSessionController() {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  useEffect(() => {
+    if (!providerState) return;
+    setSettings(current => ({
+      ...current,
+      ...(providerState.model ? { model: providerState.model } : {}),
+      ...(providerState.reasoningEffort ? { reasoningEffort: providerState.reasoningEffort } : {}),
+    }));
+  }, [providerState]);
 
   useEffect(() => {
     runningSessionsRef.current = runningSessions;
@@ -85,6 +95,7 @@ export function useSessionController() {
     setArchiveOpen(false);
     setSettingsOpen(true);
     window.codex.getCodexInstallation().then(setInstallation).catch(() => undefined);
+    window.codex.getProviders().then(setProviderState).catch(() => undefined);
   };
 
   const showMissingCodex = (current: CodexInstallation) => {
@@ -269,6 +280,7 @@ export function useSessionController() {
     setCompactingSessions,
     setModels,
     setPermissionMode: setPermissionModeState,
+    setProviderState,
     setRunningSessions,
     setSessions,
     setSettings,
@@ -366,9 +378,11 @@ export function useSessionController() {
       tokenUsagePending: true,
     } : current);
     markSessionRunning(active.id);
-    const selectedModel = resolveModel(models, active.model, settings.model);
-    const effectiveModel = active.model || settings.model || selectedModel?.model;
-    const effectiveEffort = resolveReasoningEffort(active.reasoningEffort || settings.reasoningEffort, selectedModel);
+    const preferredModel = providerState?.model || settings.model;
+    const preferredEffort = providerState?.reasoningEffort || settings.reasoningEffort;
+    const selectedModel = resolveModel(models, active.model, preferredModel);
+    const effectiveModel = active.model || preferredModel || selectedModel?.model;
+    const effectiveEffort = resolveReasoningEffort(active.reasoningEffort || preferredEffort, selectedModel);
     let started = false;
     try {
       started = await window.codex.start({
@@ -578,9 +592,11 @@ export function useSessionController() {
     }
     setActive(nextSession);
     markSessionRunning(nextSession.id);
-    const selectedModel = resolveModel(models, active.model, settings.model);
-    const model = active.model || settings.model || selectedModel?.model;
-    const reasoningEffort = resolveReasoningEffort(active.reasoningEffort || settings.reasoningEffort, selectedModel);
+    const preferredModel = providerState?.model || settings.model;
+    const preferredEffort = providerState?.reasoningEffort || settings.reasoningEffort;
+    const selectedModel = resolveModel(models, active.model, preferredModel);
+    const model = active.model || preferredModel || selectedModel?.model;
+    const reasoningEffort = resolveReasoningEffort(active.reasoningEffort || preferredEffort, selectedModel);
     try {
       const started = await window.codex.start({
         sessionId: nextSession.id,
@@ -614,8 +630,8 @@ export function useSessionController() {
     rememberProjects([cwd]);
     setActive({
       ...freshSession(cwd),
-      ...(settings.model ? { model: settings.model } : {}),
-      ...(settings.reasoningEffort ? { reasoningEffort: settings.reasoningEffort } : {}),
+      ...(providerState?.model || settings.model ? { model: providerState?.model || settings.model } : {}),
+      ...(providerState?.reasoningEffort || settings.reasoningEffort ? { reasoningEffort: providerState?.reasoningEffort || settings.reasoningEffort } : {}),
     });
   };
   const createProjectSession = async () => { const cwd = await window.codex.chooseFolder(); if (cwd) createInFolder(cwd); };
@@ -947,6 +963,41 @@ export function useSessionController() {
     }
     return result;
   };
+  const updateProviderState = (next: CodexProviderState) => {
+    setProviderState(next);
+    setSettings(current => ({
+      ...current,
+      ...(next.model ? { model: next.model } : {}),
+      ...(next.reasoningEffort ? { reasoningEffort: next.reasoningEffort } : {}),
+    }));
+  };
+  const loadProviders = async () => {
+    const next = await window.codex.getProviders();
+    updateProviderState(next);
+    return next;
+  };
+  const saveProvider = async (provider: CodexProviderInput): Promise<ProviderStateResult> => {
+    const result = await window.codex.saveProvider(provider);
+    if (!result.ok) return result;
+    updateProviderState(result.state);
+    if (provider.id && provider.id === result.state.activeId) {
+      const activated = await window.codex.activateProvider(provider.id);
+      if (!activated.ok) return activated;
+      updateProviderState(activated.state);
+      return activated;
+    }
+    return result;
+  };
+  const activateProvider = async (id: string): Promise<ProviderStateResult> => {
+    const result = await window.codex.activateProvider(id);
+    if (result.ok) updateProviderState(result.state);
+    return result;
+  };
+  const deleteProvider = async (id: string): Promise<ProviderStateResult> => {
+    const result = await window.codex.deleteProvider(id);
+    if (result.ok) updateProviderState(result.state);
+    return result;
+  };
   const updateInput = (value: string) => {
     setInput(value);
     setSelectedSkill(current => current && (value === `/${current.name}` || value.startsWith(`/${current.name} `)) ? current : undefined);
@@ -959,7 +1010,7 @@ export function useSessionController() {
 
   const showStatus = () => {
     if (!active) return;
-    setDialog(createSessionStatusDialog({ session: active, models, preferredModel: settings.model, permissionMode, running: runningSessions.has(active.id), onClose: () => setDialog(undefined) }));
+    setDialog(createSessionStatusDialog({ session: active, models, preferredModel: providerState?.model || settings.model, permissionMode, running: runningSessions.has(active.id), onClose: () => setDialog(undefined) }));
   };
 
   const groups = useMemo(() => groupSessions(sessions, settings.projectPaths), [sessions, settings.projectPaths]);
@@ -971,7 +1022,7 @@ export function useSessionController() {
     && timelineOf(active).some(item => item.type === 'message' && item.role === 'user');
   return {
     active, addFiles, answerUserInput, archiveOpen, archiveProject, archiveSession, archivedSessions, attachments, canRollback, chooseFiles, choosePlanAction, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
-    clearArchivedSessions, closeArchive: () => setArchiveOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, loadDiff, openArchive, openInVsCode, openPath, openProjectDirectory, openSettings, openTerminal, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, setFontSize, setTheme, settings, settingsOpen,
+    clearArchivedSessions, closeArchive: () => setArchiveOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, loadDiff, loadProviders, openArchive, openInVsCode, openPath, openProjectDirectory, openSettings, openTerminal, providerState, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, saveProvider, activateProvider, deleteProvider, setFontSize, setTheme, settings, settingsOpen,
     createInFolder, createProjectSession, groups, historyError, input, models, moveProject, refreshHistory: refreshHistoryWithTransition, refreshingHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive: selectSession, showStatus, skills, stop, stopping: !!active && stoppingSessions.has(active.id),
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,

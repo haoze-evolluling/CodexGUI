@@ -6,7 +6,7 @@ const { openPathInVsCode, openPathWithDefaultApp, openProjectDirectory, openTerm
 const { filterProjectFiles } = require('./project-files.cjs');
 const { registerSessionHandlers } = require('./ipc-session-handlers.cjs');
 
-function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation, getWindow, ipcMain, loadDiff, store }) {
+function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation, getWindow, ipcMain, loadDiff, providerManager, store }) {
   ipcMain.handle('window:minimize', () => getWindow()?.minimize());
   ipcMain.handle('window:toggle-maximize', () => {
     const window = getWindow();
@@ -17,6 +17,19 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
   });
   ipcMain.handle('window:close', () => getWindow()?.close());
   registerSessionHandlers({ codexHome, codexProcess, getInstallation, ipcMain, store });
+  ipcMain.handle('providers:get', () => providerManager.get());
+  ipcMain.handle('providers:save', (_, provider) => {
+    try { return { ok: true, state: providerManager.save(provider) }; }
+    catch (error) { return { ok: false, error: error instanceof Error ? error.message : String(error) }; }
+  });
+  ipcMain.handle('providers:activate', (_, id) => {
+    try { return { ok: true, state: providerManager.activate(id) }; }
+    catch (error) { return { ok: false, error: error instanceof Error ? error.message : String(error) }; }
+  });
+  ipcMain.handle('providers:delete', (_, id) => {
+    try { return { ok: true, state: providerManager.remove(id) }; }
+    catch (error) { return { ok: false, error: error instanceof Error ? error.message : String(error) }; }
+  });
   ipcMain.handle('dialog:folder', async () => {
     const result = await dialog.showOpenDialog(getWindow(), { properties: ['openDirectory'] });
     return result.canceled ? null : result.filePaths[0];

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification, safeStorage } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const { createCodexAppServer } = require('./codex-app-server.cjs');
@@ -6,6 +6,8 @@ const { buildCodexSpawnConfig, resolveCodexInstallation } = require('./codex-ins
 const { createDiffAttacher, createDiffLoader } = require('./git-diff.cjs');
 const { registerIpcHandlers } = require('./ipc-handlers.cjs');
 const { createSessionStore } = require('./session-store.cjs');
+const { createProviderManager } = require('./provider-manager.cjs');
+const { createProviderStore } = require('./provider-store.cjs');
 
 const APP_ID = 'com.leeha.codexgui';
 const APP_ICON = path.join(__dirname, 'assets', 'app-icon.ico');
@@ -73,6 +75,7 @@ app.whenReady().then(() => {
     path.join(userData, 'session-titles.json'),
     path.join(userData, 'token-usage-cache.json'),
   );
+  const providerStore = createProviderStore(path.join(userData, 'providers.json'), safeStorage);
   createWindow(store.loadSettings().theme);
   const getInstallation = () => resolveCodexInstallation({ customPath: store.loadSettings().codexPath });
   const codexProcess = createCodexAppServer({
@@ -99,6 +102,12 @@ app.whenReady().then(() => {
     getWindow: () => win,
     ipcMain,
     store,
+    providerManager: createProviderManager({
+      codexHome: path.join(app.getPath('home'), '.codex'),
+      providerStore,
+      reload: () => codexProcess.reload(),
+      isBusy: () => codexProcess.isBusy(),
+    }),
     getInstallation,
   });
 });
