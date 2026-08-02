@@ -176,7 +176,15 @@ export function useSessionController() {
             tokenUsagePending: tokenUsagePending(live, session),
           };
         }
-        if (!runningSessionsRef.current.has(live.id)) return session;
+        if (!runningSessionsRef.current.has(live.id)) {
+          return {
+            ...session,
+            id: live.id,
+            model: live.model || session.model,
+            reasoningEffort: live.reasoningEffort || session.reasoningEffort,
+            collaborationMode: live.collaborationMode || session.collaborationMode,
+          };
+        }
         // A running turn can have newer streamed items than thread/read; use the
         // server's event stream only until its completed snapshot is available.
         return {
@@ -214,7 +222,15 @@ export function useSessionController() {
           tokenUsagePending: tokenUsagePending(current, fromHistory),
         };
       }
-      if (!runningSessionsRef.current.has(current.id)) return fromHistory;
+      if (!runningSessionsRef.current.has(current.id)) {
+        return {
+          ...fromHistory,
+          id: current.id,
+          model: current.model || fromHistory.model,
+          reasoningEffort: current.reasoningEffort || fromHistory.reasoningEffort,
+          collaborationMode: current.collaborationMode || fromHistory.collaborationMode,
+        };
+      }
       return {
         ...fromHistory,
         id: current.id,
@@ -352,7 +368,7 @@ export function useSessionController() {
     markSessionRunning(active.id);
     const selectedModel = resolveModel(models, active.model, settings.model);
     const effectiveModel = active.model || settings.model || selectedModel?.model;
-    const effectiveEffort = resolveReasoningEffort(active.reasoningEffort, selectedModel);
+    const effectiveEffort = resolveReasoningEffort(active.reasoningEffort || settings.reasoningEffort, selectedModel);
     let started = false;
     try {
       started = await window.codex.start({
@@ -564,7 +580,7 @@ export function useSessionController() {
     markSessionRunning(nextSession.id);
     const selectedModel = resolveModel(models, active.model, settings.model);
     const model = active.model || settings.model || selectedModel?.model;
-    const reasoningEffort = resolveReasoningEffort(active.reasoningEffort, selectedModel);
+    const reasoningEffort = resolveReasoningEffort(active.reasoningEffort || settings.reasoningEffort, selectedModel);
     try {
       const started = await window.codex.start({
         sessionId: nextSession.id,
@@ -888,7 +904,9 @@ export function useSessionController() {
   });
   const setModel = (model: string) => {
     const selected = resolveModel(models, model);
-    const reasoningEffort = selected?.defaultReasoningEffort;
+    const currentEffort = active?.reasoningEffort || settingsRef.current.reasoningEffort;
+    const supported = selected?.supportedReasoningEfforts.some(option => option.reasoningEffort === currentEffort);
+    const reasoningEffort = supported ? currentEffort : selected?.defaultReasoningEffort;
     setActive(current => current ? {
       ...current,
       model,
