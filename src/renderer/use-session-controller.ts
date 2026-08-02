@@ -991,7 +991,7 @@ export function useSessionController() {
       const activated = await window.codex.activateProvider(savedId);
       if (!activated.ok) return activated;
       updateProviderState(activated.state);
-      await refreshHistoryWithTransition();
+      await refreshHistory();
       return activated;
     }
     return result;
@@ -1000,7 +1000,7 @@ export function useSessionController() {
     const result = await window.codex.activateProvider(id);
     if (result.ok) {
       updateProviderState(result.state);
-      await refreshHistoryWithTransition();
+      await refreshHistory();
     }
     return result;
   };
