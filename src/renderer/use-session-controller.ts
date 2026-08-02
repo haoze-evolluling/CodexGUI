@@ -17,6 +17,7 @@ export function useSessionController() {
   const [attachments, setAttachments] = useState<CodexAttachment[]>([]);
   const [runningSessions, setRunningSessions] = useState<Set<string>>(new Set());
   const [refreshingHistory, setRefreshingHistory] = useState(false);
+  const [refreshingMessages, setRefreshingMessages] = useState(false);
   const [historyError, setHistoryError] = useState<string>();
   const [stoppingSessions, setStoppingSessions] = useState<Set<string>>(new Set());
   const [waitingSessions, setWaitingSessions] = useState<Set<string>>(new Set());
@@ -268,10 +269,16 @@ export function useSessionController() {
     if (refreshingHistoryRef.current) return;
     refreshingHistoryRef.current = true;
     setRefreshingHistory(true);
+    setRefreshingMessages(true);
     try {
-      await new Promise<void>(resolve => window.setTimeout(resolve, 50));
+      // Let the opacity transition render before the history request can finish.
+      await new Promise<void>(resolve => window.setTimeout(resolve, 180));
       await refreshHistory();
+      await new Promise<void>(resolve => {
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+      });
     } finally {
+      setRefreshingMessages(false);
       refreshingHistoryRef.current = false;
       setRefreshingHistory(false);
     }
@@ -1034,7 +1041,7 @@ export function useSessionController() {
   return {
     active, addFiles, answerUserInput, archiveOpen, archiveProject, archiveSession, archivedSessions, attachments, canRollback, chooseFiles, choosePlanAction, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
     clearArchivedSessions, closeArchive: () => setArchiveOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, loadDiff, loadProviders, openArchive, openInVsCode, openPath, openProjectDirectory, openSettings, openTerminal, providerState, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, saveProvider, activateProvider, deleteProvider, setFontSize, setTheme, settings, settingsOpen,
-    createInFolder, createProjectSession, groups, historyError, input, models, moveProject, refreshHistory: refreshHistoryWithStatus, refreshingHistory, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive: selectSession, showStatus, skills, stop, stopping: !!active && stoppingSessions.has(active.id),
+    createInFolder, createProjectSession, groups, historyError, input, models, moveProject, refreshHistory: refreshHistoryWithStatus, refreshingHistory, refreshingMessages, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive: selectSession, showStatus, skills, stop, stopping: !!active && stoppingSessions.has(active.id),
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,
     setReasoningEffort: (effort: string) => {

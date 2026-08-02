@@ -202,7 +202,7 @@ export function App() {
             </header>
             <Timeline
               active={controller.active}
-              refreshing={controller.refreshingHistory}
+              refreshing={controller.refreshingMessages}
               running={controller.running}
               onAnswer={controller.answerUserInput}
               onOpenPath={controller.openPath}
