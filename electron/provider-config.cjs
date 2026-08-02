@@ -3,6 +3,7 @@ const path = require('path');
 const { parse, stringify } = require('smol-toml');
 
 const VALID_REASONING_EFFORTS = new Set(['minimal', 'low', 'medium', 'high', 'xhigh']);
+const CODEX_PROVIDER_ID = 'custom';
 
 function filePath(codexHome, name) {
   return path.join(codexHome, name);
@@ -69,14 +70,14 @@ function configProvider(value, id, config) {
 function writeProviderConfig(codexHome, provider) {
   const loaded = readConfig(codexHome);
   const config = loaded.value && typeof loaded.value === 'object' ? loaded.value : {};
-  config.model_provider = provider.id;
+  config.model_provider = CODEX_PROVIDER_ID;
   config.model = provider.model;
   config.model_reasoning_effort = provider.reasoningEffort;
   config.model_providers = config.model_providers && typeof config.model_providers === 'object'
     ? config.model_providers
     : {};
-  config.model_providers[provider.id] = {
-    ...(config.model_providers[provider.id] || {}),
+  config.model_providers[CODEX_PROVIDER_ID] = {
+    ...(config.model_providers[CODEX_PROVIDER_ID] || {}),
     name: provider.name,
     wire_api: 'responses',
     requires_openai_auth: true,
@@ -93,6 +94,7 @@ function writeAuth(codexHome, apiKey) {
 }
 
 module.exports = {
+  CODEX_PROVIDER_ID,
   VALID_REASONING_EFFORTS,
   configProvider,
   readAuth,

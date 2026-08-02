@@ -1,6 +1,7 @@
 const { URL } = require('url');
 const {
   VALID_REASONING_EFFORTS,
+  CODEX_PROVIDER_ID,
   configProvider,
   readAuth,
   readConfig,
@@ -37,11 +38,39 @@ function validateProvider(input, existing, providers) {
 }
 
 function createProviderManager({ codexHome, providerStore, restart, isBusy = () => false }) {
+  function providerMatchesConfig(provider, configProviderValue, config) {
+    if (!provider || !configProviderValue) return false;
+    return provider.name === configProviderValue.name
+      && provider.baseUrl === configProviderValue.baseUrl
+      && provider.model === configProviderValue.model
+      && provider.reasoningEffort === configProviderValue.reasoningEffort
+      && provider.model === (typeof config.model === 'string' ? config.model.trim() : '')
+      && provider.reasoningEffort === (typeof config.model_reasoning_effort === 'string' ? config.model_reasoning_effort.trim() : '');
+  }
+
+  function normalizeActiveProviderConfig() {
+    const loaded = readConfig(codexHome);
+    const config = loaded.value || {};
+    const activeId = typeof config.model_provider === 'string' ? config.model_provider : '';
+    if (!activeId || activeId === CODEX_PROVIDER_ID) return;
+    const configured = Array.isArray(config.model_providers) ? {} : (config.model_providers || {});
+    const entry = configured[activeId];
+    if (!entry || typeof entry !== 'object') return;
+    writeProviderConfig(codexHome, {
+      id: CODEX_PROVIDER_ID,
+      name: typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : activeId,
+      baseUrl: typeof entry.base_url === 'string' ? entry.base_url.trim() : '',
+      model: typeof config.model === 'string' ? config.model.trim() : '',
+      reasoningEffort: typeof config.model_reasoning_effort === 'string' ? config.model_reasoning_effort.trim() : '',
+    });
+  }
+
+  normalizeActiveProviderConfig();
+
   function state() {
     const config = readConfig(codexHome).value || {};
     const auth = readAuth(codexHome).value || {};
     const configured = Array.isArray(config.model_providers) ? {} : (config.model_providers || {});
-    const activeId = typeof config.model_provider === 'string' ? config.model_provider : '';
     const stored = providerStore.list();
     const providers = stored.map(item => ({
       id: item.id,
@@ -51,11 +80,16 @@ function createProviderManager({ codexHome, providerStore, restart, isBusy = () 
       reasoningEffort: item.reasoningEffort,
       hasApiKey: Boolean(providerStore.getApiKey(item.id)),
     }));
-    const activeConfig = configProvider(configured[activeId], activeId, config);
+    const activeConfig = configProvider(configured[CODEX_PROVIDER_ID], CODEX_PROVIDER_ID, config);
+    const storedActive = activeConfig
+      ? stored.find(provider => providerMatchesConfig(provider, activeConfig, config))
+      : undefined;
+    const activeId = storedActive?.id || activeConfig?.id || (typeof config.model_provider === 'string' ? config.model_provider : '');
     if (activeConfig) {
       const index = providers.findIndex(item => item.id === activeId);
       const merged = {
         ...activeConfig,
+        id: activeId,
         hasApiKey: Boolean(providerStore.getApiKey(activeId) || auth.OPENAI_API_KEY),
       };
       if (index >= 0) providers[index] = merged;
@@ -73,7 +107,11 @@ function createProviderManager({ codexHome, providerStore, restart, isBusy = () 
     const saved = providerStore.getApiKey(id);
     if (saved) return saved;
     const config = readConfig(codexHome).value || {};
-    if (config.model_provider !== id) return '';
+    const configured = Array.isArray(config.model_providers) ? {} : (config.model_providers || {});
+    const activeConfig = configProvider(configured[CODEX_PROVIDER_ID], CODEX_PROVIDER_ID, config);
+    const provider = providerStore.get(id);
+    if (config.model_provider !== CODEX_PROVIDER_ID
+      || (id !== CODEX_PROVIDER_ID && !providerMatchesConfig(provider, activeConfig, config))) return '';
     return typeof readAuth(codexHome).value.OPENAI_API_KEY === 'string'
       ? readAuth(codexHome).value.OPENAI_API_KEY.trim()
       : '';

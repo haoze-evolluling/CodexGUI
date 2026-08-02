@@ -72,12 +72,43 @@ test('saves and activates another provider while preserving unrelated TOML setti
     const auth = JSON.parse(fs.readFileSync(path.join(fixture.root, 'auth.json'), 'utf8'));
     assert.equal(state.activeId, 'secondary');
     assert.equal(reloads, 1);
-    assert.match(config, /model_provider = "secondary"/);
+    assert.match(config, /model_provider = "custom"/);
+    assert.match(config, /name = "Secondary"/);
+    assert.match(config, /base_url = "https:\/\/api\.example\.com\/v1"/);
+    assert.doesNotMatch(config, /\[model_providers\.secondary\]/);
     assert.match(config, /unknown_setting = "preserve me"/);
     assert.match(config, /trust_level = "trusted"/);
     assert.equal(auth.OPENAI_API_KEY, 'secondary-key');
     assert.equal(config.includes('secondary-key'), false);
     assert.deepEqual(state.providers.map(provider => provider.id).sort(), ['custom', 'secondary']);
+  } finally {
+    fs.rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test('normalizes a legacy active custom provider to the shared Codex provider id', () => {
+  const legacyConfig = [
+    'model_provider = "legacy-provider"',
+    'model = "gpt-5"',
+    'model_reasoning_effort = "medium"',
+    '',
+    '[model_providers.legacy-provider]',
+    'name = "Legacy"',
+    'wire_api = "responses"',
+    'requires_openai_auth = true',
+    'base_url = "https://legacy.example.com"',
+  ].join('\n');
+  const fixture = createFixture(legacyConfig);
+  try {
+    const manager = createProviderManager({
+      codexHome: fixture.root,
+      providerStore: fixture.providerStore,
+      restart: () => true,
+    });
+    const config = fs.readFileSync(path.join(fixture.root, 'config.toml'), 'utf8');
+    assert.match(config, /model_provider = "custom"/);
+    assert.match(config, /\[model_providers\.custom\]/);
+    assert.equal(manager.get().activeId, 'custom');
   } finally {
     fs.rmSync(fixture.root, { recursive: true, force: true });
   }
