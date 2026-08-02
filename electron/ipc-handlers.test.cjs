@@ -5,13 +5,13 @@ const path = require('node:path');
 const test = require('node:test');
 const { registerIpcHandlers } = require('./ipc-handlers.cjs');
 
-function createHarness({ archived = [], cache = {}, codexHome = 'C:\\codex', readThread = async () => null, remove = async () => true, rollback = async () => null, sessions = [] } = {}) {
+function createHarness({ archived = [], archive = async () => true, cache = {}, codexHome = 'C:\\codex', readThread = async () => null, remove = async () => true, rollback = async () => null, sessions = [] } = {}) {
   const handlers = new Map();
   const savedSettings = [];
   const settings = { projectPaths: ['C:\\repo', 'C:\\other'] };
   const ipcMain = { handle: (channel, handler) => handlers.set(channel, handler) };
   const codexProcess = {
-    archive: async () => true,
+    archive,
     answerUserInput: () => false,
     compact: async () => false,
     listCollaborationModes: async () => [],
@@ -170,6 +170,55 @@ test('fills missing token usage for archived sessions from the cache', async () 
     cache: { 'thread-1': usage },
   });
   assert.deepEqual(await handlers.get('sessions:archived-list')(), [{ id: 'codex-thread-1', threadId: 'thread-1', tokenUsage: usage }]);
+});
+
+test('archives only a thread confirmed by the current app-server', async () => {
+  let archiveCalls = 0;
+  const { handlers } = createHarness({
+    sessions: [{ id: 'codex-thread-1', threadId: 'thread-1' }],
+    archive: async threadId => {
+      archiveCalls += 1;
+      assert.equal(threadId, 'thread-1');
+      return true;
+    },
+  });
+
+  assert.deepEqual(await handlers.get('sessions:archive')(undefined, { threadId: 'thread-1' }), { ok: true });
+  assert.equal(archiveCalls, 1);
+});
+
+test('rejects a stale thread after provider restart without sending thread/archive', async () => {
+  let archiveCalls = 0;
+  const { handlers } = createHarness({
+    sessions: [],
+    archive: async () => {
+      archiveCalls += 1;
+      return true;
+    },
+  });
+
+  const result = await handlers.get('sessions:archive')(undefined, {
+    id: 'codex-thread-1',
+    threadId: 'thread-1',
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    error: '该对话已不在当前提供商的会话列表中，请刷新会话列表后重试。',
+  });
+  assert.equal(archiveCalls, 0);
+});
+
+test('normalizes a rollout-not-found race into a recoverable archive error', async () => {
+  const { handlers } = createHarness({
+    sessions: [{ id: 'codex-thread-1', threadId: 'thread-1' }],
+    archive: async () => { throw new Error('No roll out found for thread id thread-1'); },
+  });
+
+  assert.deepEqual(await handlers.get('sessions:archive')(undefined, { threadId: 'thread-1' }), {
+    ok: false,
+    error: '该对话已不在当前提供商的会话列表中，请刷新会话列表后重试。',
+  });
 });
 
 test('clears token usage only after an archived thread is deleted by Codex', async () => {

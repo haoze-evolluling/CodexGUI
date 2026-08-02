@@ -45,6 +45,7 @@ export function useSessionController() {
   const sessionReadEpochsRef = useRef<Map<string, number>>(new Map());
   const planChoicesInFlight = useRef<Set<string>>(new Set());
   const sessionTitlesRef = useRef<Record<string, string>>({});
+  const archivingSessionsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     settingsRef.current = settings;
@@ -160,13 +161,19 @@ export function useSessionController() {
         if (retry?.length) items = retry;
       }
     } catch {
-      setHistoryError('无法读取 Codex 历史记录，请稍后重试。');
+      setHistoryError('无法确认当前提供商的会话列表，请刷新后重试。');
       return;
     }
-    if (!items) return;
+    if (!items) {
+      setHistoryError('无法确认当前提供商的会话列表，请刷新后重试。');
+      return;
+    }
     setHistoryError(undefined);
     const normalized = uniqueSessions(items.map(normalizeSession).map(withLocalTitle).map(applyPlanDecisionChoices));
-    if (!normalized.length) return;
+    if (!normalized.length) {
+      setHistoryError('当前提供商的会话列表暂未同步，请刷新后重试。');
+      return;
+    }
     rememberProjects(normalized.map(item => item.cwd));
     setSessions(current => {
       const liveById = new Map(current.map(session => [session.id, session]));
@@ -684,14 +691,21 @@ export function useSessionController() {
       setActive(current => current?.id === target.id ? remaining[0] : current);
       return;
     }
-    const archived = await window.codex.archiveSession(target);
-    if (!archived.ok) {
-      setDialog({ title: '归档失败', description: archived.error || '未知错误', onConfirm: () => setDialog(undefined) });
-      return;
+    const archiveKey = target.threadId;
+    if (archivingSessionsRef.current.has(archiveKey)) return;
+    archivingSessionsRef.current.add(archiveKey);
+    try {
+      const archived = await window.codex.archiveSession(target);
+      if (!archived.ok) {
+        setDialog({ title: '归档失败', description: archived.error || '未知错误', onConfirm: () => setDialog(undefined) });
+        return;
+      }
+      const remaining = sessions.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId));
+      setSessions(remaining);
+      setActive(current => current && (current.id === target.id || (target.threadId && current.threadId === target.threadId)) ? remaining[0] : current);
+    } finally {
+      archivingSessionsRef.current.delete(archiveKey);
     }
-    const remaining = sessions.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId));
-    setSessions(remaining);
-    setActive(current => current && (current.id === target.id || (target.threadId && current.threadId === target.threadId)) ? remaining[0] : current);
   };
   const archiveProject = async (cwd: string, projectSessions: Session[]) => {
     if (projectSessions.some(session => runningSessions.has(session.id))) return;

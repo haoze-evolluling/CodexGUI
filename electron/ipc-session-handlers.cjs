@@ -60,9 +60,18 @@ function registerSessionHandlers({ codexHome, codexProcess, getInstallation, ipc
   ipcMain.handle('sessions:archive', async (_, session) => {
     if (!session?.threadId) return { ok: false, error: '该对话尚未创建 Codex 线程，无法归档。' };
     try {
+      const currentSessions = await codexProcess.listThreads(false);
+      const currentThread = currentSessions.find(item => item?.threadId === session.threadId);
+      if (!currentThread) {
+        return { ok: false, error: '该对话已不在当前提供商的会话列表中，请刷新会话列表后重试。' };
+      }
       return await codexProcess.archive(session.threadId) ? { ok: true } : { ok: false, error: '无法归档该对话。' };
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+      const message = error instanceof Error ? error.message : String(error);
+      if (/no roll.?out found for thread id/i.test(message)) {
+        return { ok: false, error: '该对话已不在当前提供商的会话列表中，请刷新会话列表后重试。' };
+      }
+      return { ok: false, error: message };
     }
   });
   ipcMain.handle('sessions:archived-list', async () => withCachedTokenUsages(await codexProcess.listThreads(true)));
