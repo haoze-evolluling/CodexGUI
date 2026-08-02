@@ -124,30 +124,32 @@ export function App() {
       <TitleBar />
       {controller.dialog && <AppDialog dialog={controller.dialog} onClose={controller.closeDialog} />}
       <div className="app-workspace">
-        <Sidebar
-          active={controller.active}
-          collapsedGroups={controller.collapsedGroups}
-          groups={controller.groups}
-          historyError={controller.historyError}
-          refreshing={controller.refreshingHistory}
-          runningSessions={controller.runningSessions}
-          onCreateInFolder={cwd => void transitionContent(() => controller.createInFolder(cwd))}
-          onCreateProject={controller.createProjectSession}
-          onProjectContextMenu={openProjectMenu}
-          onRefresh={controller.refreshHistory}
-          onRenameSession={controller.renameSession}
-          onSessionContextMenu={openSessionMenu}
-          onSelect={session => {
-            void transitionContent(() => {
-              controller.closeSettings();
-              controller.closeArchive();
-              controller.setActive(session);
-            });
-          }}
-          onSettings={() => void transitionContent(controller.openSettings)}
-          onOpenArchive={() => void transitionContent(controller.openArchive)}
-          onToggleGroup={controller.toggleGroup}
-        />
+        {!controller.settingsOpen && (
+          <Sidebar
+            active={controller.active}
+            collapsedGroups={controller.collapsedGroups}
+            groups={controller.groups}
+            historyError={controller.historyError}
+            refreshing={controller.refreshingHistory}
+            runningSessions={controller.runningSessions}
+            onCreateInFolder={cwd => void transitionContent(() => controller.createInFolder(cwd))}
+            onCreateProject={controller.createProjectSession}
+            onProjectContextMenu={openProjectMenu}
+            onRefresh={controller.refreshHistory}
+            onRenameSession={controller.renameSession}
+            onSessionContextMenu={openSessionMenu}
+            onSelect={session => {
+              void transitionContent(() => {
+                controller.closeSettings();
+                controller.closeArchive();
+                controller.setActive(session);
+              });
+            }}
+            onSettings={() => void transitionContent(controller.openSettings)}
+            onOpenArchive={() => void transitionContent(controller.openArchive)}
+            onToggleGroup={controller.toggleGroup}
+          />
+        )}
         <div className={`content-page ${contentTransitioning || controller.refreshingHistory ? 'content-transitioning' : ''}`} aria-busy={contentTransitioning || controller.refreshingHistory}>
           {controller.settingsOpen ? (
             <SettingsPage
