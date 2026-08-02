@@ -22,8 +22,8 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
     try { return { ok: true, state: providerManager.save(provider) }; }
     catch (error) { return { ok: false, error: error instanceof Error ? error.message : String(error) }; }
   });
-  ipcMain.handle('providers:activate', (_, id) => {
-    try { return { ok: true, state: providerManager.activate(id) }; }
+  ipcMain.handle('providers:activate', async (_, id) => {
+    try { return { ok: true, state: await providerManager.activate(id) }; }
     catch (error) { return { ok: false, error: error instanceof Error ? error.message : String(error) }; }
   });
   ipcMain.handle('providers:delete', (_, id) => {

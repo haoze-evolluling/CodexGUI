@@ -153,6 +153,11 @@ export function useSessionController() {
     let items: Session[];
     try {
       items = await window.codex.loadHistory();
+      if (items?.length === 0) {
+        await new Promise<void>(resolve => window.setTimeout(resolve, 120));
+        const retry = await window.codex.loadHistory();
+        if (retry?.length) items = retry;
+      }
     } catch {
       setHistoryError('无法读取 Codex 历史记录，请稍后重试。');
       return;
@@ -160,6 +165,7 @@ export function useSessionController() {
     if (!items) return;
     setHistoryError(undefined);
     const normalized = uniqueSessions(items.map(normalizeSession).map(withLocalTitle).map(applyPlanDecisionChoices));
+    if (!normalized.length) return;
     rememberProjects(normalized.map(item => item.cwd));
     setSessions(current => {
       const liveById = new Map(current.map(session => [session.id, session]));
@@ -980,17 +986,22 @@ export function useSessionController() {
     const result = await window.codex.saveProvider(provider);
     if (!result.ok) return result;
     updateProviderState(result.state);
-    if (provider.id && provider.id === result.state.activeId) {
-      const activated = await window.codex.activateProvider(provider.id);
+    const savedId = provider.id || result.state.providers.find(item => item.name === provider.name.trim())?.id;
+    if (savedId) {
+      const activated = await window.codex.activateProvider(savedId);
       if (!activated.ok) return activated;
       updateProviderState(activated.state);
+      await refreshHistoryWithTransition();
       return activated;
     }
     return result;
   };
   const activateProvider = async (id: string): Promise<ProviderStateResult> => {
     const result = await window.codex.activateProvider(id);
-    if (result.ok) updateProviderState(result.state);
+    if (result.ok) {
+      updateProviderState(result.state);
+      await refreshHistoryWithTransition();
+    }
     return result;
   };
   const deleteProvider = async (id: string): Promise<ProviderStateResult> => {

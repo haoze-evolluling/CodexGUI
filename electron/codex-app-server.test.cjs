@@ -134,6 +134,13 @@ test('maps conversation commands to their Codex app-server methods', async () =>
   assert.deepEqual(turn.params.sandboxPolicy, { type: 'dangerFullAccess' });
 });
 
+test('restarts the app-server and waits for initialization', async () => {
+  const { requests, server } = createServerHarness();
+
+  assert.equal(await server.restart(), true);
+  assert.deepEqual(requests.map(request => request.method), ['initialize', 'initialized']);
+});
+
 test('waits for turn completion when interrupt reports no active turn', async () => {
   const { child, events, server } = createServerHarness({ interruptError: 'no active turn to interrupt' });
   const options = {

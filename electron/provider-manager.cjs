@@ -36,7 +36,7 @@ function validateProvider(input, existing, providers) {
   return { id, name, baseUrl, model, reasoningEffort, existing };
 }
 
-function createProviderManager({ codexHome, providerStore, reload, isBusy = () => false }) {
+function createProviderManager({ codexHome, providerStore, restart, isBusy = () => false }) {
   function state() {
     const config = readConfig(codexHome).value || {};
     const auth = readAuth(codexHome).value || {};
@@ -90,7 +90,7 @@ function createProviderManager({ codexHome, providerStore, reload, isBusy = () =
     return state();
   }
 
-  function activate(id) {
+  async function activate(id) {
     if (isBusy()) throw new Error('Codex 正在执行任务，请在任务结束后切换提供商。');
     const current = state();
     const activeProvider = current.providers.find(item => item.id === current.activeId);
@@ -118,7 +118,7 @@ function createProviderManager({ codexHome, providerStore, reload, isBusy = () =
     try {
       writeProviderConfig(codexHome, provider);
       writeAuth(codexHome, apiKey);
-      if (!reload()) throw new Error('Codex 正在执行任务，暂时无法重载配置。');
+      if (!await restart()) throw new Error('Codex 正在执行任务，暂时无法重启服务。');
       return state();
     } catch (error) {
       restoreFile(configFile, previousConfig);

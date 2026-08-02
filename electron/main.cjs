@@ -105,7 +105,7 @@ app.whenReady().then(() => {
     providerManager: createProviderManager({
       codexHome: path.join(app.getPath('home'), '.codex'),
       providerStore,
-      reload: () => codexProcess.reload(),
+      restart: () => codexProcess.restart(),
       isBusy: () => codexProcess.isBusy(),
     }),
     getInstallation,

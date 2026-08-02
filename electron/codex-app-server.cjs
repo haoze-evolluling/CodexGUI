@@ -502,6 +502,11 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, saveTokenUsage, sen
       flushDeltas();
       return true;
     },
+    async restart() {
+      if (!this.reload()) return false;
+      await ensureReady();
+      return true;
+    },
     isBusy() {
       return turnsBySession.size > 0 || startingSessions.size > 0;
     },

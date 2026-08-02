@@ -218,7 +218,7 @@ export function SettingsPage(props: SettingsPageProps) {
             <div className="provider-form">
               <div className="provider-form-heading">
                 <b>{providerId ? '编辑提供商' : '新建提供商'}</b>
-                <span>保存后可在对话界面切换使用。</span>
+                <span>应用后会立即切换提供商并重启 Codex 服务。</span>
               </div>
               <div className="provider-form-fields">
                 <div className="provider-field">
@@ -254,7 +254,7 @@ export function SettingsPage(props: SettingsPageProps) {
               {props.savingDisabled && <p className="settings-warning">Codex 正在执行任务，请在任务结束后操作提供商。</p>}
               {providerError && <p className="settings-error">{providerError}</p>}
               <div className="settings-actions">
-                <button className="primary" type="button" onClick={() => void saveProvider()} disabled={providerSaving || props.savingDisabled || !providerName.trim() || !providerBaseUrl.trim() || !providerModel.trim()}><Save size={15} /> {providerSaving ? '保存中…' : '保存提供商'}</button>
+                <button className="primary" type="button" onClick={() => void saveProvider()} disabled={providerSaving || props.savingDisabled || !providerName.trim() || !providerBaseUrl.trim() || !providerModel.trim()}><Save size={15} /> {providerSaving ? '应用中…' : '应用提供商'}</button>
               </div>
             </div>
           </div>
