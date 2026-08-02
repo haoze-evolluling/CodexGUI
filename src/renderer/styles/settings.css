@@ -21,3 +21,68 @@
 .archive-item-actions button.danger { color: #ffb4b4; border-color: #6a3a3a; background: #2a1717; }
 .archive-item-actions button.danger:hover { color: #ffe0e0; background: #3a1d1d; border-color: #8a4a4a; }
 .archive-empty { padding: 18px 4px; color: #91a0b3; font-size: 13px; }
+
+/* Settings layout and provider cards */
+.settings-page-body { padding: 32px clamp(24px, 6vw, 96px) 40px; gap: 20px; }
+.settings-section { width: min(760px, 100%); padding: 22px 24px; border-radius: 14px; }
+.settings-page:not(.archive-page) .settings-section { width: min(960px, 100%); }
+.provider-section { width: min(960px, 100%); gap: 20px; }
+.provider-layout { grid-template-columns: minmax(250px, .85fr) minmax(360px, 1.15fr); gap: 24px; align-items: start; }
+.provider-list { gap: 10px; padding-right: 24px; border-right: 1px solid #344052; }
+.provider-form { gap: 16px; padding-left: 0; }
+.provider-form-heading { display: grid; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid #344052; }
+.provider-form-heading b { font-size: 14px; }
+.provider-form-heading span { color: #91a0b3; font-size: 12px; line-height: 1.45; }
+.provider-form-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+.provider-field { display: grid; gap: 7px; min-width: 0; }
+.provider-field-wide { grid-column: 1 / -1; }
+.provider-item { min-height: 104px; padding: 13px 12px 13px 14px; border-radius: 10px; transition: border-color 120ms ease-out, background-color 120ms ease-out, box-shadow 120ms ease-out; }
+.provider-item:hover { border-color: #567094; background: #1c2633; }
+.provider-item.selected { border-color: #4f8fe0; background: #1a2c45; box-shadow: inset 3px 0 #6ea8ee; }
+.provider-item-main { gap: 7px; width: 100%; }
+.provider-item-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.provider-item-name { gap: 6px; font-size: 14px; }
+.provider-item-name svg { flex: 0 0 auto; color: #83b8f5; }
+.provider-item-status { flex: 0 0 auto; padding: 3px 7px; color: #b9d8ff; background: #24466f; border: 1px solid #3c6da4; border-radius: 999px; font-size: 10px; line-height: 1; }
+.provider-item-meta { display: flex; gap: 8px; min-width: 0; color: #aebdce; font-size: 11px; }
+.provider-item-meta small { min-width: 0; }
+.provider-item-model { flex: 0 0 auto; max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.provider-item-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.provider-item-url::before { content: '·'; margin-right: 8px; color: #607188; }
+.provider-item-key { display: inline-flex; align-items: center; gap: 5px; width: fit-content; }
+.provider-item-key.configured { color: #86d5a4; }
+.provider-item-key.missing { color: #e5b56d; }
+.provider-item-actions { align-self: start; }
+.provider-item-actions .icon:focus-visible, .provider-secret-field .icon:focus-visible, .provider-new:focus-visible { outline: 2px solid #83b8f5; outline-offset: 2px; }
+.provider-new { min-height: 40px; margin-top: 2px; border-radius: 8px; }
+.provider-empty { padding: 20px 8px; text-align: center; border: 1px dashed #3a475a; border-radius: 10px; }
+.provider-form input, .provider-form select { height: 40px; border-radius: 8px; }
+.provider-secret-field { grid-template-columns: minmax(0, 1fr) 34px; gap: 5px; }
+.provider-secret-field .icon { width: 34px; height: 34px; }
+.provider-form .settings-warning, .provider-form .settings-error { padding: 10px 12px; border-radius: 8px; }
+.provider-form .settings-warning { background: #2b2416; border: 1px solid #63512e; }
+.provider-form .settings-error { background: #2b191c; border: 1px solid #69353b; }
+.provider-form .settings-actions { margin-top: 0; padding-top: 2px; border-top: 1px solid #344052; }
+.settings-page:not(.archive-page) .theme-options, .settings-page:not(.archive-page) .font-size-options { gap: 14px; }
+.settings-page:not(.archive-page) .theme-option, .settings-page:not(.archive-page) .font-size-option { min-height: 86px; padding: 15px; border-radius: 10px; }
+.settings-page:not(.archive-page) .theme-option b, .settings-page:not(.archive-page) .font-size-option b { font-size: 14px; }
+.settings-page:not(.archive-page) .theme-option small, .settings-page:not(.archive-page) .font-size-option small { line-height: 1.5; }
+.settings-page:not(.archive-page) .path-field input { height: 42px; }
+.settings-page:not(.archive-page) .path-field .icon { width: 42px; height: 42px; }
+.settings-page:not(.archive-page) .installation-status, .settings-page:not(.archive-page) .install-command { padding: 14px; }
+
+@media (max-width: 820px) {
+  .settings-page-body { padding: 24px 5% 32px; }
+  .settings-section, .provider-section { width: 100%; padding: 20px; }
+  .provider-layout { grid-template-columns: 1fr; gap: 20px; }
+  .provider-list { padding-right: 0; padding-bottom: 20px; border-right: 0; border-bottom: 1px solid #344052; }
+}
+
+@media (max-width: 560px) {
+  .settings-page-header { padding: 0 16px; }
+  .settings-page-body { padding: 18px 16px 28px; gap: 16px; }
+  .settings-section, .provider-section { padding: 18px 16px; border-radius: 12px; }
+  .provider-form-fields { grid-template-columns: 1fr; gap: 12px; }
+  .provider-field-wide { grid-column: auto; }
+  .theme-options, .font-size-options { grid-template-columns: 1fr; }
+}

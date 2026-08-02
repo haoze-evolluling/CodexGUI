@@ -192,9 +192,18 @@ export function SettingsPage(props: SettingsPageProps) {
                 const active = provider.id === props.providerState?.activeId;
                 return <div key={provider.id} className={`provider-item ${active ? 'selected' : ''}`}>
                   <button type="button" className="provider-item-main" onClick={() => editProvider(provider.id)}>
-                    <span className="provider-item-name">{active && <Check size={15} />}{provider.name}</span>
-                    <small>{provider.model} · {provider.baseUrl}</small>
-                    <small>{provider.hasApiKey ? 'API Key 已配置' : '缺少 API Key'}</small>
+                    <span className="provider-item-heading">
+                      <span className="provider-item-name">{active && <CheckCircle2 size={16} />}{provider.name}</span>
+                      {active && <span className="provider-item-status">当前使用</span>}
+                    </span>
+                    <span className="provider-item-meta">
+                      <small className="provider-item-model">{provider.model}</small>
+                      <small className="provider-item-url" title={provider.baseUrl}>{provider.baseUrl}</small>
+                    </span>
+                    <small className={`provider-item-key ${provider.hasApiKey ? 'configured' : 'missing'}`}>
+                      {provider.hasApiKey ? <CheckCircle2 size={13} /> : <TriangleAlert size={13} />}
+                      {provider.hasApiKey ? 'API Key 已配置' : '缺少 API Key'}
+                    </small>
                   </button>
                   <div className="provider-item-actions">
                     {!active && <button type="button" className="icon" onClick={() => void activateProvider(provider.id)} title="切换到此提供商" aria-label={`切换到${provider.name}`} disabled={providerSaving || props.savingDisabled}><Check size={16} /></button>}
@@ -207,25 +216,41 @@ export function SettingsPage(props: SettingsPageProps) {
             </div>
 
             <div className="provider-form">
-              <label className="settings-field-label" htmlFor="provider-name">提供商名称</label>
-              <input id="provider-name" value={providerName} onChange={event => setProviderName(event.target.value)} placeholder="例如：我的 API" />
-              <label className="settings-field-label" htmlFor="provider-base-url">请求地址</label>
-              <input id="provider-base-url" value={providerBaseUrl} onChange={event => setProviderBaseUrl(event.target.value)} placeholder="https://api.example.com" spellCheck={false} />
-              <label className="settings-field-label" htmlFor="provider-api-key">API Key</label>
-              <div className="provider-secret-field">
-                <input id="provider-api-key" type={providerKeyVisible ? 'text' : 'password'} value={providerApiKey} onChange={event => setProviderApiKey(event.target.value)} placeholder={providerId && props.providerState?.providers.find(item => item.id === providerId)?.hasApiKey ? '留空以保留当前 Key' : '输入 API Key'} spellCheck={false} />
-                <button type="button" className="icon" onClick={() => setProviderKeyVisible(value => !value)} title={providerKeyVisible ? '隐藏 API Key' : '显示 API Key'} aria-label={providerKeyVisible ? '隐藏 API Key' : '显示 API Key'}><>{providerKeyVisible ? <EyeOff size={16} /> : <Eye size={16} />}</></button>
+              <div className="provider-form-heading">
+                <b>{providerId ? '编辑提供商' : '新建提供商'}</b>
+                <span>保存后可在对话界面切换使用。</span>
               </div>
-              <label className="settings-field-label" htmlFor="provider-model">默认模型</label>
-              <input id="provider-model" value={providerModel} onChange={event => setProviderModel(event.target.value)} placeholder="例如：gpt-5" spellCheck={false} />
-              <label className="settings-field-label" htmlFor="provider-effort">默认推理强度</label>
-              <select id="provider-effort" value={providerEffort} onChange={event => setProviderEffort(event.target.value)}>
-                <option value="minimal">minimal</option>
-                <option value="low">low</option>
-                <option value="medium">medium</option>
-                <option value="high">high</option>
-                <option value="xhigh">xhigh</option>
-              </select>
+              <div className="provider-form-fields">
+                <div className="provider-field">
+                  <label className="settings-field-label" htmlFor="provider-name">提供商名称</label>
+                  <input id="provider-name" value={providerName} onChange={event => setProviderName(event.target.value)} placeholder="例如：我的 API" />
+                </div>
+                <div className="provider-field">
+                  <label className="settings-field-label" htmlFor="provider-base-url">请求地址</label>
+                  <input id="provider-base-url" value={providerBaseUrl} onChange={event => setProviderBaseUrl(event.target.value)} placeholder="https://api.example.com" spellCheck={false} />
+                </div>
+                <div className="provider-field provider-field-wide">
+                  <label className="settings-field-label" htmlFor="provider-api-key">API Key</label>
+                  <div className="provider-secret-field">
+                    <input id="provider-api-key" type={providerKeyVisible ? 'text' : 'password'} value={providerApiKey} onChange={event => setProviderApiKey(event.target.value)} placeholder={providerId && props.providerState?.providers.find(item => item.id === providerId)?.hasApiKey ? '留空以保留当前 Key' : '输入 API Key'} spellCheck={false} />
+                    <button type="button" className="icon" onClick={() => setProviderKeyVisible(value => !value)} title={providerKeyVisible ? '隐藏 API Key' : '显示 API Key'} aria-label={providerKeyVisible ? '隐藏 API Key' : '显示 API Key'}><>{providerKeyVisible ? <EyeOff size={16} /> : <Eye size={16} />}</></button>
+                  </div>
+                </div>
+                <div className="provider-field">
+                  <label className="settings-field-label" htmlFor="provider-model">默认模型</label>
+                  <input id="provider-model" value={providerModel} onChange={event => setProviderModel(event.target.value)} placeholder="例如：gpt-5" spellCheck={false} />
+                </div>
+                <div className="provider-field">
+                  <label className="settings-field-label" htmlFor="provider-effort">默认推理强度</label>
+                  <select id="provider-effort" value={providerEffort} onChange={event => setProviderEffort(event.target.value)}>
+                    <option value="minimal">minimal</option>
+                    <option value="low">low</option>
+                    <option value="medium">medium</option>
+                    <option value="high">high</option>
+                    <option value="xhigh">xhigh</option>
+                  </select>
+                </div>
+              </div>
               {props.savingDisabled && <p className="settings-warning">Codex 正在执行任务，请在任务结束后操作提供商。</p>}
               {providerError && <p className="settings-error">{providerError}</p>}
               <div className="settings-actions">
