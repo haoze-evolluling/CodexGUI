@@ -176,6 +176,16 @@ test('extracts the inner command from custom tool call scripts', () => {
   assert.equal(activity.commandType, 'PowerShell · 读取');
 });
 
+test('classifies Codex orchestration tools from tool scripts', () => {
+  const patchActivity = activityFromItem({ id: 'patch-1', type: 'customToolCall', name: 'exec', input: 'const patch = "..."; await tools.apply_patch(patch);' }, 'completed');
+  assert.equal(patchActivity.command, 'apply_patch');
+  assert.equal(patchActivity.commandType, 'Codex · 修改文件');
+
+  const execActivity = activityFromItem({ id: 'exec-1', type: 'customToolCall', name: 'exec', input: 'const hits = ALL_TOOLS.filter(Boolean);' }, 'completed');
+  assert.equal(execActivity.command, 'exec');
+  assert.equal(execActivity.commandType, 'Codex · 工具编排');
+});
+
 test('classifies common command executors and operations', () => {
   const classify = command => activityFromItem({ id: command, type: 'functionCall', name: 'shell_command', command }, 'completed').commandType;
   assert.equal(classify('Get-Content package.json'), 'PowerShell · 读取');

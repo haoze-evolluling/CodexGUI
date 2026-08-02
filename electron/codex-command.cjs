@@ -51,8 +51,10 @@ function decodeStringLiteral(source, quote) {
 function commandFromScript(script) {
   if (typeof script !== 'string') return '';
   const match = script.match(/\btools\.shell_command\s*\(\s*\{[\s\S]*?\bcommand\s*:\s*(['"`])/i);
-  if (!match) return '';
-  return decodeStringLiteral(script.slice(match.index + match[0].length), match[1]) || '';
+  if (match) return decodeStringLiteral(script.slice(match.index + match[0].length), match[1]) || '';
+  if (/\btools\.apply_patch\s*\(/i.test(script)) return 'apply_patch';
+  if (/\btools\.view_image\s*\(/i.test(script)) return 'view_image';
+  return '';
 }
 
 function commandFromValue(value) {
@@ -70,6 +72,7 @@ function commandFromItem(item) {
     const input = parsedValue(item.input);
     if (input?.command !== undefined) return commandFromValue(input.command);
     if (input?.cmd !== undefined) return commandFromValue(input.cmd);
+    if (typeof item.input === 'string' && item.name === 'exec' && !commandFromScript(item.input)) return item.name;
     return commandFromValue(item.input);
   }
   if (item?.arguments !== undefined) return commandFromValue(item.arguments);
@@ -91,7 +94,16 @@ function commandTypeFromCommand(command) {
   let executor = '其他';
   let operation = '工具调用';
 
-  if (/^(?:powershell|pwsh)$/.test(token) || /^(?:get|set|remove|add|clear|new|copy|move|rename|write|out|invoke|test|select|resolve)-[a-z]/i.test(value)) {
+  if (token === 'apply_patch') {
+    executor = 'Codex';
+    operation = '修改文件';
+  } else if (token === 'view_image') {
+    executor = 'Codex';
+    operation = '查看图像';
+  } else if (token === 'exec') {
+    executor = 'Codex';
+    operation = '工具编排';
+  } else if (/^(?:powershell|pwsh)$/.test(token) || /^(?:get|set|remove|add|clear|new|copy|move|rename|write|out|invoke|test|select|resolve)-[a-z]/i.test(value)) {
     executor = 'PowerShell';
   } else if (/^cmd$/.test(token) || /\.(?:cmd|bat)(?:\s|$)/i.test(normalized)) {
     executor = 'CMD';
