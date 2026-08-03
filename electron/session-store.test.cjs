@@ -66,6 +66,43 @@ test('restores the saved reasoning effort after reopening the store', () => {
   }
 });
 
+test('persists independent main and Trello window states', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-gui-window-settings-'));
+  const settingsFile = path.join(directory, 'settings.json');
+  const createStore = () => createSessionStore(undefined, undefined, settingsFile);
+  try {
+    const windowStates = {
+      main: { x: 10, y: 20, width: 1280, height: 800, maximized: true },
+      trello: { x: -800, y: 30, width: 1440, height: 900, maximized: false },
+    };
+    assert.deepEqual(createStore().saveSettings({ windowStates }).windowStates, windowStates);
+    assert.deepEqual(createStore().loadSettings().windowStates, windowStates);
+    assert.deepEqual(createStore().saveSettings({ windowStates: { main: windowStates.main } }).windowStates, {
+      main: windowStates.main,
+      trello: windowStates.trello,
+    });
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('ignores malformed window states while preserving valid states', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-gui-invalid-window-settings-'));
+  const settingsFile = path.join(directory, 'settings.json');
+  const store = createSessionStore(undefined, undefined, settingsFile);
+  try {
+    assert.deepEqual(store.saveSettings({ windowStates: {
+      main: { x: 0, y: 0, width: 1280, height: 800, maximized: false },
+      trello: { x: 0, y: 0, width: 0, height: 900, maximized: true },
+      ignored: { x: 1, y: 1, width: 100, height: 100 },
+    } }).windowStates, {
+      main: { x: 0, y: 0, width: 1280, height: 800, maximized: false },
+    });
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test('does not persist the removed history refresh interval', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-gui-refresh-settings-'));
   const store = createSessionStore(

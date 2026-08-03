@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification, safeStorage } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification, safeStorage, screen } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const { createCodexAppServer } = require('./codex-app-server.cjs');
@@ -9,6 +9,7 @@ const { createSessionStore } = require('./session-store.cjs');
 const { createTrelloStore } = require('./trello-store.cjs');
 const { createProviderManager } = require('./provider-manager.cjs');
 const { createProviderStore } = require('./provider-store.cjs');
+const { attachWindowState, restoreWindowState } = require('./window-state.cjs');
 
 const APP_ID = 'com.leeha.codexgui';
 const APP_ICON = path.join(__dirname, 'assets', 'app-icon.ico');
@@ -24,12 +25,18 @@ function resolveInitialTheme(theme) {
   return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
 }
 
-function createWindow(theme) {
+function createWindow(theme, savedState, store) {
   const initialTheme = resolveInitialTheme(theme);
+  const restored = restoreWindowState(savedState, {
+    defaultBounds: { x: 0, y: 0, width: 1280, height: 800 },
+    minWidth: 900,
+    minHeight: 600,
+    displays: screen.getAllDisplays(),
+    primaryDisplay: screen.getPrimaryDisplay(),
+  });
   win = new BrowserWindow({
     title: 'Codex GUI',
-    width: 1280,
-    height: 800,
+    ...restored.bounds,
     minWidth: 900,
     minHeight: 600,
     backgroundColor: initialTheme === 'dark' ? '#11151c' : '#f7f9fc',
@@ -42,12 +49,14 @@ function createWindow(theme) {
       nodeIntegration: false,
     },
   });
+  attachWindowState(win, { key: 'main', store });
+  if (restored.maximized) win.maximize();
   win.once('ready-to-show', () => win.show());
   if (!app.isPackaged) win.loadURL(`http://127.0.0.1:5173?initialTheme=${initialTheme}`);
   else win.loadFile(path.join(__dirname, '../dist/index.html'), { query: { initialTheme } });
 }
 
-function createTrelloWindow(theme) {
+function createTrelloWindow(theme, savedState, store) {
   if (trelloWin && !trelloWin.isDestroyed()) {
     if (trelloWin.isMinimized()) trelloWin.restore();
     trelloWin.show();
@@ -56,10 +65,16 @@ function createTrelloWindow(theme) {
   }
 
   const initialTheme = resolveInitialTheme(theme);
+  const restored = restoreWindowState(savedState, {
+    defaultBounds: { x: 0, y: 0, width: 1440, height: 900 },
+    minWidth: 1080,
+    minHeight: 680,
+    displays: screen.getAllDisplays(),
+    primaryDisplay: screen.getPrimaryDisplay(),
+  });
   trelloWin = new BrowserWindow({
     title: 'Trello 看板',
-    width: 1440,
-    height: 900,
+    ...restored.bounds,
     minWidth: 1080,
     minHeight: 680,
     backgroundColor: initialTheme === 'dark' ? '#05060f' : '#fafaf9',
@@ -72,6 +87,8 @@ function createTrelloWindow(theme) {
       nodeIntegration: false,
     },
   });
+  attachWindowState(trelloWin, { key: 'trello', store });
+  if (restored.maximized) trelloWin.maximize();
   trelloWin.once('ready-to-show', () => {
     if (!trelloWin || trelloWin.isDestroyed()) return;
     trelloWin.show();
@@ -130,7 +147,8 @@ app.whenReady().then(() => {
   );
   const trelloStore = createTrelloStore(path.join(userData, 'trello-board.json'));
   const providerStore = createProviderStore(path.join(userData, 'providers.json'), safeStorage);
-  createWindow(store.loadSettings().theme);
+  const initialSettings = store.loadSettings();
+  createWindow(initialSettings.theme, initialSettings.windowStates?.main, store);
   const getInstallation = () => resolveCodexInstallation({ customPath: store.loadSettings().codexPath });
   const codexProcess = createCodexAppServer({
     attachDiffs: createDiffAttacher(spawn),
@@ -165,7 +183,10 @@ app.whenReady().then(() => {
       isBusy: () => codexProcess.isBusy(),
     }),
     getInstallation,
-    openTrelloWindow: () => createTrelloWindow(store.loadSettings().theme),
+    openTrelloWindow: () => {
+      const settings = store.loadSettings();
+      return createTrelloWindow(settings.theme, settings.windowStates?.trello, store);
+    },
     onThemeChanged: theme => broadcastTheme(theme),
     trelloStore,
   });

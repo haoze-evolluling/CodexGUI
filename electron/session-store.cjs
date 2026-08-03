@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { normalizeWindowStates } = require('./window-state.cjs');
 
 function readJson(filePath, fallback) {
   try {
@@ -36,6 +37,7 @@ function normalizeSettings(value) {
     ? [...new Set(value.projectPaths.filter(projectPath => typeof projectPath === 'string').map(projectPath => projectPath.trim()).filter(Boolean))]
     : [];
   const planDecisionChoices = normalizePlanDecisionChoices(value?.planDecisionChoices);
+  const windowStates = normalizeWindowStates(value?.windowStates);
   return {
     permissionMode: value?.permissionMode === 'yolo' ? 'yolo' : 'default',
     fontSize: normalizeFontSize(value?.fontSize),
@@ -45,6 +47,7 @@ function normalizeSettings(value) {
     ...(reasoningEffort ? { reasoningEffort } : {}),
     ...(projectPaths.length ? { projectPaths } : {}),
     ...(Object.keys(planDecisionChoices).length ? { planDecisionChoices } : {}),
+    ...(Object.keys(windowStates).length ? { windowStates } : {}),
   };
 }
 
@@ -94,7 +97,11 @@ function createSessionStore(_dataFile, _archivedThreadsFile, settingsFile, _arch
     },
     saveSettings(settings) {
       const current = settingsFile ? readJson(settingsFile, {}) : {};
-      const normalized = normalizeSettings({ ...current, ...settings });
+      const next = { ...current, ...settings };
+      if (settings?.windowStates && typeof settings.windowStates === 'object' && !Array.isArray(settings.windowStates)) {
+        next.windowStates = { ...current.windowStates, ...settings.windowStates };
+      }
+      const normalized = normalizeSettings(next);
       if (settingsFile) writeJson(settingsFile, normalized);
       return normalized;
     },

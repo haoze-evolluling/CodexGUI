@@ -39,7 +39,9 @@ export type TrelloBoard = {
 };
 export type ThemeChangedPayload = { theme: ThemeMode; effectiveTheme: 'light' | 'dark' };
 export type PlanDecisionChoice = 'implement' | 'fresh' | 'stay';
-export type AppSettings = { permissionMode: PermissionMode; fontSize: FontSize; theme: ThemeMode; codexPath?: string; model?: string; reasoningEffort?: string; projectPaths?: string[]; planDecisionChoices?: Record<string, PlanDecisionChoice> };
+export type WindowState = { x: number; y: number; width: number; height: number; maximized: boolean };
+export type WindowStates = { main?: WindowState; trello?: WindowState };
+export type AppSettings = { permissionMode: PermissionMode; fontSize: FontSize; theme: ThemeMode; codexPath?: string; model?: string; reasoningEffort?: string; projectPaths?: string[]; planDecisionChoices?: Record<string, PlanDecisionChoice>; windowStates?: WindowStates };
 export type CodexInstallation =
   | { status: 'ready'; path: string; source: 'custom' | 'official' | 'npm' }
   | { status: 'missing' | 'invalid'; path?: string; error: string };
