@@ -199,7 +199,10 @@
 .theme-light .file-diff .diff-deletion { color: var(--color-danger); background: var(--color-deletion-surface); }
 .theme-light .user-input-activity p, .theme-light .plan-decision > b { color: var(--color-text-primary); }
 .theme-light .choice, .theme-light .plan-decision > button { color: var(--color-text-secondary); }
-.theme-light .choice small, .theme-light .plan-decision small { color: var(--color-text-muted); }
+.theme-light .choice small, .theme-light .plan-decision small { color: var(--color-text-secondary); }
+.theme-light .plan-decision > button.selected { color: var(--color-text-primary); background: var(--color-selected-surface); border-color: var(--color-selected-border); box-shadow: inset 3px 0 var(--color-info-strong); }
+.theme-light .plan-decision > button.selected strong { color: var(--color-text-bright); }
+.theme-light .plan-decision > button.selected small { color: var(--color-text-secondary); }
 .theme-light .user-input-activity > button, .theme-light .settings-actions .primary, .theme-light .custom-model-apply { color: var(--color-on-accent); background: var(--color-accent); }
 .theme-light .error pre { color: var(--color-danger); }
 

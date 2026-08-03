@@ -54,7 +54,7 @@ export function Timeline({
   onAnswer?(activity: import('../types').UserInputActivity, answers: Record<string, { answers: string[] }>): void;
   onOpenPath?(path: string): void;
   onOpenInVsCode?(path: string): void;
-  onPlanChoice?(activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>): void;
+  onPlanChoice?(activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>): Promise<boolean>;
   onLoadDiff?(activityId: string, file: import('../types').FileChange): void;
   onSelectedTextContextMenu?(event: MouseEvent, text: string): void;
 }) {

@@ -575,8 +575,8 @@ export function useSessionController() {
     } : current);
   };
 
-  const choosePlanAction = async (activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>) => {
-    if (!active || runningSessions.has(active.id) || planChoicesInFlight.current.has(activity.id)) return;
+  const choosePlanAction = async (activity: PlanDecisionActivity, choice: NonNullable<PlanDecisionActivity['choice']>): Promise<boolean> => {
+    if (!active || runningSessions.has(active.id) || planChoicesInFlight.current.has(activity.id)) return false;
     planChoicesInFlight.current.add(activity.id);
     const answeredTimeline = timelineOf(active).map(item => item.id === activity.id
       ? { ...activity, status: 'answered' as const, choice }
@@ -584,7 +584,8 @@ export function useSessionController() {
     if (choice === 'stay') {
       savePlanDecisionChoice(active, activity.id, choice);
       setActive({ ...active, timeline: answeredTimeline, collaborationMode: 'plan', updated: Date.now() });
-      return;
+      planChoicesInFlight.current.delete(activity.id);
+      return true;
     }
 
     const fresh = choice === 'fresh';
@@ -598,7 +599,7 @@ export function useSessionController() {
     if (!active.cwd) {
       planChoicesInFlight.current.delete(activity.id);
       appendLocalError('请先选择项目文件夹。');
-      return;
+      return false;
     }
 
     const answeredSession = { ...active, timeline: answeredTimeline, updated: Date.now() };
@@ -639,6 +640,7 @@ export function useSessionController() {
       });
       if (!started) throw new Error('无法开始执行计划。');
       savePlanDecisionChoice(active, activity.id, choice);
+      return true;
     } catch (error) {
       setRunningSessions(current => without(current, nextSession.id));
       if (fresh) setSessions(current => current.map(session => session.id === active.id ? active : session));
@@ -649,6 +651,7 @@ export function useSessionController() {
           text: error instanceof Error ? error.message : String(error),
         }],
       });
+      return false;
     } finally {
       planChoicesInFlight.current.delete(activity.id);
     }
