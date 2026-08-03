@@ -119,6 +119,7 @@
 .theme-light .timeline-navigation button { color: var(--color-text-secondary); background: var(--color-pure-white); border-color: var(--color-border-strong); }
 .theme-light .timeline-navigation button:hover { color: var(--color-text-bright); background: var(--color-surface-hover); border-color: var(--color-border-hover); }
 .theme-light .markdown-body { color: var(--color-text-primary); }
+.theme-light .message.user { color: var(--color-info-strong); background: var(--color-info-surface); }
 .theme-light .markdown-body h1, .theme-light .markdown-body h2, .theme-light .markdown-body h3, .theme-light .markdown-body h4, .theme-light .markdown-body h5, .theme-light .markdown-body h6, .theme-light .markdown-body strong { color: var(--color-text-bright); }
 .theme-light .markdown-body h1, .theme-light .markdown-body h2, .theme-light .markdown-body th, .theme-light .markdown-body td, .theme-light .markdown-body hr { border-color: var(--color-divider); }
 .theme-light .markdown-body code, .theme-light .markdown-body th, .theme-light .markdown-body tr:nth-child(even), .theme-light .custom-model-input, .theme-light .other-answer, .theme-light .path-field input, .theme-light .settings-number-input { color: var(--color-text-primary); background: var(--color-surface-0); }
@@ -209,6 +210,11 @@
 .theme-light .archive-item-actions button:hover { color: var(--color-text-bright); background: var(--color-control-hover); border-color: var(--color-border-hover); }
 .theme-light .archive-item-actions button.danger { color: var(--color-danger); background: var(--color-danger-surface); border-color: var(--color-danger-border); }
 .theme-light .archive-clear-button.danger { color: var(--color-danger); background: var(--color-danger-surface); border-color: var(--color-danger-border); }
+.theme-light .feature-center-item { color: var(--color-text-secondary); background: var(--color-surface-0); border-color: var(--color-border); }
+.theme-light .feature-center-item > svg { color: var(--color-info-strong); }
+.theme-light .feature-center-item-copy b { color: var(--color-text-bright); }
+.theme-light .feature-center-item-copy span { color: var(--color-text-muted); }
+.theme-light .feature-center-item:hover, .theme-light .feature-center-item:focus-visible { color: var(--color-text-bright); background: var(--color-surface-hover); border-color: var(--color-border-hover-strong); }
 .theme-light .file-change-actions button { color: var(--color-text-secondary); background: var(--color-control-surface); border-color: var(--color-control-border); }
 .theme-light .file-change-actions button:hover:not(:disabled) { color: var(--color-text-bright); background: var(--color-control-hover); border-color: var(--color-border-hover); }
 

@@ -44,14 +44,14 @@ function createWindow(theme) {
   else win.loadFile(path.join(__dirname, '../dist/index.html'), { query: { initialTheme } });
 }
 
-function notifySessionFinished(payload, failed) {
-  if (!win || win.isDestroyed() || win.isFocused()) return;
+function notifySession(payload, title, body, onlyWhenUnfocused = false) {
+  if (!win || win.isDestroyed() || (onlyWhenUnfocused && win.isFocused())) return;
   if (!Notification.isSupported()) return;
   const sessionId = payload?.sessionId;
   if (!sessionId) return;
   const notification = new Notification({
-    title: 'Codex 会话',
-    body: failed ? '会话执行失败' : '会话已完成',
+    title,
+    body,
     icon: APP_ICON,
   });
   notification.on('click', () => {
@@ -62,6 +62,14 @@ function notifySessionFinished(payload, failed) {
     win.webContents.send('sessions:focus', { sessionId });
   });
   notification.show();
+}
+
+function notifySessionFinished(payload, failed) {
+  notifySession(payload, 'Codex 会话', failed ? '会话执行失败' : '会话已完成', true);
+}
+
+function notifyPlanDecision(payload) {
+  notifySession(payload, 'Codex 计划需要你的决定', '计划已生成，请选择下一步');
 }
 
 app.whenReady().then(() => {
@@ -84,10 +92,11 @@ app.whenReady().then(() => {
     saveTokenUsage: (threadId, tokenUsage) => store.saveTokenUsage(threadId, tokenUsage),
     send: (channel, value) => {
       if (channel === 'cli:error' && value?.sessionId) recentErrors.add(value.sessionId);
+      if (channel === 'cli:plan-ready') notifyPlanDecision(value);
       if (channel === 'cli:exit' && value?.sessionId) {
         const failed = recentErrors.has(value.sessionId) || value.status === 'failed' || value.status === 'error';
         recentErrors.delete(value.sessionId);
-        notifySessionFinished(value, failed);
+        if (!value.hasPlan) notifySessionFinished(value, failed);
       }
       win?.webContents.send(channel, value);
     },

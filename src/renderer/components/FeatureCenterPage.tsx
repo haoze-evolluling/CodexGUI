@@ -1,0 +1,46 @@
+import { Archive, LayoutGrid, X } from 'lucide-react';
+
+type FeatureCenterPageProps = {
+  onClose(): void;
+  onOpenArchive(): void;
+};
+
+export function FeatureCenterPage(props: FeatureCenterPageProps) {
+  return (
+    <main className="settings-page feature-center-page">
+      <header className="settings-page-header">
+        <div>
+          <b>功能中心</b>
+          <span className="path">访问 Codex GUI 的常用功能</span>
+        </div>
+        <div className="header-actions">
+          <button className="icon" onClick={props.onClose} title="返回对话" aria-label="返回对话">
+            <X size={18} />
+          </button>
+        </div>
+      </header>
+
+      <div className="settings-page-body">
+        <section className="settings-section feature-center-section">
+          <div className="settings-section-title">
+            <LayoutGrid size={18} />
+            <div>
+              <b>功能</b>
+              <p className="settings-hint">选择要使用的功能。</p>
+            </div>
+          </div>
+
+          <div className="feature-center-list">
+            <button className="feature-center-item" onClick={props.onOpenArchive}>
+              <Archive size={20} />
+              <span className="feature-center-item-copy">
+                <b>查看归档会话</b>
+                <span>查看、恢复或移除已归档的对话。</span>
+              </span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}

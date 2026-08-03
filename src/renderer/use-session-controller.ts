@@ -33,6 +33,7 @@ export function useSessionController() {
   const [dialog, setDialog] = useState<AppDialogState>();
   const [settings, setSettings] = useState<AppSettings>({ permissionMode: 'default', fontSize: 'small', theme: initialTheme });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [featureCenterOpen, setFeatureCenterOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivedSessions, setArchivedSessions] = useState<Session[]>([]);
   const projectFilesCache = useRef<Map<string, { files?: string[]; loadedAt: number; pending?: Promise<string[]> }>>(new Map());
@@ -95,6 +96,7 @@ export function useSessionController() {
 
   const openSettings = () => {
     setDialog(undefined);
+    setFeatureCenterOpen(false);
     setArchiveOpen(false);
     setSettingsOpen(true);
     window.codex.getCodexInstallation().then(setInstallation).catch(() => undefined);
@@ -325,6 +327,7 @@ export function useSessionController() {
 
   useEffect(() => {
     const unsubscribe = window.codex.onFocusSession(value => {
+      setFeatureCenterOpen(false);
       setArchiveOpen(false);
       setSettingsOpen(false);
       setSessions(items => {
@@ -653,6 +656,9 @@ export function useSessionController() {
 
   const createInFolder = (cwd: string) => {
     rememberProjects([cwd]);
+    setFeatureCenterOpen(false);
+    setArchiveOpen(false);
+    setSettingsOpen(false);
     setActive({
       ...freshSession(cwd),
       ...(providerState?.model || settings.model ? { model: providerState?.model || settings.model } : {}),
@@ -798,10 +804,18 @@ export function useSessionController() {
     setSessions(remaining);
     setActive(current => current && ids.has(current.id) ? remaining[0] : current);
   };
+
+  const openFeatureCenter = () => {
+    setDialog(undefined);
+    setSettingsOpen(false);
+    setArchiveOpen(false);
+    setFeatureCenterOpen(true);
+  };
   
   const openArchive = async () => {
     setDialog(undefined);
     setSettingsOpen(false);
+    setFeatureCenterOpen(false);
     setArchiveOpen(true);
     try {
       setArchivedSessions((await window.codex.listArchivedSessions()).map(withLocalTitle));
@@ -832,6 +846,7 @@ export function useSessionController() {
     setArchivedSessions(current => current.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId)));
     setSessions(current => [restored, ...current.filter(session => session.id !== restored.id && (!restored.threadId || session.threadId !== restored.threadId))]);
     setActive(restored);
+    setFeatureCenterOpen(false);
     setArchiveOpen(false);
     setSettingsOpen(false);
   };
@@ -1073,8 +1088,8 @@ export function useSessionController() {
   const canRollback = !!active?.threadId && !running && !compacting && !rollingBack
     && timelineOf(active).some(item => item.type === 'message' && item.role === 'user');
   return {
-    active, addFiles, answerUserInput, archiveOpen, archiveProject, archiveSession, archivedSessions, attachments, canRollback, chooseFiles, choosePlanAction, collapsedGroups, collaborationModes, compact, compacting, deleteProject, permissionMode, dialog, closeDialog: () => setDialog(undefined),
-    clearArchivedSessions, closeArchive: () => setArchiveOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, loadDiff, loadProviders, openArchive, openInVsCode, openPath, openProjectDirectory, openSettings, openTerminal, providerState, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, saveProvider, activateProvider, deleteProvider, setFontSize, setTheme, settings, settingsOpen,
+    active, addFiles, answerUserInput, archiveOpen, archiveProject, archiveSession, archivedSessions, attachments, canRollback, chooseFiles, choosePlanAction, collapsedGroups, collaborationModes, compact, compacting, deleteProject, featureCenterOpen, permissionMode, dialog, closeDialog: () => setDialog(undefined),
+    clearArchivedSessions, closeArchive: () => setArchiveOpen(false), closeArchiveToFeatureCenter: () => { setArchiveOpen(false); setFeatureCenterOpen(true); }, closeFeatureCenter: () => setFeatureCenterOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, loadDiff, loadProviders, openArchive, openFeatureCenter, openInVsCode, openPath, openProjectDirectory, openSettings, openTerminal, providerState, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, saveProvider, activateProvider, deleteProvider, setFontSize, setTheme, settings, settingsOpen,
     createInFolder, createProjectSession, groups, historyError, input, models, moveProject, refreshHistory: refreshHistoryWithStatus, refreshingHistory, refreshingMessages, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive: selectSession, showStatus, skills, stop, stopping: !!active && stoppingSessions.has(active.id),
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
     setInput: updateInput, setModel, setPermissionMode,

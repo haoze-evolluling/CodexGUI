@@ -4,6 +4,7 @@ import { AppDialog } from './components/AppDialog';
 import { Sidebar } from './components/Sidebar';
 import { SettingsPage } from './components/SettingsPage';
 import { ArchivePage } from './components/ArchivePage';
+import { FeatureCenterPage } from './components/FeatureCenterPage';
 import { Timeline } from './components/Timeline';
 import { TitleBar } from './components/TitleBar';
 import { ContextMenu, type ContextMenuItem } from './components/ContextMenu';
@@ -142,11 +143,12 @@ export function App() {
               void transitionContent(() => {
                 controller.closeSettings();
                 controller.closeArchive();
+                controller.closeFeatureCenter();
                 controller.setActive(session);
               });
             }}
             onSettings={() => void transitionContent(controller.openSettings)}
-            onOpenArchive={() => void transitionContent(controller.openArchive)}
+            onOpenFeatureCenter={() => void transitionContent(controller.openFeatureCenter)}
             onToggleGroup={controller.toggleGroup}
           />
         )}
@@ -167,10 +169,15 @@ export function App() {
               onProviderActivate={controller.activateProvider}
               onProviderDelete={controller.deleteProvider}
             />
+          ) : controller.featureCenterOpen ? (
+            <FeatureCenterPage
+              onClose={() => void transitionContent(controller.closeFeatureCenter)}
+              onOpenArchive={() => void transitionContent(controller.openArchive)}
+            />
           ) : controller.archiveOpen ? (
             <ArchivePage
               sessions={controller.archivedSessions}
-              onClose={() => void transitionContent(controller.closeArchive)}
+              onClose={() => void transitionContent(controller.closeArchiveToFeatureCenter)}
               onClear={controller.clearArchivedSessions}
               onRefresh={() => void controller.refreshArchivedSessions()}
               onRemove={controller.removeArchivedSession}

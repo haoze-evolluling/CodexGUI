@@ -17,8 +17,7 @@ const MarkdownMessage = lazy(() => import('./MarkdownMessage').then(module => ({
 
 const MessageItem = memo(function MessageItem({ item }: { item: Extract<import('../types').TimelineItem, { type: 'message' }> }) {
   return (
-    <div className={`message ${item.role}`}>
-      <label>{roleLabel[item.role]}</label>
+    <div className={`message ${item.role}`} role="article" aria-label={roleLabel[item.role]}>
       {!!item.attachments?.length && <AttachmentTokens attachments={item.attachments} />}
       {item.role === 'assistant' ? (
         <Suspense fallback={<div className="markdown-body markdown-loading">加载中…</div>}>
@@ -127,8 +126,7 @@ export function Timeline({
         ))}
         {!active && <div className="empty-conversation">请从左侧选择或新建一个对话。</div>}
         {running && (
-          <div className="message thinking">
-            <label>Codex</label>
+          <div className="message thinking" role="article" aria-label="Codex">
             <div className="thinking-status"><span>思考中</span><i /><i /><i /></div>
           </div>
         )}
