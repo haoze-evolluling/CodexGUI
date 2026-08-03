@@ -169,10 +169,6 @@ export function useSessionController() {
     }
     setHistoryError(undefined);
     const normalized = uniqueSessions(items.map(normalizeSession).map(withLocalTitle).map(applyPlanDecisionChoices));
-    if (!normalized.length) {
-      setHistoryError('当前提供商的会话列表暂未同步，请刷新后重试。');
-      return;
-    }
     rememberProjects(normalized.map(item => item.cwd));
     setSessions(current => {
       const liveById = new Map(current.map(session => [session.id, session]));
