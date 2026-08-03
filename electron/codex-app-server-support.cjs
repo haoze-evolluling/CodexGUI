@@ -1,9 +1,16 @@
-const { commandFromItem, commandTypeFromCommand } = require('./codex-command.cjs');
+const { commandFromItem, commandTypeFromItem } = require('./codex-command.cjs');
 
 function textFromToolOutput(output) {
   if (typeof output === 'string') return output;
-  if (Array.isArray(output)) return output.map(part => part?.text || '').filter(Boolean).join('\n');
+  if (Array.isArray(output)) return output.map(textFromToolOutput).filter(Boolean).join('\n');
   if (output && typeof output.text === 'string') return output.text;
+  if (output && Array.isArray(output.content)) return textFromToolOutput(output.content);
+  if (output && output.output !== undefined) return textFromToolOutput(output.output);
+  if (output && output.result !== undefined) return textFromToolOutput(output.result);
+  if (output && output.structuredContent !== undefined) {
+    return textFromToolOutput(output.structuredContent) || JSON.stringify(output.structuredContent, null, 2);
+  }
+  if (output && typeof output === 'object') return JSON.stringify(output, null, 2);
   return '';
 }
 
@@ -27,7 +34,7 @@ function activityFromItem(item, status, toolOutput) {
     const command = commandFromItem(item);
     return {
       id: id || `command-${Math.random()}`, type: 'command', status: item.status || status,
-      command, commandType: commandTypeFromCommand(command), output: textFromToolOutput(output),
+      command, commandType: commandTypeFromItem(item, command), output: textFromToolOutput(output),
       ...(item.exitCode !== undefined || item.exit_code !== undefined ? { exitCode: item.exitCode ?? item.exit_code } : {}),
     };
   }
@@ -81,4 +88,4 @@ async function resolvePermissionSettings({ ensureReady, request }, options) {
   }
 }
 
-module.exports = { activityFromItem, isCommandOutput, resolvePermissionSettings };
+module.exports = { activityFromItem, isCommandOutput, resolvePermissionSettings, textFromToolOutput };

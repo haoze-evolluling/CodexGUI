@@ -1,4 +1,5 @@
 const { activityFromRecord, messageFromRecord, tokenUsageFromRecord } = require('./codex-history-records.cjs');
+const { textFromToolOutput } = require('./codex-app-server-support.cjs');
 
 function parseSessionLines(lines) {
   let meta;
@@ -48,7 +49,7 @@ function parseSessionLines(lines) {
       }
       if (record.type === 'response_item' && ['custom_tool_call_output', 'function_call_output', 'tool_call_output', 'called_output'].includes(String(payload?.type || '').replace(/([a-z])([A-Z])/g, '$1_$2').replace(/-/g, '_').toLowerCase())) {
         const command = commands.get(payload.call_id || payload.callId);
-        if (command) command.output = Array.isArray(payload.output) ? payload.output.map(part => part.text || '').join('\n') : String(payload.output || '');
+        if (command) command.output = textFromToolOutput(payload.output);
       }
     } catch {
       // Codex can leave a partial final JSONL line when a session is interrupted.

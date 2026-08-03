@@ -185,14 +185,33 @@ test('waits for turn completion when interrupt reports no active turn', async ()
 
 test('maps functionCall, toolCall, and called items to command activities', () => {
   assert.deepEqual(activityFromItem({ id: 'function-1', type: 'functionCall', name: 'shell_command', arguments: '{"command":"Get-ChildItem"}' }, 'completed'), {
-    id: 'function-1', type: 'command', status: 'completed', command: 'Get-ChildItem', commandType: 'PowerShell · 工具调用', output: '',
+    id: 'function-1', type: 'command', status: 'completed', command: 'Get-ChildItem', commandType: 'PowerShell · 读取', output: '',
   });
   assert.deepEqual(activityFromItem({ id: 'tool-1', type: 'tool_call', toolName: 'shell_command', input: { command: ['rg', 'TODO'] } }, 'completed', [{ text: 'ok' }]), {
-    id: 'tool-1', type: 'command', status: 'completed', command: 'rg TODO', commandType: '其他 · 搜索', output: 'ok',
+    id: 'tool-1', type: 'command', status: 'completed', command: 'rg TODO', commandType: 'Shell · 搜索', output: 'ok',
   });
   assert.deepEqual(activityFromItem({ id: 'called-1', type: 'called', cmd: 'git status' }, 'running'), {
     id: 'called-1', type: 'command', status: 'running', command: 'git status', commandType: 'Git · 查询状态', output: '',
   });
+});
+
+test('extracts text from MCP content envelopes', () => {
+  const activity = activityFromItem(
+    { id: 'mcp-1', type: 'customToolCall', name: 'exec', input: 'const result = await tools.mcp__codebase_memory_mcp__search_graph({});' },
+    'completed',
+    { content: [{ type: 'text', text: 'Called\\n  └ codebase-memory-mcp.search_graph(...)\\n    {"total": 1}' }] },
+  );
+  assert.equal(activity.command, 'mcp__codebase_memory_mcp__search_graph');
+  assert.equal(activity.commandType, 'MCP · codebase_memory_mcp / search_graph');
+  assert.equal(activity.output, 'Called\\n  └ codebase-memory-mcp.search_graph(...)\\n    {"total": 1}');
+});
+
+test('classifies MCP, web, file, and generic tool calls by tool kind', () => {
+  const classify = item => activityFromItem(item, 'completed').commandType;
+  assert.equal(classify({ id: 'mcp-2', type: 'customToolCall', name: 'mcp__server__search_graph', input: {} }), 'MCP · server / search_graph');
+  assert.equal(classify({ id: 'web-1', type: 'toolCall', name: 'web_search', input: { query: 'Codex' } }), 'Web · 浏览或搜索');
+  assert.equal(classify({ id: 'file-1', type: 'functionCall', name: 'file_search', input: { query: 'TODO' } }), '文件 · 查询或读取');
+  assert.equal(classify({ id: 'custom-2', type: 'customToolCall', name: 'calendar_lookup', input: { date: 'today' } }), '自定义工具 · calendar_lookup');
 });
 
 test('extracts the inner command from custom tool call scripts', () => {
@@ -216,11 +235,11 @@ test('classifies common command executors and operations', () => {
   const classify = command => activityFromItem({ id: command, type: 'functionCall', name: 'shell_command', command }, 'completed').commandType;
   assert.equal(classify('Get-Content package.json'), 'PowerShell · 读取');
   assert.equal(classify('powershell -Command "Get-Content package.json"'), 'PowerShell · 读取');
-  assert.equal(classify('rg TODO src'), '其他 · 搜索');
+  assert.equal(classify('rg TODO src'), 'Shell · 搜索');
   assert.equal(classify('Set-Content output.txt value'), 'PowerShell · 写入');
   assert.equal(classify('Remove-Item output.txt'), 'PowerShell · 删除');
   assert.equal(classify('cmd /c type package.json'), 'CMD · 读取');
-  assert.equal(classify('node scripts/check.js'), '其他 · 工具调用');
+  assert.equal(classify('node scripts/check.js'), 'Node.js · 运行脚本');
 });
 
 test('maps token usage returned with a thread snapshot', async () => {
@@ -473,7 +492,7 @@ test('keeps file diffs when a completed thread is read for history refresh', asy
   const [session] = await server.listThreads(false, true);
 
   assert.deepEqual(session.timeline[0], {
-    id: 'call-1', type: 'command', status: 'completed', command: 'rg TODO', commandType: '其他 · 搜索', output: 'src/app.ts: TODO',
+    id: 'call-1', type: 'command', status: 'completed', command: 'rg TODO', commandType: 'Shell · 搜索', output: 'src/app.ts: TODO',
   });
   assert.equal(session.timeline[1].type, 'file_change');
   assert.match(session.timeline[1].files[0].diff, /\+new/);

@@ -1,4 +1,5 @@
-const { commandFromItem, commandTypeFromCommand } = require('./codex-command.cjs');
+const { commandFromItem, commandTypeFromItem } = require('./codex-command.cjs');
+const { textFromToolOutput } = require('./codex-app-server-support.cjs');
 
 function textFromContent(content) {
   if (!Array.isArray(content)) return '';
@@ -50,7 +51,7 @@ function activityFromRecord(record) {
   if (!payload) return null;
   if (record.type === 'response_item' && payload.type === 'command_execution') {
     const command = commandFromItem(payload);
-    return { id: payload.id || `command-${payload.call_id || Math.random()}`, type: 'command', status: payload.status || 'completed', command, commandType: commandTypeFromCommand(command), output: payload.aggregated_output || '', exitCode: payload.exit_code };
+    return { id: payload.id || `command-${payload.call_id || Math.random()}`, type: 'command', status: payload.status || 'completed', command, commandType: commandTypeFromItem(payload, command), output: textFromToolOutput(payload.aggregated_output), exitCode: payload.exit_code };
   }
   if (record.type === 'response_item' && ['command_call', 'tool_call', 'called', 'function_call', 'custom_tool_call'].includes(normalizedRecordType(payload.type))) {
     const output = payload.aggregated_output ?? payload.aggregatedOutput ?? payload.output;
@@ -64,8 +65,8 @@ function activityFromRecord(record) {
     const command = commandFromItem(payload);
     return {
       id: payload.call_id || payload.callId || payload.id || ('command-' + Math.random()),
-      type: 'command', status: payload.status || 'completed', command, commandType: commandTypeFromCommand(command),
-      output: Array.isArray(output) ? output.map(part => part?.text || '').join('\n') : String(output || ''),
+      type: 'command', status: payload.status || 'completed', command, commandType: commandTypeFromItem(payload, command),
+      output: textFromToolOutput(output),
       ...(payload.exit_code !== undefined || payload.exitCode !== undefined ? { exitCode: payload.exit_code ?? payload.exitCode } : {}),
       ...(files.length ? { files } : {}),
     };
