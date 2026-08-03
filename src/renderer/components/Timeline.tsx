@@ -59,8 +59,12 @@ export function Timeline({
   onSelectedTextContextMenu?(event: MouseEvent, text: string): void;
 }) {
   const messagesRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const followOutputRef = useRef(true);
-  const previousSessionIdRef = useRef<string | undefined>(undefined);
+  const pointerScrollingRef = useRef(false);
+  const previousScrollTopRef = useRef(0);
+  const prependSnapshotRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
+  const pendingTargetRef = useRef<'top' | 'bottom' | null>(null);
   const [visibleStart, setVisibleStart] = useState(0);
   const [userName, setUserName] = useState('');
   const items = active ? timelineOf(active) : [];
@@ -76,6 +80,8 @@ export function Timeline({
 
   useLayoutEffect(() => {
     followOutputRef.current = true;
+    pendingTargetRef.current = 'bottom';
+    prependSnapshotRef.current = null;
     setVisibleStart(Math.max(0, items.length - 120));
   }, [active?.id]);
 
@@ -86,22 +92,67 @@ export function Timeline({
   useLayoutEffect(() => {
     const messages = messagesRef.current;
     if (!messages) return;
-    const sessionChanged = previousSessionIdRef.current !== active?.id;
-    previousSessionIdRef.current = active?.id;
-    if (!sessionChanged && !followOutputRef.current) return;
-    messages.scrollTop = messages.scrollHeight;
-  }, [active?.id, items, running, visibleStart]);
+    const prependSnapshot = prependSnapshotRef.current;
+    if (prependSnapshot) {
+      messages.scrollTop = prependSnapshot.scrollTop + messages.scrollHeight - prependSnapshot.scrollHeight;
+      prependSnapshotRef.current = null;
+      return;
+    }
+    if (pendingTargetRef.current === 'top') {
+      messages.scrollTop = 0;
+      pendingTargetRef.current = null;
+      return;
+    }
+    if (pendingTargetRef.current === 'bottom' || followOutputRef.current) {
+      messages.scrollTop = messages.scrollHeight;
+      pendingTargetRef.current = null;
+    }
+  }, [active?.id, items.length, running, visibleStart]);
+
+  useEffect(() => {
+    const messages = messagesRef.current;
+    const content = contentRef.current;
+    if (!messages || !content) return;
+    const observer = new ResizeObserver(() => {
+      if (followOutputRef.current || pendingTargetRef.current === 'bottom') {
+        messages.scrollTop = messages.scrollHeight;
+        pendingTargetRef.current = null;
+      }
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [active?.id]);
+
+  const loadEarlier = () => {
+    const messages = messagesRef.current;
+    if (!messages || visibleStart <= 0 || prependSnapshotRef.current) return;
+    followOutputRef.current = false;
+    prependSnapshotRef.current = { scrollHeight: messages.scrollHeight, scrollTop: messages.scrollTop };
+    setVisibleStart(current => Math.max(0, current - 120));
+  };
 
   return (
     <div className="timeline-panel">
       <section
         className={`messages ${refreshing ? 'messages-refreshing' : ''}`}
         ref={messagesRef}
+        onWheel={event => {
+          if (event.deltaY >= 0) return;
+          followOutputRef.current = false;
+          if (event.currentTarget.scrollTop < 80) loadEarlier();
+        }}
+        onPointerDown={() => { pointerScrollingRef.current = true; }}
+        onPointerUp={() => { pointerScrollingRef.current = false; }}
+        onPointerCancel={() => { pointerScrollingRef.current = false; }}
         onScroll={event => {
           const messages = event.currentTarget;
-          if (messages.scrollTop < 80 && visibleStart > 0) setVisibleStart(current => Math.max(0, current - 120));
           const distanceFromBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight;
-          followOutputRef.current = distanceFromBottom <= 48;
+          if (distanceFromBottom <= 48) followOutputRef.current = true;
+          else if (pointerScrollingRef.current || messages.scrollTop < previousScrollTopRef.current - 1) {
+            followOutputRef.current = false;
+            if (messages.scrollTop < 80) loadEarlier();
+          }
+          previousScrollTopRef.current = messages.scrollTop;
         }}
         onContextMenu={event => {
           const selection = window.getSelection();
@@ -121,27 +172,29 @@ export function Timeline({
           event.clipboardData.setData('text/plain', text);
         }}
       >
-        {visibleStart > 0 && <button className="timeline-load-earlier" type="button" onClick={() => setVisibleStart(current => Math.max(0, current - 120))}>加载更早消息</button>}
-        {renderedItems.map(item => item.type === 'message' ? (
-          <MessageItem item={item} userName={userName} key={item.id} />
-        ) : (
-          <ActivityItem
-            activity={item}
-            cwd={active?.cwd}
-            key={item.id}
-            onAnswer={onAnswer}
-            onOpenPath={onOpenPath}
-            onOpenInVsCode={onOpenInVsCode}
-            onPlanChoice={onPlanChoice}
-            onLoadDiff={onLoadDiff}
-          />
-        ))}
-        {!active && <div className="empty-conversation">请从左侧选择或新建一个对话。</div>}
-        {running && (
-          <div className="message thinking" role="article" aria-label="Codex">
-            <div className="thinking-status"><span>思考中</span><i /><i /><i /></div>
-          </div>
-        )}
+        <div className="messages-content" ref={contentRef}>
+          {visibleStart > 0 && <button className="timeline-load-earlier" type="button" onClick={loadEarlier}>加载更早消息</button>}
+          {renderedItems.map(item => item.type === 'message' ? (
+            <MessageItem item={item} userName={userName} key={item.id} />
+          ) : (
+            <ActivityItem
+              activity={item}
+              cwd={active?.cwd}
+              key={item.id}
+              onAnswer={onAnswer}
+              onOpenPath={onOpenPath}
+              onOpenInVsCode={onOpenInVsCode}
+              onPlanChoice={onPlanChoice}
+              onLoadDiff={onLoadDiff}
+            />
+          ))}
+          {!active && <div className="empty-conversation">请从左侧选择或新建一个对话。</div>}
+          {running && (
+            <div className="message thinking" role="article" aria-label="Codex">
+              <div className="thinking-status"><span>思考中</span><i /><i /><i /></div>
+            </div>
+          )}
+        </div>
       </section>
       <div className="timeline-navigation" aria-label="对话滚动导航">
         <button
@@ -150,7 +203,12 @@ export function Timeline({
           aria-label="滚动到最上面"
           onClick={() => {
             followOutputRef.current = false;
-            messagesRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+            pendingTargetRef.current = 'top';
+            if (visibleStart > 0) setVisibleStart(0);
+            else {
+              messagesRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              pendingTargetRef.current = null;
+            }
           }}
         ><ChevronUp size={18} /></button>
         <button
@@ -159,9 +217,10 @@ export function Timeline({
           aria-label="滚动到最下面"
           onClick={() => {
             followOutputRef.current = true;
+            pendingTargetRef.current = 'bottom';
             const messages = messagesRef.current;
             if (!messages) return;
-            messages.scrollTop = messages.scrollHeight;
+            messages.scrollTo({ top: messages.scrollHeight, behavior: 'smooth' });
           }}
         ><ChevronDown size={18} /></button>
       </div>
