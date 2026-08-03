@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { Worker } = require('worker_threads');
 const { shell } = require('electron');
@@ -16,6 +17,10 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
     return window.isMaximized();
   });
   ipcMain.handle('window:close', () => getWindow()?.close());
+  ipcMain.handle('system:user-name', () => {
+    try { return os.userInfo().username || process.env.USERNAME || process.env.USER || '用户'; }
+    catch { return process.env.USERNAME || process.env.USER || '用户'; }
+  });
   registerSessionHandlers({ codexHome, codexProcess, getInstallation, ipcMain, store });
   ipcMain.handle('providers:get', () => providerManager.get());
   ipcMain.handle('providers:save', (_, provider) => {

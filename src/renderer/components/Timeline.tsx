@@ -15,9 +15,11 @@ const roleLabel = {
 
 const MarkdownMessage = lazy(() => import('./MarkdownMessage').then(module => ({ default: module.MarkdownMessage })));
 
-const MessageItem = memo(function MessageItem({ item }: { item: Extract<import('../types').TimelineItem, { type: 'message' }> }) {
+const MessageItem = memo(function MessageItem({ item, userName }: { item: Extract<import('../types').TimelineItem, { type: 'message' }>; userName: string }) {
   return (
-    <div className={`message ${item.role}`} role="article" aria-label={roleLabel[item.role]}>
+    <div className={`message ${item.role}`} role="article" aria-label={item.role === 'user' ? userName || roleLabel[item.role] : roleLabel[item.role]}>
+      {item.role === 'user' && userName && <div className="message-author">{userName}</div>}
+      <div className={item.role === 'user' ? 'user-message-bubble' : 'message-body'}>
       {!!item.attachments?.length && <AttachmentTokens attachments={item.attachments} />}
       {item.role === 'assistant' ? (
         <Suspense fallback={<div className="markdown-body markdown-loading">加载中…</div>}>
@@ -30,6 +32,7 @@ const MessageItem = memo(function MessageItem({ item }: { item: Extract<import('
           </Suspense>
         )
       ) : item.text ? <pre>{item.text}</pre> : null}
+      </div>
     </div>
   );
 });
@@ -59,8 +62,17 @@ export function Timeline({
   const followOutputRef = useRef(true);
   const previousSessionIdRef = useRef<string | undefined>(undefined);
   const [visibleStart, setVisibleStart] = useState(0);
+  const [userName, setUserName] = useState('');
   const items = active ? timelineOf(active) : [];
   const renderedItems = items.slice(visibleStart);
+
+  useEffect(() => {
+    let current = true;
+    window.codex.getUserName().then(name => {
+      if (current) setUserName(name.trim());
+    }).catch(() => undefined);
+    return () => { current = false; };
+  }, []);
 
   useLayoutEffect(() => {
     followOutputRef.current = true;
@@ -111,7 +123,7 @@ export function Timeline({
       >
         {visibleStart > 0 && <button className="timeline-load-earlier" type="button" onClick={() => setVisibleStart(current => Math.max(0, current - 120))}>加载更早消息</button>}
         {renderedItems.map(item => item.type === 'message' ? (
-          <MessageItem item={item} key={item.id} />
+          <MessageItem item={item} userName={userName} key={item.id} />
         ) : (
           <ActivityItem
             activity={item}

@@ -165,6 +165,7 @@ export type CodexApi = {
   loadSessionTitles(): Promise<Record<string, string>>;
   saveSessionTitle(threadId: string, title: string): Promise<Record<string, string>>;
   getSettings(): Promise<AppSettings>;
+  getUserName(): Promise<string>;
   saveSettings(settings: Partial<AppSettings>): Promise<AppSettings>;
   getCodexInstallation(): Promise<CodexInstallation>;
   saveCodexPath(codexPath: string): Promise<SaveCodexPathResult>;

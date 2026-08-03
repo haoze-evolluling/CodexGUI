@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('codex', {
   loadSessionTitles: () => ipcRenderer.invoke('sessions:titles-list'),
   saveSessionTitle: (threadId, title) => ipcRenderer.invoke('sessions:title-save', threadId, title),
   getSettings: () => ipcRenderer.invoke('settings:get'),
+  getUserName: () => ipcRenderer.invoke('system:user-name'),
   saveSettings: settings => ipcRenderer.invoke('settings:save', settings),
   getCodexInstallation: () => ipcRenderer.invoke('codex:installation'),
   saveCodexPath: codexPath => ipcRenderer.invoke('codex:path-save', codexPath),
