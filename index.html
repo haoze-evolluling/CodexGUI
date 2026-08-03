@@ -10,9 +10,9 @@
         ? requestedTheme
         : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
       document.documentElement.dataset.initialTheme = initialTheme;
-      document.documentElement.style.background = initialTheme === 'dark' ? '#05060f' : '#f7f9fc';
+      document.documentElement.style.background = initialTheme === 'dark' ? '#05060f' : '#fafaf9';
     </script>
-    <style>html[data-initial-theme="light"],html[data-initial-theme="light"] body{background:#f7f9fc}</style>
+    <style>html[data-initial-theme="light"],html[data-initial-theme="light"] body{background:#fafaf9}</style>
   </head>
   <body><div id="root"></div><script type="module" src="/src/renderer/main.tsx"></script></body>
 </html>
