@@ -4,14 +4,14 @@
 @import './styles/activity.css';
 @import './styles/theme-light.css';
 
-.app.theme-dark, .theme-dark main, .theme-dark .settings-page { background: #11151c; }
+.app.theme-dark, .theme-dark main, .theme-dark .settings-page { background: var(--color-canvas); }
 
 .theme-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.theme-option { min-height: 86px; display: flex; align-items: flex-start; gap: 9px; padding: 12px; color: #bdc8d7; background: #151b24; border: 1px solid #3a475a; border-radius: 8px; text-align: left; }
-.theme-option > svg { flex: 0 0 auto; margin-top: 1px; color: #8dbdff; }
+.theme-option { min-height: 86px; display: flex; align-items: flex-start; gap: 9px; padding: 12px; color: var(--color-text-secondary); background: var(--color-surface-0); border: 1px solid var(--color-border); border-radius: 8px; text-align: left; }
+.theme-option > svg { flex: 0 0 auto; margin-top: 1px; color: var(--color-info); }
 .theme-option span, .theme-option b, .theme-option small { display: block; }
 .theme-option b { font-size: 13px; }
-.theme-option small { margin-top: 4px; color: #91a0b3; font-size: 11px; line-height: 1.4; }
-.theme-option:hover { color: #f1f6fd; background: #1f2938; border-color: #567094; }
-.theme-option.selected { color: #eef5ff; background: #1a2c45; border-color: #4f8fe0; box-shadow: 0 0 0 1px rgb(79 143 224 / 35%); }
+.theme-option small { margin-top: 4px; color: var(--color-text-muted); font-size: 11px; line-height: 1.4; }
+.theme-option:hover { color: var(--color-text-bright); background: var(--color-surface-hover); border-color: var(--color-border-hover-strong); }
+.theme-option.selected { color: var(--color-text-bright); background: var(--color-selected-surface); border-color: var(--color-selected-border); box-shadow: var(--shadow-selected); }
 @media (max-width: 900px) { .theme-options { grid-template-columns: 1fr; } }
