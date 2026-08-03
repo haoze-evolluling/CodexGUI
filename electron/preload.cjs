@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld('codex', {
   minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
   toggleMaximizeWindow: () => ipcRenderer.invoke('window:toggle-maximize'),
   closeWindow: () => ipcRenderer.invoke('window:close'),
+  openTrello: () => ipcRenderer.invoke('window:open-trello'),
+  loadTrelloBoard: () => ipcRenderer.invoke('trello:load'),
+  saveTrelloBoard: board => ipcRenderer.invoke('trello:save', board),
   listSessions: () => ipcRenderer.invoke('sessions:list'),
   loadHistory: () => ipcRenderer.invoke('sessions:history'),
   loadSession: threadId => ipcRenderer.invoke('sessions:read', threadId),
@@ -70,4 +73,5 @@ contextBridge.exposeInMainWorld('codex', {
   onPlanReady: callback => subscribe('cli:plan-ready', callback),
   onSkillsChanged: callback => subscribe('cli:skills-changed', callback),
   onFocusSession: callback => subscribe('sessions:focus', callback),
+  onThemeChanged: callback => subscribe('ui:theme-changed', callback),
 });

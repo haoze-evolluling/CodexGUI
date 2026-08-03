@@ -1,7 +1,7 @@
 const { removeThreads } = require('./ipc-thread-removal.cjs');
 const { enrichSessionWithCodexTranscript, loadCodexSession } = require('./codex-history.cjs');
 
-function registerSessionHandlers({ codexHome, codexProcess, getInstallation, ipcMain, store }) {
+function registerSessionHandlers({ codexHome, codexProcess, getInstallation, ipcMain, onThemeChanged = () => undefined, store }) {
   const withCachedTokenUsage = session => {
     if (!session?.threadId) return session;
     if (session.tokenUsage) {
@@ -41,7 +41,12 @@ function registerSessionHandlers({ codexHome, codexProcess, getInstallation, ipc
   ipcMain.handle('sessions:titles-list', () => store.loadSessionTitles());
   ipcMain.handle('sessions:title-save', (_, threadId, title) => store.saveSessionTitle(threadId, title));
   ipcMain.handle('settings:get', () => store.loadSettings());
-  ipcMain.handle('settings:save', (_, settings) => store.saveSettings(settings));
+  ipcMain.handle('settings:save', (_, settings) => {
+    const previous = store.loadSettings();
+    const next = store.saveSettings(settings);
+    if (previous.theme !== next.theme) onThemeChanged(next.theme);
+    return next;
+  });
   ipcMain.handle('codex:installation', () => getInstallation());
   ipcMain.handle('codex:path-save', (_, codexPath) => {
     const previous = store.loadSettings();

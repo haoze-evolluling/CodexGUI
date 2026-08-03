@@ -6,6 +6,7 @@ const { buildCodexSpawnConfig, resolveCodexInstallation } = require('./codex-ins
 const { createDiffAttacher, createDiffLoader } = require('./git-diff.cjs');
 const { registerIpcHandlers } = require('./ipc-handlers.cjs');
 const { createSessionStore } = require('./session-store.cjs');
+const { createTrelloStore } = require('./trello-store.cjs');
 const { createProviderManager } = require('./provider-manager.cjs');
 const { createProviderStore } = require('./provider-store.cjs');
 
@@ -14,6 +15,7 @@ const APP_ICON = path.join(__dirname, 'assets', 'app-icon.ico');
 app.setAppUserModelId(APP_ID);
 
 let win;
+let trelloWin;
 const recentErrors = new Set();
 
 function resolveInitialTheme(theme) {
@@ -42,6 +44,47 @@ function createWindow(theme) {
   win.once('ready-to-show', () => win.show());
   if (!app.isPackaged) win.loadURL(`http://127.0.0.1:5173?initialTheme=${initialTheme}`);
   else win.loadFile(path.join(__dirname, '../dist/index.html'), { query: { initialTheme } });
+}
+
+function createTrelloWindow(theme) {
+  if (trelloWin && !trelloWin.isDestroyed()) {
+    if (trelloWin.isMinimized()) trelloWin.restore();
+    trelloWin.show();
+    trelloWin.focus();
+    return trelloWin;
+  }
+
+  const initialTheme = resolveInitialTheme(theme);
+  trelloWin = new BrowserWindow({
+    width: 1440,
+    height: 900,
+    minWidth: 1080,
+    minHeight: 680,
+    backgroundColor: initialTheme === 'dark' ? '#05060f' : '#fafaf9',
+    icon: APP_ICON,
+    frame: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  trelloWin.once('ready-to-show', () => {
+    if (!trelloWin || trelloWin.isDestroyed()) return;
+    trelloWin.show();
+    trelloWin.focus();
+  });
+  trelloWin.on('closed', () => { trelloWin = undefined; });
+  if (!app.isPackaged) trelloWin.loadURL(`http://127.0.0.1:5173/?window=trello&initialTheme=${initialTheme}`);
+  else trelloWin.loadFile(path.join(__dirname, '../dist/index.html'), { query: { window: 'trello', initialTheme } });
+  return trelloWin;
+}
+
+function broadcastTheme(theme) {
+  const payload = { theme, effectiveTheme: resolveInitialTheme(theme) };
+  if (win && !win.isDestroyed()) win.webContents.send('ui:theme-changed', payload);
+  if (trelloWin && !trelloWin.isDestroyed()) trelloWin.webContents.send('ui:theme-changed', payload);
 }
 
 function notifySession(payload, title, body, onlyWhenUnfocused = false) {
@@ -83,6 +126,7 @@ app.whenReady().then(() => {
     path.join(userData, 'session-titles.json'),
     path.join(userData, 'token-usage-cache.json'),
   );
+  const trelloStore = createTrelloStore(path.join(userData, 'trello-board.json'));
   const providerStore = createProviderStore(path.join(userData, 'providers.json'), safeStorage);
   createWindow(store.loadSettings().theme);
   const getInstallation = () => resolveCodexInstallation({ customPath: store.loadSettings().codexPath });
@@ -108,6 +152,7 @@ app.whenReady().then(() => {
     codexHome: path.join(app.getPath('home'), '.codex'),
     codexProcess,
     dialog,
+    getWindowForSender: sender => BrowserWindow.fromWebContents(sender) || win,
     getWindow: () => win,
     ipcMain,
     store,
@@ -118,6 +163,14 @@ app.whenReady().then(() => {
       isBusy: () => codexProcess.isBusy(),
     }),
     getInstallation,
+    openTrelloWindow: () => createTrelloWindow(store.loadSettings().theme),
+    onThemeChanged: theme => broadcastTheme(theme),
+    trelloStore,
+  });
+
+  nativeTheme.on('updated', () => {
+    const theme = store.loadSettings().theme;
+    if (theme === 'system') broadcastTheme(theme);
   });
 });
 

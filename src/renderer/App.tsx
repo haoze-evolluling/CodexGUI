@@ -173,6 +173,7 @@ export function App() {
             <FeatureCenterPage
               onClose={() => void transitionContent(controller.closeFeatureCenter)}
               onOpenArchive={() => void transitionContent(controller.openArchive)}
+              onOpenTrello={() => void window.codex.openTrello()}
             />
           ) : controller.archiveOpen ? (
             <ArchivePage

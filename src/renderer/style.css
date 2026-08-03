@@ -3,6 +3,7 @@
 @import './styles/conversation.css';
 @import './styles/activity.css';
 @import './styles/theme-light.css';
+@import './styles/trello.css';
 
 .app.theme-dark, .theme-dark main, .theme-dark .settings-page { background: var(--color-canvas); }
 

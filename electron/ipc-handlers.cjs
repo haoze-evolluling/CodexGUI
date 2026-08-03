@@ -7,21 +7,28 @@ const { openPathInVsCode, openPathWithDefaultApp, openProjectDirectory, openTerm
 const { filterProjectFiles } = require('./project-files.cjs');
 const { registerSessionHandlers } = require('./ipc-session-handlers.cjs');
 
-function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation, getWindow, ipcMain, loadDiff, providerManager, store }) {
-  ipcMain.handle('window:minimize', () => getWindow()?.minimize());
-  ipcMain.handle('window:toggle-maximize', () => {
-    const window = getWindow();
+function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation, getWindow, getWindowForSender, ipcMain, loadDiff, onThemeChanged, openTrelloWindow, providerManager, store, trelloStore }) {
+  const windowForEvent = event => (getWindowForSender ? getWindowForSender(event?.sender) : getWindow());
+  ipcMain.handle('window:minimize', event => windowForEvent(event)?.minimize());
+  ipcMain.handle('window:toggle-maximize', event => {
+    const window = windowForEvent(event);
     if (!window) return false;
     if (window.isMaximized()) window.unmaximize();
     else window.maximize();
     return window.isMaximized();
   });
-  ipcMain.handle('window:close', () => getWindow()?.close());
+  ipcMain.handle('window:close', event => windowForEvent(event)?.close());
+  ipcMain.handle('window:open-trello', () => {
+    openTrelloWindow?.();
+    return true;
+  });
+  ipcMain.handle('trello:load', () => trelloStore?.loadBoard());
+  ipcMain.handle('trello:save', (_, board) => trelloStore?.saveBoard(board));
   ipcMain.handle('system:user-name', () => {
     try { return os.userInfo().username || process.env.USERNAME || process.env.USER || '用户'; }
     catch { return process.env.USERNAME || process.env.USER || '用户'; }
   });
-  registerSessionHandlers({ codexHome, codexProcess, getInstallation, ipcMain, store });
+  registerSessionHandlers({ codexHome, codexProcess, getInstallation, ipcMain, onThemeChanged, store });
   ipcMain.handle('providers:get', () => providerManager.get());
   ipcMain.handle('providers:save', (_, provider) => {
     try { return { ok: true, state: providerManager.save(provider) }; }
@@ -35,19 +42,19 @@ function registerIpcHandlers({ codexHome, codexProcess, dialog, getInstallation,
     try { return { ok: true, state: providerManager.remove(id) }; }
     catch (error) { return { ok: false, error: error instanceof Error ? error.message : String(error) }; }
   });
-  ipcMain.handle('dialog:folder', async () => {
-    const result = await dialog.showOpenDialog(getWindow(), { properties: ['openDirectory'] });
+  ipcMain.handle('dialog:folder', async event => {
+    const result = await dialog.showOpenDialog(windowForEvent(event), { properties: ['openDirectory'] });
     return result.canceled ? null : result.filePaths[0];
   });
-  ipcMain.handle('dialog:files', async (_, defaultPath) => {
-    const result = await dialog.showOpenDialog(getWindow(), {
+  ipcMain.handle('dialog:files', async (event, defaultPath) => {
+    const result = await dialog.showOpenDialog(windowForEvent(event), {
       defaultPath: typeof defaultPath === 'string' ? defaultPath : undefined,
       properties: ['openFile', 'multiSelections'],
     });
     return result.canceled ? [] : result.filePaths;
   });
-  ipcMain.handle('dialog:codex-executable', async (_, defaultPath) => {
-    const result = await dialog.showOpenDialog(getWindow(), {
+  ipcMain.handle('dialog:codex-executable', async (event, defaultPath) => {
+    const result = await dialog.showOpenDialog(windowForEvent(event), {
       defaultPath: typeof defaultPath === 'string' && defaultPath ? defaultPath : undefined,
       filters: process.platform === 'win32'
         ? [{ name: 'Codex 可执行文件', extensions: ['exe', 'cmd', 'bat'] }, { name: '所有文件', extensions: ['*'] }]

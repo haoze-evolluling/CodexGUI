@@ -1,8 +1,9 @@
-import { Archive, LayoutGrid, X } from 'lucide-react';
+import { Archive, Kanban, LayoutGrid, X } from 'lucide-react';
 
 type FeatureCenterPageProps = {
   onClose(): void;
   onOpenArchive(): void;
+  onOpenTrello(): void;
 };
 
 export function FeatureCenterPage(props: FeatureCenterPageProps) {
@@ -36,6 +37,13 @@ export function FeatureCenterPage(props: FeatureCenterPageProps) {
               <span className="feature-center-item-copy">
                 <b>查看归档会话</b>
                 <span>查看、恢复或移除已归档的对话。</span>
+              </span>
+            </button>
+            <button className="feature-center-item" onClick={props.onOpenTrello}>
+              <Kanban size={20} />
+              <span className="feature-center-item-copy">
+                <b>Trello 看板</b>
+                <span>用列表、卡片和标签整理你的工作流。</span>
               </span>
             </button>
           </div>

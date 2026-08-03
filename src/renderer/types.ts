@@ -20,6 +20,24 @@ export type CodexSkill = {
 export type PermissionMode = 'default' | 'yolo';
 export type FontSize = 'small' | 'medium' | 'large';
 export type ThemeMode = 'light' | 'dark' | 'system';
+export type TrelloLabel = { id: string; name: string; color: string };
+export type TrelloSubtask = { id: string; title: string; completed: boolean };
+export type TrelloCard = {
+  id: string;
+  title: string;
+  description: string;
+  labelIds: string[];
+  subtasks: TrelloSubtask[];
+};
+export type TrelloList = { id: string; title: string; cards: TrelloCard[] };
+export type TrelloBoard = {
+  version: 1;
+  title: string;
+  lists: TrelloList[];
+  labels: TrelloLabel[];
+  updatedAt: number;
+};
+export type ThemeChangedPayload = { theme: ThemeMode; effectiveTheme: 'light' | 'dark' };
 export type PlanDecisionChoice = 'implement' | 'fresh' | 'stay';
 export type AppSettings = { permissionMode: PermissionMode; fontSize: FontSize; theme: ThemeMode; codexPath?: string; model?: string; reasoningEffort?: string; projectPaths?: string[]; planDecisionChoices?: Record<string, PlanDecisionChoice> };
 export type CodexInstallation =
@@ -159,6 +177,9 @@ export type CodexApi = {
   minimizeWindow(): Promise<void>;
   toggleMaximizeWindow(): Promise<boolean>;
   closeWindow(): Promise<void>;
+  openTrello(): Promise<boolean>;
+  loadTrelloBoard(): Promise<TrelloBoard>;
+  saveTrelloBoard(board: TrelloBoard): Promise<TrelloBoard>;
   listSessions(): Promise<Session[]>;
   loadHistory(): Promise<Session[]>;
   loadSession(threadId: string): Promise<Session | null>;
@@ -211,6 +232,7 @@ export type CodexApi = {
   onPlanReady(callback: (value: { sessionId: string; plan: { itemId: string; text: string } }) => void): () => void;
   onSkillsChanged(callback: () => void): () => void;
   onFocusSession(callback: (value: { sessionId: string }) => void): () => void;
+  onThemeChanged(callback: (value: ThemeChangedPayload) => void): () => void;
 };
 
 declare global {

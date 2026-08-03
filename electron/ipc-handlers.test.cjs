@@ -5,10 +5,11 @@ const path = require('node:path');
 const test = require('node:test');
 const { registerIpcHandlers } = require('./ipc-handlers.cjs');
 
-function createHarness({ archived = [], archive = async () => true, cache = {}, codexHome = 'C:\\codex', readThread = async () => null, remove = async () => true, rollback = async () => null, sessions = [] } = {}) {
+function createHarness({ archived = [], archive = async () => true, cache = {}, codexHome = 'C:\\codex', getWindowForSender, onThemeChanged = () => undefined, openTrelloWindow = () => undefined, readThread = async () => null, remove = async () => true, rollback = async () => null, sessions = [], trelloBoard = { version: 1, title: '看板', lists: [], labels: [], updatedAt: 1 } } = {}) {
   const handlers = new Map();
   const savedSettings = [];
   const settings = { projectPaths: ['C:\\repo', 'C:\\other'] };
+  let savedTrelloBoard = trelloBoard;
   const ipcMain = { handle: (channel, handler) => handlers.set(channel, handler) };
   const codexProcess = {
     archive,
@@ -29,7 +30,7 @@ function createHarness({ archived = [], archive = async () => true, cache = {}, 
   const store = {
     tokenUsageCache: { ...cache },
     loadSessionTitles: () => ({}),
-    loadSettings: () => settings,
+    loadSettings: () => ({ ...settings, projectPaths: [...settings.projectPaths] }),
     saveSessionTitle: () => ({}),
     loadTokenUsageCache() { return this.tokenUsageCache; },
     saveTokenUsage(threadId, usage) { this.tokenUsageCache[threadId] = usage; },
@@ -48,6 +49,7 @@ function createHarness({ archived = [], archive = async () => true, cache = {}, 
     codexProcess,
     dialog: { showOpenDialog: async () => ({ canceled: true, filePaths: [] }) },
     getInstallation: () => ({ status: 'ready' }),
+    getWindowForSender,
     getWindow: () => undefined,
     ipcMain,
     providerManager: {
@@ -57,14 +59,20 @@ function createHarness({ archived = [], archive = async () => true, cache = {}, 
       remove: () => ({ activeId: '', model: '', reasoningEffort: '', providers: [] }),
     },
     store,
+    openTrelloWindow,
+    onThemeChanged,
+    trelloStore: {
+      loadBoard: () => savedTrelloBoard,
+      saveBoard: board => { savedTrelloBoard = board; return savedTrelloBoard; },
+    },
   });
-  return { handlers, savedSettings, store };
+  return { handlers, savedSettings, store, getTrelloBoard: () => savedTrelloBoard };
 }
 
 test('registers the established IPC channels in their existing order', () => {
   const { handlers } = createHarness();
   assert.deepEqual([...handlers.keys()], [
-    'window:minimize', 'window:toggle-maximize', 'window:close',
+    'window:minimize', 'window:toggle-maximize', 'window:close', 'window:open-trello', 'trello:load', 'trello:save', 'system:user-name',
     'sessions:list', 'sessions:history', 'sessions:read', 'sessions:titles-list', 'sessions:title-save',
     'settings:get', 'settings:save', 'codex:installation', 'codex:path-save',
     'sessions:archive', 'sessions:archived-list', 'sessions:restore', 'sessions:archived-remove', 'sessions:archived-clear',
@@ -219,6 +227,43 @@ test('normalizes a rollout-not-found race into a recoverable archive error', asy
     ok: false,
     error: '该对话已不在当前提供商的会话列表中，请刷新会话列表后重试。',
   });
+});
+
+test('opens the Trello singleton and persists its board through dedicated IPC channels', async () => {
+  let openCalls = 0;
+  const board = { version: 1, title: '本地看板', lists: [], labels: [], updatedAt: 1 };
+  const { handlers, getTrelloBoard } = createHarness({ trelloBoard: board, openTrelloWindow: () => { openCalls += 1; } });
+  assert.equal(await handlers.get('window:open-trello')(), true);
+  assert.equal(openCalls, 1);
+  assert.deepEqual(await handlers.get('trello:load')(), board);
+  const next = { ...board, title: '已保存' };
+  assert.deepEqual(await handlers.get('trello:save')(undefined, next), next);
+  assert.equal(getTrelloBoard().title, '已保存');
+});
+
+test('routes window controls to the renderer sender window', async () => {
+  const calls = [];
+  const trelloWindow = {
+    isMaximized: () => false,
+    maximize: () => calls.push('maximize'),
+    unmaximize: () => calls.push('unmaximize'),
+    minimize: () => calls.push('minimize'),
+    close: () => calls.push('close'),
+  };
+  const { handlers } = createHarness({ getWindowForSender: sender => sender === 'trello' ? trelloWindow : undefined });
+  await handlers.get('window:minimize')({ sender: 'trello' });
+  await handlers.get('window:toggle-maximize')({ sender: 'trello' });
+  await handlers.get('window:close')({ sender: 'trello' });
+  assert.deepEqual(calls, ['minimize', 'maximize', 'close']);
+});
+
+test('broadcasts a changed theme to the independent renderer', async () => {
+  const themes = [];
+  const { handlers } = createHarness({ onThemeChanged: theme => themes.push(theme) });
+  await handlers.get('settings:save')(undefined, { theme: 'dark' });
+  await handlers.get('settings:save')(undefined, { theme: 'dark' });
+  await handlers.get('settings:save')(undefined, { theme: 'light' });
+  assert.deepEqual(themes, ['dark', 'light']);
 });
 
 test('clears token usage only after an archived thread is deleted by Codex', async () => {
