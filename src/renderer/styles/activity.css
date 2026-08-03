@@ -1,4 +1,4 @@
-.activity { width: min(900px, 100%); min-height: 37px; border: 1px solid var(--color-divider); border-radius: 7px; background: var(--color-surface-0); overflow: hidden; }
+.activity { width: 100%; min-height: 37px; border: 1px solid var(--color-divider); border-radius: 7px; background: var(--color-surface-0); overflow: hidden; }
 .activity[open] { height: auto; min-height: 160px; }
 .activity[open] > :not(summary) { display: block; }
 .activity-heading { width: 100%; min-height: 35px; display: flex; align-items: center; gap: 8px; padding: 9px 11px; cursor: pointer; list-style: none; text-align: left; }

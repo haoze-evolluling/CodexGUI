@@ -1,5 +1,5 @@
 .timeline-panel { position: relative; flex: 1; min-height: 0; display: flex; }
-.messages { flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 28px 8%; display: flex; flex-direction: column; align-items: flex-start; align-content: start; gap: 18px; opacity: 1; transition: opacity 220ms ease-in; scrollbar-color: var(--color-scrollbar) var(--color-canvas); scrollbar-width: thin; }
+.messages { flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 28px 10%; display: flex; flex-direction: column; align-items: flex-start; align-content: start; gap: 18px; opacity: 1; transition: opacity 220ms ease-in; scrollbar-color: var(--color-scrollbar) var(--color-canvas); scrollbar-width: thin; }
 .messages.messages-refreshing { opacity: 0; transition: opacity 180ms ease-out; }
 .messages > * { flex: 0 0 auto; max-width: 100%; }
 .timeline-navigation { position: absolute; z-index: 1; right: 22px; top: 50%; display: grid; gap: 4px; transform: translateY(-50%); }
@@ -11,7 +11,7 @@
 .messages::-webkit-scrollbar-track { background: var(--color-canvas); }
 .messages::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border: 2px solid var(--color-canvas); border-radius: 8px; }
 .messages::-webkit-scrollbar-thumb:hover { background: var(--color-scrollbar-hover); }
-.message { width: min(900px, 100%); min-width: 0; max-width: 100%; }
+.message { width: 100%; min-width: 0; max-width: 100%; }
 .message.user { align-self: flex-end; width: fit-content; max-width: min(900px, 75%); padding: 10px 14px; border-radius: 18px; color: var(--color-info-strong); background: var(--color-surface-2); text-align: left; }
 .message label { font-size: 11px; text-transform: uppercase; color: var(--color-text-muted); }
 .message pre { font: inherit; font-size: var(--chat-font-size); line-height: 1.6; white-space: pre-wrap; margin: 5px 0; }
