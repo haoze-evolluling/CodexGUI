@@ -6,7 +6,6 @@ import { SettingsPage } from './components/SettingsPage';
 import { ArchivePage } from './components/ArchivePage';
 import { FeatureCenterPage } from './components/FeatureCenterPage';
 import { Timeline } from './components/Timeline';
-import { TitleBar } from './components/TitleBar';
 import { ContextMenu, type ContextMenuItem } from './components/ContextMenu';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
 import { useSessionController } from './use-session-controller';
@@ -122,7 +121,6 @@ export function App() {
 
   return (
     <div className={`app theme-${effectiveTheme} font-size-${fontSize}`}>
-      <TitleBar />
       {controller.dialog && <AppDialog dialog={controller.dialog} onClose={controller.closeDialog} />}
       <div className="app-workspace">
         {!controller.settingsOpen && (

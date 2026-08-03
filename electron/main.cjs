@@ -27,13 +27,14 @@ function resolveInitialTheme(theme) {
 function createWindow(theme) {
   const initialTheme = resolveInitialTheme(theme);
   win = new BrowserWindow({
+    title: 'Codex GUI',
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 600,
     backgroundColor: initialTheme === 'dark' ? '#11151c' : '#f7f9fc',
     icon: APP_ICON,
-    frame: false,
+    frame: true,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -56,13 +57,14 @@ function createTrelloWindow(theme) {
 
   const initialTheme = resolveInitialTheme(theme);
   trelloWin = new BrowserWindow({
+    title: 'Trello 看板',
     width: 1440,
     height: 900,
     minWidth: 1080,
     minHeight: 680,
     backgroundColor: initialTheme === 'dark' ? '#05060f' : '#fafaf9',
     icon: APP_ICON,
-    frame: false,
+    frame: true,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

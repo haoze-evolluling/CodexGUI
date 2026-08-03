@@ -102,16 +102,14 @@
 }
 
 .app.theme-light { color: var(--color-text-primary); background: var(--color-canvas); }
-.theme-light .title-bar, .theme-light main, .theme-light .settings-page { background: var(--color-canvas); }
-.theme-light .title-bar, .theme-light header, .theme-light .settings-page-header, .theme-light aside, .theme-light .sidebar-footer { color: var(--color-text-primary); border-color: var(--color-divider); }
-.theme-light .title-bar { background: var(--color-pure-white); }
+.theme-light main, .theme-light .settings-page { background: var(--color-canvas); }
+.theme-light header, .theme-light .settings-page-header, .theme-light aside, .theme-light .sidebar-footer { color: var(--color-text-primary); border-color: var(--color-divider); }
 .theme-light aside { background: var(--color-sidebar-surface); }
 .theme-light .path, .theme-light .group-path, .theme-light .group-toggle small, .theme-light .empty-sessions, .theme-light .message label, .theme-light .composer-meta, .theme-light .settings-hint, .theme-light .installation-status span { color: var(--color-text-muted); }
 .theme-light .history-error { color: var(--color-danger); }
 .theme-light button { color: var(--color-text-secondary); background: var(--color-control-surface); }
 .theme-light .icon, .theme-light .group-toggle, .theme-light .group-new, .theme-light .group-sessions .session-select, .theme-light .sidebar-footer button, .theme-light .composer-icon, .theme-light .mode-toggle, .theme-light .permission-trigger { background: transparent; }
-.theme-light .window-controls button { color: var(--color-text-secondary); }
-.theme-light .window-controls button:hover, .theme-light .icon:hover, .theme-light .sidebar-actions .icon:hover, .theme-light .group-toggle:hover, .theme-light .group-toggle:focus-visible, .theme-light .session-row.selected .session-select, .theme-light .session-row:hover .session-select, .theme-light .sidebar-footer button:hover, .theme-light .composer-icon:hover:not(:disabled), .theme-light .mode-toggle:hover:not(:disabled), .theme-light .permission-trigger:hover:not(:disabled) { color: var(--color-text-bright); background: var(--color-control-hover); }
+.theme-light .icon:hover, .theme-light .sidebar-actions .icon:hover, .theme-light .group-toggle:hover, .theme-light .group-toggle:focus-visible, .theme-light .session-row.selected .session-select, .theme-light .session-row:hover .session-select, .theme-light .sidebar-footer button:hover, .theme-light .composer-icon:hover:not(:disabled), .theme-light .mode-toggle:hover:not(:disabled), .theme-light .permission-trigger:hover:not(:disabled) { color: var(--color-text-bright); background: var(--color-control-hover); }
 .theme-light .messages, .theme-light .settings-page-body { scrollbar-color: var(--color-scrollbar) var(--color-canvas); }
 .theme-light .messages::-webkit-scrollbar-track { background: var(--color-canvas); }
 .theme-light .messages::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-color: var(--color-canvas); }

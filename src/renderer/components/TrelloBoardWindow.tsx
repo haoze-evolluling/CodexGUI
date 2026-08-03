@@ -9,8 +9,6 @@ import {
   GripVertical,
   Kanban,
   ListPlus,
-  Maximize2,
-  Minus,
   Pencil,
   Plus,
   Tag,
@@ -99,28 +97,6 @@ function moveCard(board: TrelloBoard, cardId: string, targetListId: string, over
 
 function cardFor(board: TrelloBoard, listId: string, cardId: string) {
   return board.lists.find(list => list.id === listId)?.cards.find(card => card.id === cardId);
-}
-
-function TrelloTitleBar() {
-  return (
-    <header className="trello-title-bar">
-      <div className="trello-title-bar-brand">
-        <Kanban size={16} />
-        <span>Trello 看板</span>
-      </div>
-      <div className="trello-window-controls">
-        <button type="button" onClick={() => void window.codex.minimizeWindow()} title="最小化" aria-label="最小化">
-          <Minus size={16} />
-        </button>
-        <button type="button" onClick={() => void window.codex.toggleMaximizeWindow()} title="最大化或还原" aria-label="最大化或还原">
-          <Maximize2 size={14} />
-        </button>
-        <button className="trello-window-close" type="button" onClick={() => void window.codex.closeWindow()} title="关闭看板" aria-label="关闭看板">
-          <X size={17} />
-        </button>
-      </div>
-    </header>
-  );
 }
 
 function LabelPill({ label, compact = false }: { label: TrelloLabel; compact?: boolean }) {
@@ -726,12 +702,11 @@ export function TrelloBoardWindow() {
   const saveLabel = saveState === 'loading' ? '加载看板' : saveState === 'saving' ? '保存中' : saveState === 'error' ? '保存失败' : '已保存';
 
   if (!board) {
-    return <div className={`trello-app theme-${theme}`}><TrelloTitleBar /><main className="trello-loading"><Kanban size={28} /><span>{saveState === 'error' ? '看板加载失败' : '正在打开看板...'}</span></main></div>;
+    return <div className={`trello-app theme-${theme}`}><main className="trello-loading"><Kanban size={28} /><span>{saveState === 'error' ? '看板加载失败' : '正在打开看板...'}</span></main></div>;
   }
 
   return (
     <div className={`trello-app theme-${theme}`}>
-      <TrelloTitleBar />
       <main className="trello-main">
         <header className="trello-board-header">
           <div className="trello-board-heading">
