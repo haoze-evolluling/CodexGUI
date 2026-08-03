@@ -46,6 +46,8 @@ export function useSessionController() {
   const planChoicesInFlight = useRef<Set<string>>(new Set());
   const sessionTitlesRef = useRef<Record<string, string>>({});
   const archivingSessionsRef = useRef<Set<string>>(new Set());
+  const historyMutationRevisionRef = useRef(0);
+  const archivedThreadIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     settingsRef.current = settings;
@@ -151,6 +153,7 @@ export function useSessionController() {
   };
 
   const refreshHistory = async () => {
+    const requestRevision = historyMutationRevisionRef.current;
     let items: Session[];
     try {
       items = await window.codex.loadHistory();
@@ -167,8 +170,15 @@ export function useSessionController() {
       setHistoryError('无法确认当前提供商的会话列表，请刷新后重试。');
       return;
     }
+    if (requestRevision !== historyMutationRevisionRef.current) return;
     setHistoryError(undefined);
-    const normalized = uniqueSessions(items.map(normalizeSession).map(withLocalTitle).map(applyPlanDecisionChoices));
+    const normalized = uniqueSessions(
+      items
+        .map(normalizeSession)
+        .map(withLocalTitle)
+        .map(applyPlanDecisionChoices)
+        .filter(session => !session.threadId || !archivedThreadIdsRef.current.has(session.threadId)),
+    );
     rememberProjects(normalized.map(item => item.cwd));
     setSessions(current => {
       const liveById = new Map(current.map(session => [session.id, session]));
@@ -695,8 +705,10 @@ export function useSessionController() {
         setDialog({ title: '归档失败', description: archived.error || '未知错误', onConfirm: () => setDialog(undefined) });
         return;
       }
+      historyMutationRevisionRef.current += 1;
+      archivedThreadIdsRef.current.add(archiveKey);
       const remaining = sessions.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId));
-      setSessions(remaining);
+      setSessions(current => current.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId)));
       setActive(current => current && (current.id === target.id || (target.threadId && current.threadId === target.threadId)) ? remaining[0] : current);
     } finally {
       archivingSessionsRef.current.delete(archiveKey);
@@ -772,6 +784,8 @@ export function useSessionController() {
       : { ok: true, succeededThreadIds: [] };
     const succeededThreadIds = new Set(archived.succeededThreadIds || []);
     if (succeededThreadIds.size) {
+      historyMutationRevisionRef.current += 1;
+      succeededThreadIds.forEach(threadId => archivedThreadIdsRef.current.add(threadId));
       setSessions(current => current.filter(session => !session.threadId || !succeededThreadIds.has(session.threadId)));
       setActive(current => current?.threadId && succeededThreadIds.has(current.threadId) ? undefined : current);
     }
@@ -809,6 +823,10 @@ export function useSessionController() {
     if (!result.ok) {
       setDialog({ title: '恢复失败', description: result.error || '未知错误', onConfirm: () => setDialog(undefined) });
       return;
+    }
+    if (target.threadId) {
+      historyMutationRevisionRef.current += 1;
+      archivedThreadIdsRef.current.delete(target.threadId);
     }
     const restored = withLocalTitle(normalizeSession(result.session));
     setArchivedSessions(current => current.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId)));
