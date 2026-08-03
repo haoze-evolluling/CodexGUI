@@ -1,4 +1,4 @@
-import { Archive, ArrowDown, ArrowUp, ClipboardPaste, Copy, FolderOpen, Pencil, Terminal, Trash2, Undo2 } from 'lucide-react';
+import { Archive, ArrowDown, ArrowUp, ClipboardPaste, Copy, FolderOpen, Kanban, Pencil, Pin, PinOff, Terminal, Trash2, Undo2 } from 'lucide-react';
 import { Composer } from './components/Composer';
 import { AppDialog } from './components/AppDialog';
 import { Sidebar } from './components/Sidebar';
@@ -9,7 +9,7 @@ import { Timeline } from './components/Timeline';
 import { ContextMenu, type ContextMenuItem } from './components/ContextMenu';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
 import { useSessionController } from './use-session-controller';
-import type { Session } from './types';
+import type { FeatureId, Session } from './types';
 
 type OpenContextMenu = { x: number; y: number; items: ContextMenuItem[] };
 
@@ -110,6 +110,20 @@ export function App() {
     });
   };
 
+  const openFeatureMenu = (event: MouseEvent, featureId: FeatureId) => {
+    event.preventDefault();
+    const pinned = controller.pinnedFeatureIds.includes(featureId);
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      items: [{
+        label: pinned ? '移出标题栏' : '添加到标题栏',
+        icon: pinned ? <PinOff size={16} /> : <Pin size={16} />,
+        onSelect: () => controller.togglePinnedFeature(featureId),
+      }],
+    });
+  };
+
   useEffect(() => {
     const query = window.matchMedia('(prefers-color-scheme: dark)');
     const update = () => setSystemPrefersDark(query.matches);
@@ -170,6 +184,7 @@ export function App() {
           ) : controller.featureCenterOpen ? (
             <FeatureCenterPage
               onClose={() => void transitionContent(controller.closeFeatureCenter)}
+              onFeatureContextMenu={openFeatureMenu}
               onOpenArchive={() => void transitionContent(controller.openArchive)}
               onOpenTrello={() => void window.codex.openTrello()}
             />
@@ -190,6 +205,15 @@ export function App() {
                 <span className="path">{controller.active?.cwd || '未选择项目文件夹'}</span>
               </div>
               <div className="header-actions">
+                {controller.pinnedFeatureIds.map(featureId => featureId === 'archive' ? (
+                  <button key={featureId} className="icon" onClick={() => void transitionContent(controller.openArchive)} title="查看归档会话" aria-label="查看归档会话">
+                    <Archive size={18} />
+                  </button>
+                ) : (
+                  <button key={featureId} className="icon" onClick={() => void window.codex.openTrello()} title="Trello 看板" aria-label="Trello 看板">
+                    <Kanban size={18} />
+                  </button>
+                ))}
                 <button className="icon" onClick={controller.openProjectDirectory} title="在文件资源管理器中打开项目目录" aria-label="在文件资源管理器中打开项目目录" disabled={!controller.active?.cwd}>
                   <FolderOpen size={18} />
                 </button>

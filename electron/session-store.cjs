@@ -29,6 +29,11 @@ function normalizePlanDecisionChoices(value) {
     .filter(([key, choice]) => typeof key === 'string' && key && ['implement', 'fresh', 'stay'].includes(choice)));
 }
 
+function normalizePinnedFeatureIds(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter(featureId => featureId === 'archive' || featureId === 'trello'))];
+}
+
 function normalizeSettings(value) {
   const codexPath = typeof value?.codexPath === 'string' ? value.codexPath.trim() : '';
   const model = typeof value?.model === 'string' ? value.model.trim() : '';
@@ -37,6 +42,7 @@ function normalizeSettings(value) {
     ? [...new Set(value.projectPaths.filter(projectPath => typeof projectPath === 'string').map(projectPath => projectPath.trim()).filter(Boolean))]
     : [];
   const planDecisionChoices = normalizePlanDecisionChoices(value?.planDecisionChoices);
+  const pinnedFeatureIds = normalizePinnedFeatureIds(value?.pinnedFeatureIds);
   const windowStates = normalizeWindowStates(value?.windowStates);
   return {
     permissionMode: value?.permissionMode === 'yolo' ? 'yolo' : 'default',
@@ -47,6 +53,7 @@ function normalizeSettings(value) {
     ...(reasoningEffort ? { reasoningEffort } : {}),
     ...(projectPaths.length ? { projectPaths } : {}),
     ...(Object.keys(planDecisionChoices).length ? { planDecisionChoices } : {}),
+    ...(pinnedFeatureIds.length ? { pinnedFeatureIds } : {}),
     ...(Object.keys(windowStates).length ? { windowStates } : {}),
   };
 }

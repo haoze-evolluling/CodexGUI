@@ -1,7 +1,10 @@
 import { Archive, Kanban, LayoutGrid, X } from 'lucide-react';
+import type { MouseEvent } from 'react';
+import type { FeatureId } from '../types';
 
 type FeatureCenterPageProps = {
   onClose(): void;
+  onFeatureContextMenu(event: MouseEvent, featureId: FeatureId): void;
   onOpenArchive(): void;
   onOpenTrello(): void;
 };
@@ -32,14 +35,14 @@ export function FeatureCenterPage(props: FeatureCenterPageProps) {
           </div>
 
           <div className="feature-center-list">
-            <button className="feature-center-item" onClick={props.onOpenArchive}>
+            <button className="feature-center-item" onClick={props.onOpenArchive} onContextMenu={event => props.onFeatureContextMenu(event, 'archive')}>
               <Archive size={20} />
               <span className="feature-center-item-copy">
                 <b>查看归档会话</b>
                 <span>查看、恢复或移除已归档的对话。</span>
               </span>
             </button>
-            <button className="feature-center-item" onClick={props.onOpenTrello}>
+            <button className="feature-center-item" onClick={props.onOpenTrello} onContextMenu={event => props.onFeatureContextMenu(event, 'trello')}>
               <Kanban size={20} />
               <span className="feature-center-item-copy">
                 <b>Trello 看板</b>

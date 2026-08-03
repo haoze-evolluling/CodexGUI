@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { freshSession, groupSessions, hasLoadedTimeline, normalizeSession, shouldKeepLiveTimeline, timelineOf, uniqueSessions } from './session-model';
-import type { AppSettings, ArchiveResult, CodexAttachment, CodexInstallation, CodexModel, CodexProviderInput, CodexProviderState, CodexSkill, CollaborationMode, FontSize, PermissionMode, PlanDecisionActivity, PlanDecisionChoice, ProviderStateResult, SaveCodexPathResult, Session, ThemeMode, UserInputActivity } from './types';
+import type { AppSettings, ArchiveResult, CodexAttachment, CodexInstallation, CodexModel, CodexProviderInput, CodexProviderState, CodexSkill, CollaborationMode, FeatureId, FontSize, PermissionMode, PlanDecisionActivity, PlanDecisionChoice, ProviderStateResult, SaveCodexPathResult, Session, ThemeMode, UserInputActivity } from './types';
 import type { AppDialogState } from './components/AppDialog';
 import { addUniqueAttachments } from './attachment-utils';
 import { without } from './session-set-utils';
@@ -589,13 +589,8 @@ export function useSessionController() {
     }
 
     const fresh = choice === 'fresh';
-    const text = fresh
-      ? 'Start a new execution context and implement the confirmed plan below.\n\nThis conversation intentionally starts without previous context.\nThe confirmed plan contains all required information.\n\nExecution Rules:\n- Treat the plan as the single source of truth.\n- Do not regenerate or redesign the plan.\n- Do not ask the user to restate previous discussions.\n- Begin implementation immediately.\n- Continue until the work is complete or required information is missing.\n\nConfirmed Plan:'
-      : 'Execute the confirmed plan below.\n\nThe plan has already been reviewed and approved.\n\nExecution Rules:\n- Follow the plan as written.\n- Do not generate a new plan.\n- Do not ask the user to restate the objective.\n- Do not repeat planning or analysis already completed.\n- Begin implementation immediately.\n- Continue until the work is finished or user intervention is required.\n\nConfirmed Plan:';
-    // Plan items are surfaced separately by app-server and are not guaranteed
-    // to be included in the next turn's conversational context. Send the
-    // authoritative plan returned for this decision with either action.
-    const prompt = `${text}\n\n${activity.plan}`;
+    const text = 'Start a new execution context and implement the confirmed plan below.\n\nThis conversation intentionally starts without previous context.\nThe confirmed plan contains all required information.\n\nExecution Rules:\n- Treat the plan as the single source of truth.\n- Do not regenerate or redesign the plan.\n- Do not ask the user to restate previous discussions.\n- Begin implementation immediately.\n- Continue until the work is complete or required information is missing.\n\nConfirmed Plan:';
+    const prompt = fresh ? `${text}\n\n${activity.plan}` : 'Implement the plan.';
     if (!active.cwd) {
       planChoicesInFlight.current.delete(activity.id);
       appendLocalError('请先选择项目文件夹。');
@@ -1001,6 +996,27 @@ export function useSessionController() {
     window.codex.saveSettings({ theme }).then(setSettings).catch(() => undefined);
   };
 
+  const togglePinnedFeature = (featureId: FeatureId) => {
+    const previous = settingsRef.current;
+    const current = previous.pinnedFeatureIds || [];
+    const nextPinnedFeatureIds = current.includes(featureId)
+      ? current.filter(currentFeatureId => currentFeatureId !== featureId)
+      : [...current, featureId];
+    const next = {
+      ...previous,
+      ...(nextPinnedFeatureIds.length ? { pinnedFeatureIds: nextPinnedFeatureIds } : { pinnedFeatureIds: undefined }),
+    };
+    settingsRef.current = next;
+    setSettings(next);
+    window.codex.saveSettings({ pinnedFeatureIds: nextPinnedFeatureIds.length ? nextPinnedFeatureIds : undefined }).then(saved => {
+      settingsRef.current = saved;
+      setSettings(saved);
+    }).catch(() => {
+      settingsRef.current = previous;
+      setSettings(previous);
+    });
+  };
+
   const setPermissionMode = (mode: PermissionMode) => {
     const previous = permissionMode;
     setPermissionModeState(mode);
@@ -1095,7 +1111,7 @@ export function useSessionController() {
     clearArchivedSessions, closeArchive: () => setArchiveOpen(false), closeArchiveToFeatureCenter: () => { setArchiveOpen(false); setFeatureCenterOpen(true); }, closeFeatureCenter: () => setFeatureCenterOpen(false), closeSettings: () => setSettingsOpen(false), installation, listMentionFiles, loadDiff, loadProviders, openArchive, openFeatureCenter, openInVsCode, openPath, openProjectDirectory, openSettings, openTerminal, providerState, refreshArchivedSessions, removeArchivedSession, restoreArchivedSession, saveCodexPath, saveProvider, activateProvider, deleteProvider, setFontSize, setTheme, settings, settingsOpen,
     createInFolder, createProjectSession, groups, historyError, input, models, moveProject, refreshHistory: refreshHistoryWithStatus, refreshingHistory, refreshingMessages, removeAttachment: (id: string) => setAttachments(current => current.filter(attachment => attachment.id !== id)), renameSession, running, runningSessions, selectedSkill, selectSkill, send, setActive: selectSession, showStatus, skills, stop, stopping: !!active && stoppingSessions.has(active.id),
     setCollaborationMode: (mode: 'default' | 'plan') => setActive(current => current ? { ...current, collaborationMode: mode } : current),
-    setInput: updateInput, setModel, setPermissionMode,
+    setInput: updateInput, setModel, setPermissionMode, pinnedFeatureIds: settings.pinnedFeatureIds || [], togglePinnedFeature,
     setReasoningEffort: (effort: string) => {
       const nextSettings = { ...settingsRef.current, reasoningEffort: effort };
       settingsRef.current = nextSettings;

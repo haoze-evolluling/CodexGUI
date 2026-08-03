@@ -66,6 +66,19 @@ test('restores the saved reasoning effort after reopening the store', () => {
   }
 });
 
+test('persists only valid unique pinned feature ids in insertion order', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-gui-pinned-features-'));
+  const settingsFile = path.join(directory, 'settings.json');
+  const createStore = () => createSessionStore(undefined, undefined, settingsFile);
+  try {
+    assert.deepEqual(createStore().saveSettings({ pinnedFeatureIds: ['trello', 'archive', 'trello', 'unknown', null] }).pinnedFeatureIds, ['trello', 'archive']);
+    assert.deepEqual(createStore().loadSettings().pinnedFeatureIds, ['trello', 'archive']);
+    assert.equal('pinnedFeatureIds' in createStore().saveSettings({ pinnedFeatureIds: [] }), false);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test('persists independent main and Trello window states', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-gui-window-settings-'));
   const settingsFile = path.join(directory, 'settings.json');
