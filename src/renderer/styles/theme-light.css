@@ -247,3 +247,6 @@
 @media (max-width: 820px) {
   .theme-light .provider-list { border-right: 0; border-bottom-color: var(--color-divider); }
 }
+
+.theme-light .provider-form select { color-scheme: light; }
+.theme-light .provider-form select option { color: var(--color-text-primary); background: var(--color-menu-surface); }

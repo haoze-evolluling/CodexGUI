@@ -95,3 +95,6 @@
   .provider-field-wide { grid-column: auto; }
   .theme-options, .font-size-options { grid-template-columns: 1fr; }
 }
+
+.provider-form select { color-scheme: dark; }
+.provider-form select option { color: var(--color-text-primary); background: var(--color-menu-surface); }
