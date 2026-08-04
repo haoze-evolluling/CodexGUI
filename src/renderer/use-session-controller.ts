@@ -698,6 +698,7 @@ export function useSessionController() {
       const remaining = sessions.filter(session => session.id !== target.id);
       setSessions(remaining);
       setActive(current => current?.id === target.id ? remaining[0] : current);
+      void refreshHistory();
       return;
     }
     const archiveKey = target.threadId;
@@ -714,6 +715,7 @@ export function useSessionController() {
       const remaining = sessions.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId));
       setSessions(current => current.filter(session => session.id !== target.id && (!target.threadId || session.threadId !== target.threadId)));
       setActive(current => current && (current.id === target.id || (target.threadId && current.threadId === target.threadId)) ? remaining[0] : current);
+      void refreshHistory();
     } finally {
       archivingSessionsRef.current.delete(archiveKey);
     }
@@ -794,6 +796,7 @@ export function useSessionController() {
       setActive(current => current?.threadId && succeededThreadIds.has(current.threadId) ? undefined : current);
     }
     if (!archived.ok) {
+      if (succeededThreadIds.size) void refreshHistory();
       setDialog({ title: '归档失败', description: archived.error || '未知错误', onConfirm: () => setDialog(undefined) });
       return;
     }
@@ -801,6 +804,7 @@ export function useSessionController() {
     const remaining = sessions.filter(session => !ids.has(session.id));
     setSessions(remaining);
     setActive(current => current && ids.has(current.id) ? remaining[0] : current);
+    void refreshHistory();
   };
 
   const openFeatureCenter = () => {

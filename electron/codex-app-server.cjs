@@ -227,7 +227,11 @@ function createCodexAppServer({ attachDiffs, getSpawnConfig, saveTokenUsage, sen
       return;
     }
     userInputRequests.set(message.params.itemId, { id: message.id, sessionId });
-    send('cli:user-input', { sessionId, request: message.params });
+    send('cli:user-input', {
+      sessionId,
+      request: message.params,
+      isPlanMode: planTurnsBySession.has(sessionId),
+    });
   }
 
   function handleLine(line) {

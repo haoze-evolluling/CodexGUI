@@ -368,6 +368,45 @@ test('does not answer a user-input request after its turn completes', async () =
   assert.equal(server.answerUserInput('input-1', {}), false);
 });
 
+test('marks user-input requests from plan turns for system notifications', async () => {
+  const { child, events, server } = createServerHarness();
+  assert.equal(await server.start({
+    sessionId: 'session-1', cwd: 'C:\\repo', prompt: 'Create a plan', attachments: [],
+    collaborationMode: { mode: 'plan' }, permissionMode: 'yolo',
+  }), true);
+
+  child.stdout.write(`${JSON.stringify({ id: 100, method: 'item/tool/requestUserInput', params: {
+    threadId: 'thread-1', itemId: 'input-plan-1', questions: [{ id: 'direction', question: 'Which direction?', options: [] }],
+  } })}\n`);
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.deepEqual(events.at(-1), {
+    channel: 'cli:user-input',
+    value: {
+      sessionId: 'session-1',
+      isPlanMode: true,
+      request: {
+        threadId: 'thread-1', itemId: 'input-plan-1', questions: [{ id: 'direction', question: 'Which direction?', options: [] }],
+      },
+    },
+  });
+});
+
+test('does not mark user-input requests from default turns as plan questions', async () => {
+  const { child, events, server } = createServerHarness();
+  assert.equal(await server.start({
+    sessionId: 'session-1', cwd: 'C:\\repo', prompt: 'Hello', attachments: [], permissionMode: 'yolo',
+  }), true);
+
+  child.stdout.write(`${JSON.stringify({ id: 101, method: 'item/tool/requestUserInput', params: {
+    threadId: 'thread-1', itemId: 'input-default-1', questions: [],
+  } })}\n`);
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.equal(events.at(-1).channel, 'cli:user-input');
+  assert.equal(events.at(-1).value.isPlanMode, false);
+});
+
 test('rejects oversized input and unsafe attachment paths before starting a turn', () => {
   assert.throws(() => inputFromOptions({ prompt: 'x'.repeat(200_001), attachments: [] }), /输入内容过长/);
   assert.throws(() => inputFromOptions({

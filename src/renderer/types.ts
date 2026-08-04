@@ -231,7 +231,7 @@ export type CodexApi = {
   onStatus(callback: (value: { sessionId: string; status: ThreadStatus }) => void): () => void;
   onTokenUsage(callback: (value: { sessionId: string; tokenUsage: ThreadTokenUsage }) => void): () => void;
   onTokenUsagePending(callback: (value: { sessionId: string }) => void): () => void;
-  onUserInput(callback: (value: { sessionId: string; request: { itemId: string; questions: UserInputQuestion[] } }) => void): () => void;
+  onUserInput(callback: (value: { sessionId: string; isPlanMode?: boolean; request: { itemId: string; questions: UserInputQuestion[] } }) => void): () => void;
   onPlanReady(callback: (value: { sessionId: string; plan: { itemId: string; text: string } }) => void): () => void;
   onSkillsChanged(callback: () => void): () => void;
   onFocusSession(callback: (value: { sessionId: string }) => void): () => void;

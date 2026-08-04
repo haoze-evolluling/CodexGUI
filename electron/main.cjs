@@ -134,6 +134,10 @@ function notifyPlanDecision(payload) {
   notifySession(payload, 'Codex 计划需要你的决定', '计划已生成，请选择下一步');
 }
 
+function notifyPlanQuestion(payload) {
+  notifySession(payload, 'Codex 等待你的选择', 'Codex 正在等待你的选择');
+}
+
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   const userData = app.getPath('userData');
@@ -157,6 +161,7 @@ app.whenReady().then(() => {
     send: (channel, value) => {
       if (channel === 'cli:error' && value?.sessionId) recentErrors.add(value.sessionId);
       if (channel === 'cli:plan-ready') notifyPlanDecision(value);
+      if (channel === 'cli:user-input' && value?.isPlanMode) notifyPlanQuestion(value);
       if (channel === 'cli:exit' && value?.sessionId) {
         const failed = recentErrors.has(value.sessionId) || value.status === 'failed' || value.status === 'error';
         recentErrors.delete(value.sessionId);
