@@ -71,6 +71,11 @@ function mcpTypeFromTools(tools) {
   return `MCP · ${labels.join(', ')}`;
 }
 
+function mcpCommandFromItem(item) {
+  const tool = mcpToolsFromItem(item)[0];
+  return tool ? `mcp__${tool.server}__${tool.tool}` : '';
+}
+
 function decodeStringLiteral(source, quote) {
   let result = '';
   for (let index = 0; index < source.length; index += 1) {
@@ -118,6 +123,8 @@ function commandFromValue(value) {
 }
 
 function commandFromItem(item) {
+  const mcpCommand = mcpCommandFromItem(item);
+  if (mcpCommand) return mcpCommand;
   const args = parsedValue(item?.arguments ?? item?.args);
   const direct = item?.command ?? item?.cmd;
   if (direct !== undefined) return commandFromValue(direct);
@@ -131,7 +138,7 @@ function commandFromItem(item) {
     return commandFromValue(item.input);
   }
   if (item?.arguments !== undefined) return commandFromValue(item.arguments);
-  return item?.name || item?.toolName || item?.tool_name || '工具调用';
+  return item?.name || item?.toolName || item?.tool_name || item?.tool || '工具调用';
 }
 
 function firstCommandToken(command) {
@@ -256,6 +263,7 @@ function commandTypeFromItem(item, command = commandFromItem(item)) {
   const name = toolNameFromItem(item);
   const normalizedName = name.toLowerCase();
   const type = normalizedItemType(item);
+  if (type === 'collabagenttoolcall' || type === 'agenttoolcall' || type.includes('collab')) return 'Codex · 工具编排';
   if (/^(?:browser|web|web_search|web\.run)$/.test(normalizedName)) return 'Web · 浏览或搜索';
   if (/^(?:file_search|file_read|read_file|list_directory)$/.test(normalizedName)) return '文件 · 查询或读取';
   if (/^(?:computer|computer_use|screenshot)$/.test(normalizedName)) return '界面 · 操作';

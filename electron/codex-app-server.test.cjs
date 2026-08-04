@@ -195,6 +195,39 @@ test('maps functionCall, toolCall, and called items to command activities', () =
   });
 });
 
+test('maps modern MCP and collaboration tool items while they are running', () => {
+  assert.deepEqual(activityFromItem({
+    id: 'mcp-running', type: 'mcpToolCall', status: 'in_progress',
+    server: 'codebase_memory_mcp', tool: 'index_repository', arguments: {},
+  }, 'running'), {
+    id: 'mcp-running', type: 'command', status: 'running',
+    command: 'mcp__codebase_memory_mcp__index_repository',
+    commandType: 'MCP · codebase_memory_mcp / index_repository', output: '',
+  });
+  assert.deepEqual(activityFromItem({
+    id: 'collab-running', type: 'collabAgentToolCall', status: 'in_progress', tool: 'spawn_agent',
+  }, 'running'), {
+    id: 'collab-running', type: 'command', status: 'running', command: 'spawn_agent',
+    commandType: 'Codex · 工具编排', output: '',
+  });
+});
+
+test('publishes modern tool activities on item/started before completion', async () => {
+  const { child, events, server } = createServerHarness();
+  assert.equal(await server.start({ sessionId: 'session-1', cwd: 'C:\\repo', prompt: 'Hello', attachments: [], permissionMode: 'yolo' }), true);
+  child.stdout.write(`${JSON.stringify({ method: 'item/started', params: {
+    threadId: 'thread-1', item: { id: 'mcp-running', type: 'mcpToolCall', status: 'in_progress', server: 'codebase_memory_mcp', tool: 'index_repository', arguments: {} },
+  } })}\n`);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(events.slice(-1), [{ channel: 'cli:activity', value: {
+    sessionId: 'session-1', activity: {
+      id: 'mcp-running', type: 'command', status: 'running',
+      command: 'mcp__codebase_memory_mcp__index_repository',
+      commandType: 'MCP · codebase_memory_mcp / index_repository', output: '',
+    },
+  } }]);
+});
+
 test('extracts text from MCP content envelopes', () => {
   const activity = activityFromItem(
     { id: 'mcp-1', type: 'customToolCall', name: 'exec', input: 'const result = await tools.mcp__codebase_memory_mcp__search_graph({});' },

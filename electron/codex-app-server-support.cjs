@@ -19,21 +19,29 @@ function normalizedType(item) {
 }
 
 function isCommandCall(item) {
-  return ['commandexecution', 'commandcall', 'customtoolcall', 'functioncall', 'toolcall', 'called'].includes(normalizedType(item));
+  return ['commandexecution', 'commandcall', 'customtoolcall', 'functioncall', 'toolcall', 'called', 'mcptoolcall', 'collabagenttoolcall', 'agenttoolcall'].includes(normalizedType(item));
 }
 
 function isCommandOutput(item) {
   return ['customtoolcalloutput', 'functioncalloutput', 'toolcalloutput', 'calledoutput'].includes(normalizedType(item));
 }
 
+function activityStatus(item, status) {
+  const eventStatus = String(status || '').replace(/[-_]/g, '').toLowerCase();
+  if (eventStatus === 'running' || eventStatus === 'started' || eventStatus === 'inprogress') return 'running';
+  if (eventStatus === 'completed' || eventStatus === 'done' || eventStatus === 'failed') return eventStatus === 'failed' ? 'failed' : 'completed';
+  const value = String(item?.status || status || '').replace(/[-_]/g, '').toLowerCase();
+  return value === 'inprogress' || value === 'started' ? 'running' : (item?.status || status);
+}
+
 function activityFromItem(item, status, toolOutput) {
   if (!item) return null;
   const id = item.callId || item.call_id || item.id;
   if (isCommandCall(item)) {
-    const output = item.aggregatedOutput ?? item.aggregated_output ?? item.output ?? toolOutput;
+    const output = item.aggregatedOutput ?? item.aggregated_output ?? item.output ?? item.result ?? toolOutput;
     const command = commandFromItem(item);
     return {
-      id: id || `command-${Math.random()}`, type: 'command', status: item.status || status,
+      id: id || `command-${Math.random()}`, type: 'command', status: activityStatus(item, status),
       command, commandType: commandTypeFromItem(item, command), output: textFromToolOutput(output),
       ...(item.exitCode !== undefined || item.exit_code !== undefined ? { exitCode: item.exitCode ?? item.exit_code } : {}),
     };
