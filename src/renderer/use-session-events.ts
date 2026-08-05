@@ -31,9 +31,6 @@ export function useSessionEvents(options: Options) {
     }).catch(() => options.setPermissionMode('default'));
     window.codex.getProviders().then(options.setProviderState).catch(() => options.setProviderState(undefined));
     window.codex.getCodexInstallation().then(options.showMissingCodex).catch(() => undefined);
-    const refreshTimer = window.setInterval(() => {
-      void options.refreshHistory();
-    }, 30_000);
     const updateSession = (sessionId: string, update: (session: Session) => Session) => {
       let nextSession: Session | undefined;
       options.setActive(current => {
@@ -175,7 +172,6 @@ export function useSessionEvents(options: Options) {
       })),
     ];
     return () => {
-      window.clearInterval(refreshTimer);
       if (dataFrame) window.cancelAnimationFrame(dataFrame);
       unsubscribe.forEach(removeListener => removeListener());
     };
