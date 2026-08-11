@@ -1,5 +1,7 @@
 node_modules/
 dist/
 *.tsbuildinfo
-./package-lock.json
 .codebase-memory/
+frontend/node_modules/
+frontend/dist/*
+!frontend/dist/.gitkeep

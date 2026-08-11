@@ -1,0 +1,11 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Codex GUI",
+  "outputfilename": "CodexGUI",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": { "name": "leeha" },
+  "info": { "companyName": "leeha", "productVersion": "2.0.0", "copyright": "Copyright © 2026" }
+}
