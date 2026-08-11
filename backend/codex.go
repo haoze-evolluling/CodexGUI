@@ -59,6 +59,7 @@ func (p *codexProcess) start(path string) error {
 		return errors.New(status.Error)
 	}
 	cmd := exec.Command(status.Path, "app-server", "--stdio")
+	configureCodexCommand(cmd)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return err
