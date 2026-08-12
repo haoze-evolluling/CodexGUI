@@ -42,7 +42,9 @@ func (m *providerManager) state() ProviderState {
 	records := m.records()
 	config := m.readConfig()
 	configuredID, _ := config["model_provider"].(string)
-	state := ProviderState{}
+	// Always serialize an empty provider collection as [] rather than null so
+	// clients can render the no-provider state without special null handling.
+	state := ProviderState{Providers: make([]Provider, 0)}
 	state.Model, _ = config["model"].(string)
 	state.ReasoningEffort, _ = config["model_reasoning_effort"].(string)
 	for _, record := range records.Providers {
