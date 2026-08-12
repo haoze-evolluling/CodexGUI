@@ -1,8 +1,52 @@
+# Dependencies
 node_modules/
-dist/
-*.tsbuildinfo
-.codebase-memory/
 frontend/node_modules/
-frontend/dist/*
-!frontend/dist/.gitkeep
-build/*.exe
+
+# Frontend build output
+frontend/dist/
+dist/
+
+# Go / Wails build artifacts
+build/bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Coverage and profiling output
+coverage/
+*.coverprofile
+*.prof
+
+# Runtime logs and temporary files
+*.log
+tmp/
+temp/
+.tmp/
+*.tmp
+*.bak
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# IDE and editor metadata
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Project-local tooling and generated workspace data
+.codebase-memory/
+.trash/
+.trae/

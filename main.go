@@ -19,7 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 	err = wails.Run(&options.App{
-		Title: "Codex GUI", Width: 1180, Height: 780, MinWidth: 840, MinHeight: 600,
+		Title: "Codex Manager", Width: 1180, Height: 780, MinWidth: 840, MinHeight: 600,
 		AssetServer: &assetserver.Options{Assets: assets},
 		OnStartup:   app.Startup, OnShutdown: app.Shutdown,
 		Bind: []interface{}{app},

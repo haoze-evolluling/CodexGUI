@@ -80,7 +80,7 @@ func (p *codexProcess) start(path string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	var ignored json.RawMessage
-	if err := p.call(ctx, "initialize", map[string]any{"clientInfo": map[string]string{"name": "codex_gui", "title": "Codex GUI", "version": "2.0.0"}, "capabilities": map[string]bool{"experimentalApi": true}}, &ignored); err != nil {
+	if err := p.call(ctx, "initialize", map[string]any{"clientInfo": map[string]string{"name": "codex_manager", "title": "Codex Manager", "version": "2.0.0"}, "capabilities": map[string]bool{"experimentalApi": true}}, &ignored); err != nil {
 		p.stop()
 		return err
 	}

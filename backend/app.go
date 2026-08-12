@@ -20,7 +20,7 @@ func NewApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	dataDir := filepath.Join(dir, "CodexGUI")
+	dataDir := filepath.Join(dir, "CodexManager")
 	if err = os.MkdirAll(dataDir, 0700); err != nil {
 		return nil, err
 	}

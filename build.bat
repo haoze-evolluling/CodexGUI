@@ -10,7 +10,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo Building Codex GUI...
+echo Building Codex Manager...
 wails build
 if errorlevel 1 (
   set "BUILD_EXIT=%ERRORLEVEL%"
@@ -20,5 +20,5 @@ if errorlevel 1 (
 )
 
 echo.
-echo Build succeeded. Output: build\bin\CodexGUI.exe
+echo Build succeeded. Output: build\bin\CodexManager.exe
 endlocal

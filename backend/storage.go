@@ -34,7 +34,7 @@ func writeAtomic(path string, data []byte, mode os.FileMode) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".codexgui-*")
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".codex-manager-*")
 	if err != nil {
 		return err
 	}

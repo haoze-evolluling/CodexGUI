@@ -30,7 +30,7 @@ var credRead = advapi.NewProc("CredReadW")
 var credDelete = advapi.NewProc("CredDeleteW")
 var credFree = advapi.NewProc("CredFree")
 
-func credentialTarget(id string) string { return "CodexGUI/provider/" + id }
+func credentialTarget(id string) string { return "CodexManager/provider/" + id }
 func saveSecret(id, value string) error {
 	target, err := syscall.UTF16PtrFromString(credentialTarget(id))
 	if err != nil {
