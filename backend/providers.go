@@ -96,7 +96,7 @@ func (m *providerManager) save(input ProviderInput) (ProviderState, error) {
 	id := strings.TrimSpace(input.ID)
 	name := strings.TrimSpace(input.Name)
 	if id == "" {
-		id = slug(name)
+		id = nextProviderID(records.Providers, name)
 	}
 	if name == "" {
 		return m.state(), errors.New("请输入提供商名称。")
@@ -202,6 +202,21 @@ func slug(value string) string {
 		}
 	}
 	return strings.Trim(out.String(), "-")
+}
+func nextProviderID(records map[string]providerRecord, name string) string {
+	base := slug(name)
+	if base == "" {
+		base = "provider"
+	}
+	if _, exists := records[base]; !exists {
+		return base
+	}
+	for n := 2; ; n++ {
+		candidate := fmt.Sprintf("%s-%d", base, n)
+		if _, exists := records[candidate]; !exists {
+			return candidate
+		}
+	}
 }
 func jsonRead(path string, out any) error {
 	b, err := os.ReadFile(path)

@@ -36,3 +36,17 @@ func TestSlug(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestNextProviderID(t *testing.T) {
+	records := map[string]providerRecord{
+		"provider":   {ID: "provider"},
+		"provider-2": {ID: "provider-2"},
+		"openai":     {ID: "openai"},
+	}
+	if got := nextProviderID(records, "硅基流动"); got != "provider-3" {
+		t.Fatalf("nextProviderID() for a non-slug name = %q, want provider-3", got)
+	}
+	if got := nextProviderID(records, "OpenAI"); got != "openai-2" {
+		t.Fatalf("nextProviderID() for duplicate slug = %q, want openai-2", got)
+	}
+}
